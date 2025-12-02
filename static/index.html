@@ -1,0 +1,961 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8"/>
+  <title>KORU Yangın Önleme Platformu</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"/>
+  <link rel="icon" type="image/png" href="/static/img/favicon.png"/>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    :root{ --brand-blue:#8B0000; --brand-blue-rgb:139,0,0; }
+    html,body{height:100%;margin:0}
+    body{ box-sizing:border-box; border:6px solid rgba(var(--brand-blue-rgb),0.35); background: var(--brand-blue); }
+    .map-frame{ position:absolute; top:76px; left:12px; right:12px; bottom:68px; background:#fff; border:6px solid rgba(var(--brand-blue-rgb),0.22); border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,.18); overflow:hidden }
+    #map{height:100%}
+    .panel{position:absolute;top:96px;left:12px;right:12px;z-index:9999;background:#fff;padding:6px 10px;border-radius:10px;box-shadow:0 3px 10px rgba(0,0,0,.10);font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .panel input{width:56px}
+    .panel .section{margin:0;padding:0;display:flex;align-items:center;gap:8px;border:none;border-right:1px dashed rgba(0,0,0,0.12);padding-right:10px}
+    .panel .section:last-child{border-right:none}
+    .panel .section-title{display:none}
+    .panel .row{display:flex;gap:6px;align-items:center;flex-wrap:nowrap}
+    .panel label{font-size:11px;color:#344;opacity:.85}
+    .panel input[type=number]{height:28px;padding:3px 8px;border:1px solid #d3d7e3;border-radius:8px;font-family:inherit}
+    .panel input[type=number]:focus{outline:none;border-color:rgba(var(--brand-blue-rgb),0.6);box-shadow:0 0 0 3px rgba(var(--brand-blue-rgb),0.18)}
+    .btn{cursor:pointer; border:1px solid rgba(0,0,0,0.1); border-radius:10px; padding:6px 10px; background:#fff; transition:all .15s ease; font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size:12px; height:30px }
+    .btn:hover{ box-shadow:0 3px 8px rgba(0,0,0,0.12) }
+    .btn:active{ transform:translateY(1px) }
+    .btn:focus-visible{ outline:none; box-shadow:0 0 0 3px rgba(var(--brand-blue-rgb),0.25) }
+    .btn-primary{ background: var(--brand-blue); color:#fff; border-color: rgba(255,255,255,0.2); }
+    .btn-primary:hover{ filter: brightness(1.05); box-shadow:0 5px 12px rgba(0,0,0,0.18) }
+    .btn-outline{ background:#fff; color: var(--brand-blue); border-color: rgba(var(--brand-blue-rgb),0.5); }
+    .btn-outline:hover{ background: rgba(var(--brand-blue-rgb),0.06); border-color: var(--brand-blue) }
+    #info{ font-size:11px; color:#6b7280; margin-left:6px }
+    .legend{background:#fff;padding:6px 8px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.15);font:12px/1.2 sans-serif}
+    .legend .row{display:flex;align-items:center;margin:2px 0}
+    .legend .sw{width:14px;height:14px;margin-right:6px;border:1px solid #999}
+    .header{position:absolute;top:0;left:0;right:0;z-index:10000;background:var(--brand-blue);padding:10px 16px;display:flex;align-items:center;gap:10px;justify-content:space-between;border-bottom:2px solid rgba(255,255,255,0.15); color:#fff; flex-wrap:nowrap}
+    .header .title{color:#fff; font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-weight:700; font-size:18px; letter-spacing:.1px; white-space:nowrap; flex:1}
+    .header .user-info{ color:#fff; font-size:12px; font-weight:600; display:flex; align-items:center; gap:10px; white-space:nowrap; }
+    .header .logout-btn{ background:rgba(255,255,255,0.2); color:#fff; border:1px solid rgba(255,255,255,0.4); padding:6px 12px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; transition:all 0.2s ease; }
+    .header .logout-btn:hover{ background:rgba(255,255,255,0.3); }
+    .logo{height:42px;width:auto; background: var(--brand-blue); display:block}
+    .hamburger{width:32px;height:24px;display:inline-flex;flex-direction:column;justify-content:space-between;cursor:pointer;background:transparent;border:none;padding:0;margin:0}
+    .hamburger span{display:block;height:3px;background:#fff;border-radius:2px;opacity:0.9}
+    .sidebar{position:fixed;top:0;right:0;bottom:0;width:300px;background:var(--brand-blue);color:#fff;box-shadow:-2px 0 16px rgba(0,0,0,.25);transform:translateX(100%);transition:transform .25s ease;z-index:10050;display:flex;flex-direction:column}
+    .sidebar.open{transform:translateX(0)}
+    .sidebar a{padding:14px 18px;color:#fff;text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.12);display:block}
+    .sidebar, .sidebar a{ font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif }
+    .sidebar a{ font-weight:600; letter-spacing:.2px }
+    .sidebar a:hover{background:rgba(255,255,255,0.08)}
+    .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:10040;opacity:0;pointer-events:none;transition:opacity .2s}
+    .backdrop.show{opacity:1;pointer-events:auto}
+    .btn{cursor:pointer; border:1px solid rgba(0,0,0,0.1); border-radius:8px; padding:6px 10px; background:#fff}
+    .btn-primary{ background: var(--brand-blue); color:#fff; border-color: rgba(255,255,255,0.2); }
+    .btn-primary:hover{ filter: brightness(1.08); }
+    .btn-outline{ background:#fff; color: var(--brand-blue); border-color: rgba(var(--brand-blue-rgb),0.5); }
+    .btn-outline:hover{ background: rgba(var(--brand-blue-rgb),0.06); }
+    .status{ margin-left:auto; font:600 12px/1.2 sans-serif; color:#123 }
+    .footer{ position:absolute; left:0; right:0; bottom:0; height:60px; background:#fff; display:flex; align-items:center; justify-content:space-between; padding:0 16px; border-top:1px solid rgba(0,0,0,0.08) }
+    .footer img{ height:52px; width:auto; display:block; max-width:50vw; object-fit:contain }
+    .footer .contact{ font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-weight:600; font-size:12px; line-height:1; color: var(--brand-blue); display:flex; align-items:center; gap:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; justify-content:flex-end }
+    .footer .contact a{ color: var(--brand-blue); text-decoration:none }
+    .footer .contact a:hover{ text-decoration:underline }
+    .footer .contact strong{ font-weight:800 }
+    .copyable{ position:relative; display:inline-flex; align-items:center; gap:6px; color: var(--brand-blue); padding:0 2px }
+    .copy-btn{ display:none; font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-weight:700; font-size:11px; color:#fff; background: var(--brand-blue); border:none; border-radius:10px; padding:2px 8px; cursor:pointer; line-height:1 }
+    .copyable:hover .copy-btn{ display:inline-block }
+    @media (max-width:480px){ .panel{top:108px; left:8px; right:8px; width:auto} .header{padding:10px 12px} .logo{height:34px} .header .title{font-size:14px; letter-spacing:.05px; white-space:nowrap} .map-frame{top:88px; left:8px; right:8px; bottom:68px; border-width:4px} .footer{height:64px} .footer img{height:44px; max-width:45vw} .footer .contact{font-size:11px} }
+  </style>
+</head>
+<body>
+  <div class="map-frame"><div id="map"></div></div>
+  <div class="footer">
+    <div class="contact">
+      <span><strong>Telefon:</strong> <span class="copyable" data-copy="153"><span class="copy-val">153</span><button type="button" class="copy-btn" aria-label="Kopyala">Kopyala</button></span></span>
+      <span><strong>Faks:</strong> <span class="copyable" data-copy="(0232) 293 39 95"><span class="copy-val">(0232) 293 39 95</span><button type="button" class="copy-btn" aria-label="Kopyala">Kopyala</button></span></span>
+      <span><strong>E-Posta:</strong> <span class="copyable" data-copy="him@izmir.bel.tr"><a href="mailto:him@izmir.bel.tr">him@izmir.bel.tr</a><button type="button" class="copy-btn" aria-label="Kopyala">Kopyala</button></span></span>
+    </div>
+  </div>
+  <div class="header"><span class="title">KORU Yangın Önleme Platformu</span><div class="user-info"><span id="userDisplay"></span><button id="logoutBtn" class="logout-btn">Çıkış</button></div><button id="menuBtn" class="hamburger" aria-label="Menü"><span></span><span></span><span></span></button></div>
+  <div id="sidebar" class="sidebar" aria-hidden="true">
+    <a href="#" id="mFires">İzmir Yangınları</a>
+    <a href="#" id="mNearest">Bana En Yakın Toplanma Alanı</a>
+    <a href="#" id="mVolunteer">AFAD Gönüllüsü olun</a>
+    <a href="#" id="mContact">Bize Ulaşın</a>
+  </div>
+  <div id="backdrop" class="backdrop"></div>
+  <div class="panel">
+    <div class="section">
+      <div class="section-title">İzmir Yangınları</div>
+      <div class="row">
+        <label for="dr">Gün aralığı</label>
+        <input id="dr" type="number" value="3" min="1" max="10"/>
+        <button id="btnFires" class="btn btn-outline">Noktaları Getir</button>
+        <button id="btnFiresCached" class="btn btn-primary">Önbellekten</button>
+        <label style="margin-left:6px"><input id="autoRef" type="checkbox"> Auto (60s)</label>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Rüzgâr ve Yayılım</div>
+      <div class="row">
+        <button id="btnWind" class="btn btn-outline">Rüzgârı Al (merkez)</button>
+        <label for="dur">Süre (dk)</label>
+        <input id="dur" type="number" value="30" min="5" max="180"/>
+        <button id="btnSpread" class="btn btn-outline">Tahmin Çiz</button>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Risk ve Katmanlar</div>
+      <div class="row">
+        <label for="cellKm">Hücre (km)</label>
+        <input id="cellKm" type="number" value="8" min="2" max="50" style="width:64px">
+        <button id="btnRisk" class="btn btn-outline">Risk Overlay</button>
+        <button id="btnShelters" class="btn btn-outline">Toplanma Alanları</button>
+        <button id="btnReservoirs" class="btn btn-outline">💧 Barajlar</button>
+      </div>
+    </div>
+    <div class="section">
+      <div class="row">
+        <button id="btnReset" class="btn">Sıfırla (Default)</button>
+        <span id="info" style="margin-left:6px;color:#555"></span>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+  <script src="https://d3js.org/d3-contour.v2.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script>
+    // Kontrol: Kullanıcı giriş yapmış mı?
+    (function checkLogin(){
+      const isLoggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
+      if (!isLoggedIn) {
+        window.location.href = '/login';
+        return;
+      }
+      
+      // Kullanıcı bilgisini göster
+      const username = sessionStorage.getItem('username') || 'Kullanıcı';
+      const userType = sessionStorage.getItem('userType') || 'user';
+      const userDisplay = document.getElementById('userDisplay');
+      if (userDisplay) {
+        const typeLabel = userType === 'admin' ? '🔐 Admin' : '👤 Kullanıcı';
+        userDisplay.textContent = `${typeLabel} - ${username}`;
+      }
+      
+      // Çıkış butonunu ayarla
+      const logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() {
+          sessionStorage.clear();
+          window.location.href = '/login';
+        });
+      }
+    })();
+
+    // Ensure logo loads with fallback candidates
+    (function ensureLogo(){
+      const img = document.getElementById('logoImg');
+      if(!img) return;
+      const cand = ['/static/img/izmir-logo.png','/static/img/izmir-logo.jpg','/static/img/izmir-logo.jpeg','/static/img/izmir-logo.svg','/static/img/izmir.png'];
+      let i = 0;
+      function tryNext(){
+        if(i >= cand.length){ img.style.display='none'; return; }
+        img.src = cand[i] + '?v=3';
+        i++;
+      }
+      img.onerror = tryNext;
+      tryNext();
+    })();
+
+    // Footer logo loader (tries multiple filenames)
+    (function ensureFooterLogo(){
+      const img = document.getElementById('footerLogo');
+      if(!img) return;
+      const cand = ['/static/img/izmir-wordmark.png','/static/img/izmir-wordmark.svg','/static/img/izmir-logo.png','/static/img/izmir.png'];
+      let i = 0;
+      function tryNext(){ if(i>=cand.length){ img.style.display='none'; return; } img.src=cand[i]+'?v=3'; i++; }
+      img.onerror = tryNext; tryNext();
+    })();
+
+    // Copy-to-clipboard for footer contact values (hint button)
+    (function setupCopyables(){
+      function copy(txt){
+        if (navigator.clipboard && navigator.clipboard.writeText){
+          return navigator.clipboard.writeText(txt);
+        }
+        return new Promise((resolve)=>{
+          const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select();
+          try{ document.execCommand('copy'); }catch(_e){} finally{ document.body.removeChild(ta); }
+          resolve();
+        });
+      }
+      document.querySelectorAll('.copyable .copy-btn').forEach(btn=>{
+        btn.addEventListener('click', (e)=>{
+          e.preventDefault(); e.stopPropagation();
+          const wrap = btn.closest('.copyable');
+          const txt = wrap.getAttribute('data-copy') || wrap.textContent.trim();
+          const prev = btn.textContent;
+          copy(txt).then(()=>{ btn.textContent='Kopyalandı'; setTimeout(()=>{ btn.textContent=prev; }, 1200); });
+        });
+      });
+    })();
+
+    // Sidebar
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('backdrop');
+    const menuBtn = document.getElementById('menuBtn');
+    function openSidebar(){ sidebar.classList.add('open'); backdrop.classList.add('show'); sidebar.setAttribute('aria-hidden','false'); }
+    function closeSidebar(){ sidebar.classList.remove('open'); backdrop.classList.remove('show'); sidebar.setAttribute('aria-hidden','true'); }
+    function toggleSidebar(){ if (sidebar.classList.contains('open')) closeSidebar(); else openSidebar(); }
+    menuBtn.addEventListener('click', toggleSidebar);
+    backdrop.addEventListener('click', closeSidebar);
+    window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeSidebar(); });
+
+    // Sidebar menu actions
+    document.getElementById('mFires').addEventListener('click', (e)=>{ e.preventDefault(); closeSidebar(); document.getElementById('btnFiresCached').click(); });
+
+    async function getUserPosition(){
+      return new Promise((resolve)=>{
+        if (!navigator.geolocation){ return resolve(null); }
+        navigator.geolocation.getCurrentPosition(
+          pos => resolve({lat: pos.coords.latitude, lon: pos.coords.longitude}),
+          _err => resolve(null),
+          {enableHighAccuracy:true, timeout:5000, maximumAge:60000}
+        );
+      });
+    }
+    function haversineKm(aLat,aLon,bLat,bLon){
+      const R=6371; const toRad=x=>x*Math.PI/180;
+      const dLat=toRad(bLat-aLat), dLon=toRad(bLon-aLon);
+      const la1=toRad(aLat), la2=toRad(bLat);
+      const h = Math.sin(dLat/2)**2 + Math.cos(la1)*Math.cos(la2)*Math.sin(dLon/2)**2;
+      return 2*R*Math.asin(Math.sqrt(h));
+    }
+    async function ensureSheltersLoaded(){
+      if (window.sheltersLayer) return true;
+      document.getElementById('btnShelters').click();
+      // wait until window.sheltersLayer appears (max ~2s)
+      for (let i=0;i<10;i++){
+        await new Promise(r=>setTimeout(r,200));
+        if (window.sheltersLayer) return true;
+      }
+      return !!window.sheltersLayer;
+    }
+    async function findNearestShelter(){
+      const info = document.getElementById('info');
+      const ok = await ensureSheltersLoaded();
+      if (!ok){ info.textContent='Toplanma alanları yüklenemedi'; return; }
+      const user = await getUserPosition();
+      const center = map.getCenter();
+      const src = user ? {lat:user.lat, lon:user.lon} : {lat:center.lat, lon:center.lng};
+      let best = null; let bestD = Infinity; let bestLayer = null;
+      (window.sheltersLayer.getLayers()||[]).forEach(l=>{
+        if (!l.getLatLng) return;
+        const ll = l.getLatLng();
+        const d = haversineKm(src.lat, src.lon, ll.lat, ll.lng);
+        if (d < bestD){ bestD = d; best = {lat: ll.lat, lon: ll.lng, props: l.feature?.properties||{}}; bestLayer = l; }
+      });
+      if (!best){ info.textContent='Uygun toplanma alanı bulunamadı'; return; }
+      map.setView([best.lat, best.lon], Math.max(map.getZoom(), 14));
+      if (bestLayer && bestLayer.openPopup) bestLayer.openPopup();
+      info.textContent = `En yakın toplanma alanı: ~${bestD.toFixed(1)} km`;
+    }
+    document.getElementById('mNearest').addEventListener('click', async (e)=>{ e.preventDefault(); closeSidebar(); await findNearestShelter(); });
+    document.getElementById('mVolunteer').addEventListener('click', (e)=>{ e.preventDefault(); closeSidebar(); window.open('https://gonullu.afad.gov.tr/', '_blank'); });
+    document.getElementById('mContact').addEventListener('click', (e)=>{ e.preventDefault(); closeSidebar(); window.open('https://www.izmir.bel.tr/', '_blank'); });
+    const map = L.map('map').setView([38.42, 27.14], 8);
+    
+    // Harita katmanları
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {maxZoom:19, attribution:'&copy; OpenStreetMap'});
+    
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      {maxZoom:19, attribution:'&copy; Esri'});
+    
+    osmLayer.addTo(map);
+    
+    // Harita katman seçicisi
+    const baseMaps = {
+      'Standart': osmLayer,
+      'Uydu': satelliteLayer
+    };
+    L.control.layers(baseMaps).addTo(map);
+
+    // İzmir idari sınırı (gerçek poligon)
+    map.createPane('izmirBoundary');
+    map.getPane('izmirBoundary').style.zIndex = 650; // overlaylerin üstünde
+    const IZMIR_BBOX = { minLon:26.230389, minLat:37.818402, maxLon:28.495245, maxLat:39.392935 };
+    const izmirBounds = [[IZMIR_BBOX.minLat, IZMIR_BBOX.minLon],[IZMIR_BBOX.maxLat, IZMIR_BBOX.maxLon]];
+    let izmirBoundaryLayer = null;
+    let izmirPolygons = null; // Poligonlar point-in-polygon için
+    
+    // Point-in-polygon kontrolü (ray casting algoritması)
+    function isPointInPolygon(lat, lon, polygon) {
+      const ring = polygon;
+      let inside = false;
+      const n = ring.length;
+      for (let i = 0; i < n; i++) {
+        const [x1, y1] = ring[i];
+        const [x2, y2] = ring[(i + 1) % n];
+        if ((y1 > lat) !== (y2 > lat)) {
+          const x_at_lat = (x2 - x1) * (lat - y1) / (y2 - y1) + x1;
+          if (lon < x_at_lat) {
+            inside = !inside;
+          }
+        }
+      }
+      return inside;
+    }
+    
+    // Noktanın İzmir sınırı içinde olup olmadığını kontrol et
+    function isInIzmir(lat, lon) {
+      if (!izmirPolygons || izmirPolygons.length === 0) return true; // Poligon yoksa kabul et
+      for (const polygonRings of izmirPolygons) {
+        const outerRing = polygonRings[0];
+        const holes = polygonRings.slice(1);
+        if (isPointInPolygon(lat, lon, outerRing)) {
+          // Dış poligonda. Deliklerde değil mi kontrol et
+          let inHole = false;
+          for (const hole of holes) {
+            if (isPointInPolygon(lat, lon, hole)) {
+              inHole = true;
+              break;
+            }
+          }
+          if (!inHole) return true;
+        }
+      }
+      return false;
+    }
+    
+    (async function loadIzmirBoundary(){
+      try{
+        const r = await fetch('/static/data/izmir.geojson');
+        if(!r.ok) throw new Error('not_found');
+        const gj = await r.json();
+        
+        // Poligonları parse et
+        izmirPolygons = [];
+        function extractGeometry(geom) {
+          if (!geom) return;
+          if (geom.type === 'Polygon') {
+            const rings = geom.coordinates.map(ring => ring.map(([lon, lat]) => [lon, lat]));
+            izmirPolygons.push(rings);
+          } else if (geom.type === 'MultiPolygon') {
+            for (const poly of geom.coordinates) {
+              const rings = poly.map(ring => ring.map(([lon, lat]) => [lon, lat]));
+              izmirPolygons.push(rings);
+            }
+          }
+        }
+        
+        if (gj.type === 'FeatureCollection') {
+          for (const feat of (gj.features || [])) {
+            extractGeometry(feat.geometry);
+          }
+        } else if (gj.type === 'Feature') {
+          extractGeometry(gj.geometry);
+        } else {
+          extractGeometry(gj);
+        }
+        
+        izmirBoundaryLayer = L.geoJSON(gj, {
+          pane:'izmirBoundary',
+          style: { color:'#8B0000', weight:5, fillOpacity:0, opacity:1, dashArray:'' }
+        }).addTo(map);
+      }catch(e){ console.warn('İzmir sınır GeoJSON yüklenemedi:', e); }
+    })();
+    let firesLayer, spreadLayer, riskLayer, reservoirLayer=null, autoTimer=null, legendCtl=null, riskActive=false;
+    let lastWind = null;
+
+    function markerStyle(p){
+      const c = (p.confidence||'').toLowerCase();
+      const color = c === 'h' ? '#d32f2f' : c === 'n' ? '#f57c00' : '#1976d2';
+      return { radius: 5, color, fillColor: color, fillOpacity: 0.8, weight: 1 };
+    }
+
+    function riskColor(r){
+      if (r>0.8) return '#bd0026';
+      if (r>0.6) return '#f03b20';
+      if (r>0.3) return '#fd8d3c';
+      if (r>0.1) return '#fecc5c';
+      return '#ffffb2';
+    }
+
+    function firePopupHtml(p){
+      const date = p.acq_date || '-';
+      const time = p.acq_time || '';
+      const when = (date||time) ? `${date} ${time} UTC` : '-';
+      const frp = (p.frp !== undefined && p.frp !== null) ? p.frp : '-';
+      const bright = p.brightness ?? p.bright_ti4 ?? p.bright_ti5 ?? '-';
+      const conf = p.confidence ?? '-';
+      return `<b>Yangın Algısı</b><br>
+        Başlangıç: ${when}<br>
+        Anlık büyüklük (FRP MW): ${frp}<br>
+        Şiddet: güven ${conf}, parlaklık ${bright}<br>
+        Uydu: ${p.satellite||'-'} ${p.instrument?('('+p.instrument+')'):''}`;
+    }
+
+    function createFiresLayer(geo){
+      // Sadece İzmir sınırı içindeki yangınları filtrele
+      const filteredFeatures = (geo.features || []).filter(f => {
+        const coords = f.geometry?.coordinates;
+        if (!coords || coords.length < 2) return false;
+        const [lon, lat] = coords;
+        return isInIzmir(lat, lon);
+      });
+      
+      const filteredGeo = {
+        type: 'FeatureCollection',
+        features: filteredFeatures
+      };
+      
+      return L.geoJSON(filteredGeo, {
+        pointToLayer:(f,latlng)=>L.circleMarker(latlng, markerStyle(f.properties||{})),
+        onEachFeature:(f,l)=>{ const p=f.properties||{}; l.bindPopup(firePopupHtml(p)); }
+      });
+    }
+
+    function setStatus(msg){
+      const s = document.getElementById('info');
+      if (s) s.textContent = msg || '';
+    }
+
+    // Barajları Overpass API'den yükle
+    async function loadReservoirs(){
+      const info = document.getElementById('info');
+      if (reservoirLayer){
+        map.removeLayer(reservoirLayer);
+        reservoirLayer = null;
+        info.textContent = 'Barajlar kapatıldı';
+        setStatus('Barajlar kapatıldı');
+        return;
+      }
+      
+      info.textContent = 'Barajlar yükleniyor...';
+      setStatus('Barajlar Overpass API\'den yükleniyor...');
+      try {
+        const query = `[out:json][timeout:60];(nwr["man_made"="reservoir"](37.8,26.0,39.4,28.8);nwr["water"="reservoir"](37.8,26.0,39.4,28.8););out geom;`;
+        const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+        
+        const r = await fetch(url);
+        if (!r.ok) throw new Error('API hatası');
+        const data = await r.json();
+        
+        // OSM verilerini GeoJSON'a dönüştür - sadece point'ler
+        const features = [];
+        if (data.elements) {
+          data.elements.forEach(el => {
+            let lat = null, lon = null, name = null;
+            
+            if (el.type === 'node' && el.lat && el.lon) {
+              lat = el.lat;
+              lon = el.lon;
+              name = el.tags?.name || 'Baraj';
+            } else if (el.type === 'way' && el.geometry && el.geometry.length > 0) {
+              // Way için merkez noktasını hesapla
+              const centerIdx = Math.floor(el.geometry.length / 2);
+              lat = el.geometry[centerIdx].lat;
+              lon = el.geometry[centerIdx].lon;
+              name = el.tags?.name || 'Baraj';
+            } else if (el.type === 'relation' && el.center) {
+              // Relation için merkez koordinatını kullan
+              lat = el.center.lat;
+              lon = el.center.lon;
+              name = el.tags?.name || 'Baraj';
+            }
+            
+            if (lat && lon) {
+              features.push({
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [lon, lat] },
+                properties: { name: name, type: 'Baraj' }
+              });
+            }
+          });
+        }
+        
+        if (features.length === 0) {
+          info.textContent = 'Baraj verisi bulunamadı';
+          return;
+        }
+        
+        // Sadece İzmir sınırı içindeki barajları filtrele
+        const filteredFeatures = features.filter(f => {
+          const [lon, lat] = f.geometry.coordinates;
+          return isInIzmir(lat, lon);
+        });
+        
+        const gj = { type: 'FeatureCollection', features: filteredFeatures };
+        
+        reservoirLayer = L.geoJSON(gj, {
+          pointToLayer: (feature, latlng) => {
+            return L.circleMarker(latlng, {
+              radius: 8,
+              color: '#0066CC',
+              fillColor: '#00AAFF',
+              fillOpacity: 0.8,
+              weight: 2
+            });
+          },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties;
+            const popup = `<b>💧 ${props.type}</b><br>${props.name}`;
+            layer.bindPopup(popup);
+          }
+        }).addTo(map);
+        
+        info.textContent = `Barajlar açık (${filteredFeatures.length} bulundu)`;
+        setStatus(`Barajlar açık (${filteredFeatures.length})`);
+      } catch (e) {
+        info.textContent = 'Barajlar yüklenemedi: ' + e.message;
+        console.error('Baraj yükleme hatası:', e);
+      }
+    }
+
+    // Shelters helpers: GeoJSON first, CSV fallback
+    async function loadSheltersGeoJSON(){
+      const r = await fetch('/static/data/assembly_points.geojson', {cache:'no-cache'});
+      if(!r.ok) throw new Error('geojson_not_found');
+      return await r.json();
+    }
+    async function loadSheltersXLSX(){
+      const r = await fetch('/static/data/assembly_points.xlsx', {cache:'no-cache'});
+      if(!r.ok) throw new Error('xlsx_not_found');
+      const buf = await r.arrayBuffer();
+      const wb = XLSX.read(buf, {type:'array'});
+      const wsname = wb.SheetNames[0];
+      const ws = wb.Sheets[wsname];
+      const rows = XLSX.utils.sheet_to_json(ws, {defval:'', raw:false});
+      const feats = [];
+      for (const row of rows){
+        const obj = {}; Object.keys(row).forEach(k=>obj[normalizeKey(k)] = row[k]);
+        const name = obj.name || obj.ad || obj.isim || obj.title || '';
+        let lat = obj.lat || obj.latitude || obj.enlem || obj.y;
+        let lon = obj.lon || obj.lng || obj.long || obj.longitude || obj.boylam || obj.x;
+        if ((lat===undefined || lon===undefined) && (obj.koordinat || obj.konum || obj.location || obj.point || obj.geom || obj.geometry)){
+          const pr = parseCoordString(obj.koordinat || obj.konum || obj.location || obj.point || obj.geom || obj.geometry);
+          lat = pr.lat; lon = pr.lon;
+        }
+        const toNum = (v)=>{
+          if (typeof v === 'number') return v;
+          if (!v) return NaN;
+          let s = String(v).trim();
+          if (s.includes(',') && !s.includes('.')) s = s.replace(',', '.');
+          s = s.replace(/\s/g,'');
+          const n = parseFloat(s); return isNaN(n)?NaN:n;
+        };
+        lat = toNum(lat); lon = toNum(lon);
+        if (!isNaN(lat) && !isNaN(lon)){
+          feats.push({ type:'Feature', geometry:{ type:'Point', coordinates:[lon,lat] }, properties:{ name, ...obj } });
+        }
+      }
+      return { type:'FeatureCollection', features: feats };
+    }
+    function detectDelimiter(text){
+      if (text.indexOf('\t')>=0) return '\t';
+      const semi = (text.match(/;/g)||[]).length;
+      const comma = (text.match(/,/g)||[]).length;
+      return semi>comma ? ';' : ',';
+    }
+    function normalizeKey(k){
+      if (!k) return '';
+      let s = String(k).toLowerCase().trim();
+      s = s.replace(/ı/g,'i').replace(/ş/g,'s').replace(/ğ/g,'g').replace(/ç/g,'c').replace(/ö/g,'o').replace(/ü/g,'u');
+      s = s.replace(/\([^)]*\)/g,'');
+      s = s.replace(/[^a-z0-9_]+/g,'_').replace(/_+/g,'_');
+      return s;
+    }
+    function toNumber(val){
+      if (typeof val === 'number') return val;
+      if (!val) return NaN;
+      let s = String(val).trim();
+      if (s.includes(',') && !s.includes('.')) s = s.replace(',', '.');
+      s = s.replace(/\s/g,'');
+      const n = parseFloat(s);
+      return isNaN(n) ? NaN : n;
+    }
+    function parseCoordString(val){
+      if (!val) return {lat:NaN, lon:NaN};
+      let s = String(val).trim();
+      const m = s.match(/POINT\s*\(\s*([\-0-9\.,\s]+)\)/i);
+      if (m) s = m[1];
+      s = s.replace(/;/g,',').replace(/\s+/g,' ');
+      const parts = s.split(',');
+      if (parts.length>=2){
+        const a = toNumber(parts[0]);
+        const b = toNumber(parts[1]);
+        if (a>=25 && a<=35 && b>=35 && b<=45) return {lat:b, lon:a};
+        if (a>=35 && a<=45 && b>=25 && b<=35) return {lat:a, lon:b};
+        return {lat:a, lon:b};
+      }
+      const sp = s.split(/\s+/);
+      if (sp.length>=2){
+        const a = toNumber(sp[0]); const b = toNumber(sp[1]);
+        if (a>=25 && a<=35 && b>=35 && b<=45) return {lat:b, lon:a};
+        if (a>=35 && a<=45 && b>=25 && b<=35) return {lat:a, lon:b};
+        return {lat:a, lon:b};
+      }
+      return {lat:NaN, lon:NaN};
+    }
+    function csvToGeoJSON(text){
+      const delim = detectDelimiter(text);
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      if (lines.length < 2) throw new Error('empty_csv');
+      const headers = lines[0].split(delim).map(h=>normalizeKey(h));
+      const find = (...keys)=> headers.findIndex(h=>keys.includes(h));
+      const idxLat = find('lat','latitude','y','enlem');
+      const idxLon = find('lon','lng','long','longitude','x','boylam');
+      const idxName = find('name','ad','isim','title');
+      const idxCoord = find('koordinat','konum','location','point','geom','geometry');
+      if ((idxLat<0 || idxLon<0) && idxCoord<0) throw new Error('latlon_missing');
+      const feats = [];
+      for (let i=1;i<lines.length;i++){
+        const cols = lines[i].split(delim);
+        let lat = NaN, lon = NaN;
+        if (idxCoord>=0){ const pr = parseCoordString(cols[idxCoord]); lat = pr.lat; lon = pr.lon; }
+        if (isNaN(lat)||isNaN(lon)){
+          if (cols.length>Math.max(idxLat, idxLon)){
+            lat = toNumber(cols[idxLat]);
+            lon = toNumber(cols[idxLon]);
+          }
+        }
+        if (isNaN(lat)||isNaN(lon)) continue;
+        const props = {};
+        headers.forEach((h,ix)=>{ props[h] = cols[ix]; });
+        props.name = props.name || props.ad || props.isim || props.title || '';
+        feats.push({ type:'Feature', geometry:{ type:'Point', coordinates:[lon,lat] }, properties: props });
+      }
+      return { type:'FeatureCollection', features: feats };
+    }
+    async function loadSheltersCSV(){
+      const r = await fetch('/static/data/assembly_points.csv', {cache:'no-cache'});
+      if(!r.ok) throw new Error('csv_not_found');
+      const text = await r.text();
+      return csvToGeoJSON(text);
+    }
+    async function loadSheltersManifest(){
+      try{
+        const r = await fetch('/api/shelters_manifest', {cache:'no-cache'});
+        if(!r.ok) return {files:[]};
+        return await r.json();
+      }catch(e){ return {files:[]}; }
+    }
+    async function loadSheltersFromFiles(files){
+      const feats = [];
+      const add = (gj)=>{ if (gj && gj.features) gj.features.forEach(f=>feats.push(f)); };
+      for (const url of files){
+        const ext = url.split('.').pop().toLowerCase();
+        try{
+          if (ext === 'geojson' || ext === 'json'){
+            const r = await fetch(url, {cache:'no-cache'}); add(await r.json());
+          } else if (ext === 'csv'){
+            const r = await fetch(url, {cache:'no-cache'}); add(csvToGeoJSON(await r.text()));
+          } else if (ext === 'xlsx' || ext === 'xls'){
+            const r = await fetch(url, {cache:'no-cache'}); const buf = await r.arrayBuffer();
+            const wb = XLSX.read(buf, {type:'array'}); const ws = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(ws, {defval:'', raw:false});
+            const tmp = { type:'FeatureCollection', features: [] };
+            for (const row of rows){
+              const obj = {}; Object.keys(row).forEach(k=>obj[normalizeKey(k)] = row[k]);
+              let lat = obj.lat || obj.latitude || obj.enlem || obj.y;
+              let lon = obj.lon || obj.lng || obj.long || obj.longitude || obj.boylam || obj.x;
+              if ((lat===undefined || lon===undefined) && (obj.koordinat || obj.konum || obj.location || obj.point || obj.geom || obj.geometry)){
+                const pr = parseCoordString(obj.koordinat || obj.konum || obj.location || obj.point || obj.geom || obj.geometry);
+                lat = pr.lat; lon = pr.lon;
+              }
+              const toNum = (v)=>{ if (typeof v==='number') return v; if(!v) return NaN; let s=String(v).trim(); if(s.includes(',')&&!s.includes('.')) s=s.replace(',', '.'); s=s.replace(/\s/g,''); const n=parseFloat(s); return isNaN(n)?NaN:n; };
+              lat = toNum(lat); lon = toNum(lon);
+              const name = obj.name || obj.ad || obj.isim || obj.title || '';
+              if (!isNaN(lat)&&!isNaN(lon)) tmp.features.push({ type:'Feature', geometry:{ type:'Point', coordinates:[lon,lat] }, properties:{ name, ...obj } });
+            }
+            add(tmp);
+          }
+        }catch(e){ console.warn('shelter file parse failed:', url, e); }
+      }
+      return { type:'FeatureCollection', features: feats };
+    }
+
+    async function loadFires(){
+      const info = document.getElementById('info');
+      const d = Math.max(1, Math.min(10, parseInt(document.getElementById('dr').value||'3',10)));
+      info.textContent = 'FIRMS yükleniyor...'; setStatus('FIRMS yükleniyor...');
+      try{
+        const res = await fetch(`/api/fires?day_range=${d}`);
+        const geo = await res.json();
+        if (firesLayer) map.removeLayer(firesLayer);
+        if (geo.error){ info.textContent='Hata: '+geo.error; return; }
+        firesLayer = createFiresLayer(geo).addTo(map);
+        try{ const b = firesLayer.getBounds(); if (b.isValid()) map.fitBounds(b.pad(0.2)); }catch(e){}
+        const count = (geo.features||[]).length;
+        info.textContent = `İzmir Yangınları: ${count}`; setStatus(`İzmir Yangınları: ${count}`);
+      }catch(e){ info.textContent = 'Ağ hatası'; console.error(e); }
+    }
+
+    async function loadFiresCached(refresh=false){
+      const info = document.getElementById('info');
+      info.textContent = refresh ? 'Önbellek yenileniyor...' : 'Önbellek okunuyor...'; setStatus('Önbellek kullanılıyor');
+      try{
+        const res = await fetch(`/api/fires_cached${refresh?"?refresh=true":""}`);
+        const geo = await res.json();
+        if (firesLayer) map.removeLayer(firesLayer);
+        if (geo.error){ info.textContent='Hata: '+geo.error; return; }
+        firesLayer = createFiresLayer(geo).addTo(map);
+        try{ const b = firesLayer.getBounds(); if (b.isValid()) map.fitBounds(b.pad(0.2)); }catch(e){}
+        const count = (geo.features||[]).length;
+        const updatedRaw = geo.meta?.updated_at || '';
+        const updatedTime = updatedRaw ? updatedRaw.slice(11,16) : '';
+        const suffix = updatedTime ? ` • Son güncelleme: ${updatedTime}` : '';
+        const msg = `İzmir Yangınları: ${count}${suffix}`;
+        info.textContent = msg; setStatus(msg);
+      }catch(e){ info.textContent = 'Ağ hatası'; console.error(e); }
+    }
+
+    function ensureLegend(){
+      if (legendCtl) return;
+      legendCtl = L.control({position:'bottomright'});
+      legendCtl.onAdd = function(){
+        const div = L.DomUtil.create('div','legend');
+        div.innerHTML = '<b>Risk</b>'+
+          '<div class="row"><span class="sw" style="background:#ffffb2"></span>0 - 0.1</div>'+
+          '<div class="row"><span class="sw" style="background:#fecc5c"></span>0.1 - 0.3</div>'+
+          '<div class="row"><span class="sw" style="background:#fd8d3c"></span>0.3 - 0.6</div>'+
+          '<div class="row"><span class="sw" style="background:#f03b20"></span>0.6 - 0.8</div>'+
+          '<div class="row"><span class="sw" style="background:#bd0026"></span>0.8 - 1.0</div>';
+        return div;
+      };
+    }
+
+    function currentBboxParam(){
+      const b = map.getBounds();
+      const sw = b.getSouthWest();
+      const ne = b.getNorthEast();
+      const minLon = Math.min(sw.lng, ne.lng);
+      const minLat = Math.min(sw.lat, ne.lat);
+      const maxLon = Math.max(sw.lng, ne.lng);
+      const maxLat = Math.max(sw.lat, ne.lat);
+      return `bbox=${minLon.toFixed(6)},${minLat.toFixed(6)},${maxLon.toFixed(6)},${maxLat.toFixed(6)}`;
+    }
+
+    function contourColor(v){
+      if (v>=0.8) return '#8b0000';
+      if (v>=0.6) return '#d7301f';
+      if (v>=0.4) return '#fc8d59';
+      if (v>=0.2) return '#fdcc8a';
+      return '#fef0d9';
+    }
+
+    async function loadRiskForView(){
+      const info = document.getElementById('info');
+      const cellKm = Math.max(2, Math.min(50, parseInt(document.getElementById('cellKm').value||'8',10)));
+      info.textContent = 'Risk (contour) hesaplanıyor...'; setStatus('Risk hesaplanıyor...');
+      try{
+        const url = `/api/risk_grid?cell_km=${cellKm}&use_default_wind=true&${currentBboxParam()}`;
+        const r = await fetch(url);
+        const grid = await r.json();
+        if (grid.error){ info.textContent = 'Risk hata: '+grid.error; return; }
+        const {bbox, nrows, ncols, values} = grid;
+        const minx=bbox[0], miny=bbox[1], maxx=bbox[2], maxy=bbox[3];
+        const dx=(maxx-minx)/(ncols-1); const dy=(maxy-miny)/(nrows-1);
+        // Build contours
+        const thresholds=[0.2,0.4,0.6,0.8];
+        const contours = d3.contours().size([ncols, nrows]).thresholds(thresholds)(values);
+        // Build filled isobands: for each threshold polygon, fill area >= threshold
+        const feats=[];
+        for (const con of contours){
+          const val=con.value;
+          const multiPoly = [];
+          for (const poly of con.coordinates){
+            const rings = [];
+            for (const ring of poly){
+              const coords = ring.map(([x,y])=>[minx + x*dx, miny + y*dy]);
+              rings.push(coords);
+            }
+            multiPoly.push(rings);
+          }
+          feats.push({
+            type:'Feature',
+            geometry:{type:'MultiPolygon', coordinates: multiPoly},
+            properties:{level:val}
+          });
+        }
+        const geo = {type:'FeatureCollection', features:feats};
+        if (riskLayer) map.removeLayer(riskLayer);
+        riskLayer = L.geoJSON(geo, { style: f=>({
+          color: contourColor(f.properties?.level||0),
+          weight: 1,
+          opacity: 0.8,
+          fillColor: contourColor(f.properties?.level||0),
+          fillOpacity: 0.28
+        }) }).addTo(map);
+        // Legend for contours
+        ensureLegend();
+        if (legendCtl){ try{ legendCtl.remove(); }catch(e){} }
+        legendCtl = L.control({position:'bottomright'});
+        legendCtl.onAdd = function(){
+          const div = L.DomUtil.create('div','legend');
+          div.innerHTML = '<b>Risk (Contours)</b>'+
+            '<div class="row"><span class="sw" style="background:#8b0000"></span>≥ 0.8</div>'+
+            '<div class="row"><span class="sw" style="background:#d7301f"></span>≥ 0.6</div>'+
+            '<div class="row"><span class="sw" style="background:#fc8d59"></span>≥ 0.4</div>'+
+            '<div class="row"><span class="sw" style="background:#fdcc8a"></span>≥ 0.2</div>';
+          return div;
+        };
+        legendCtl.addTo(map);
+        info.textContent = 'Risk izohips çizgileri açık'; setStatus('Risk katmanı açık');
+      }catch(e){ info.textContent = 'Risk hatası'; console.error(e); }
+    }
+
+    async function toggleRisk(){
+      const info = document.getElementById('info');
+      if (riskLayer){
+        map.removeLayer(riskLayer); riskLayer=null; riskActive=false;
+        if (legendCtl){ try{ legendCtl.remove(); }catch(e){} }
+        info.textContent='Risk kapatıldı'; setStatus('Risk kapatıldı');
+        return;
+      }
+      riskActive = true;
+      await loadRiskForView();
+    }
+
+    function resetMap(){
+      const info = document.getElementById('info');
+      // stop auto refresh
+      document.getElementById('autoRef').checked = false;
+      setAutoRefresh(false);
+      // remove layers
+      if (firesLayer){ try{ map.removeLayer(firesLayer); }catch(e){} firesLayer=null; }
+      if (spreadLayer){ try{ map.removeLayer(spreadLayer); }catch(e){} spreadLayer=null; }
+      if (riskLayer){ try{ map.removeLayer(riskLayer); }catch(e){} riskLayer=null; }
+      if (reservoirLayer){ try{ map.removeLayer(reservoirLayer); }catch(e){} reservoirLayer=null; }
+      if (boundaryPointsLayer){ try{ map.removeLayer(boundaryPointsLayer); }catch(e){} boundaryPointsLayer=null; }
+      if (legendCtl){ try{ legendCtl.remove(); }catch(e){} legendCtl=null; }
+      riskActive=false;
+      lastWind=null;
+      // reset inputs
+      document.getElementById('dr').value = '3';
+      document.getElementById('dur').value = '30';
+      document.getElementById('cellKm').value = '8';
+      // reset view
+      map.setView([38.42, 27.14], 8);
+      info.textContent = 'Varsayılan görünüm yüklendi'; setStatus('Varsayılan görünüm');
+    }
+
+    function setAutoRefresh(on){
+      const info = document.getElementById('info');
+      if (autoTimer){ clearInterval(autoTimer); autoTimer=null; }
+      if (on){
+        autoTimer = setInterval(()=>loadFiresCached(false), 60000);
+        info.textContent = 'Otomatik yenileme açık (60s)';
+      } else {
+        info.textContent = 'Otomatik yenileme kapalı';
+      }
+    }
+
+    async function loadWindAtCenter(){
+      const info = document.getElementById('info');
+      const c = map.getCenter();
+      info.textContent = 'Rüzgâr sorgulanıyor...'; setStatus('Rüzgâr sorgulanıyor...');
+      try{
+        const r = await fetch(`/api/wind?lat=${c.lat}&lon=${c.lng}`);
+        lastWind = await r.json();
+        if (lastWind.error){ info.textContent='Rüzgâr hata: '+lastWind.error; return; }
+        info.textContent = `Rüzgâr: ${lastWind.speed_ms?.toFixed(1)||'-'} m/s @ ${lastWind.deg?.toFixed(0)||'-'}° (${lastWind.source})`; setStatus('Rüzgâr güncellendi');
+      }catch(e){ info.textContent = 'Ağ hatası'; console.error(e); }
+    }
+
+    async function drawSpread(){
+      const info = document.getElementById('info');
+      const c = map.getCenter();
+      if (!lastWind || lastWind.error){ await loadWindAtCenter(); }
+      const dur = Math.max(5, Math.min(180, parseInt(document.getElementById('dur').value||'30',10)));
+      const dir = lastWind?.deg ?? 240;
+      const spd = lastWind?.speed_ms ?? 6;
+      try{
+        const url = `/api/spread?lat=${c.lat}&lon=${c.lng}&wind_dir_deg=${dir}&wind_speed_ms=${spd}&duration_min=${dur}`;
+        const r = await fetch(url);
+        const geo = await r.json();
+        if (spreadLayer) map.removeLayer(spreadLayer);
+        spreadLayer = L.geoJSON(geo, { style:{ color:'#d81b60', weight:2, fillColor:'#d81b60', fillOpacity:0.2 } }).addTo(map);
+        try{ const b = spreadLayer.getBounds(); if (b.isValid()) map.fitBounds(b.pad(0.2)); }catch(e){}
+        info.textContent = `Tahmin çizildi (dir: ${dir.toFixed?.(0)||dir}°, hız: ${spd.toFixed?.(1)||spd} m/s, ${dur} dk)`; setStatus('Yayılım tahmini çizildi');
+      }catch(e){ info.textContent = 'Tahmin hatası'; console.error(e); }
+    }
+
+    document.getElementById('btnFires').addEventListener('click', loadFires);
+    document.getElementById('btnFiresCached').addEventListener('click', ()=>loadFiresCached(true));
+    document.getElementById('btnRisk').addEventListener('click', toggleRisk);
+    document.getElementById('btnReservoirs').addEventListener('click', loadReservoirs);
+    document.getElementById('btnBoundaryPoints').addEventListener('click', loadBoundaryPoints);
+    document.getElementById('btnShelters').addEventListener('click', async ()=>{
+      const info = document.getElementById('info');
+      if (window.sheltersLayer){ map.removeLayer(window.sheltersLayer); window.sheltersLayer=null; info.textContent='Toplanma alanları kapalı'; setStatus('Toplanma alanları kapalı'); return; }
+      info.textContent = 'Toplanma alanları yükleniyor...'; setStatus('Toplanma alanları yükleniyor...');
+      
+      // Shelters filtreleme fonksiyonu
+      const filterShelters = (gj) => {
+        if (!gj || !gj.features) return gj;
+        const filtered = gj.features.filter(f => {
+          const coords = f.geometry?.coordinates;
+          if (!coords || coords.length < 2) return false;
+          const [lon, lat] = coords;
+          return isInIzmir(lat, lon);
+        });
+        return { type: 'FeatureCollection', features: filtered };
+      };
+      
+      try{
+        // If manifest exists and lists files, prefer merging them
+        let manifest = await loadSheltersManifest();
+        let gj = null;
+        if (manifest && (manifest.files||[]).length){
+          gj = await loadSheltersFromFiles(manifest.files);
+        } else {
+          gj = await loadSheltersGeoJSON();
+        }
+        if (!gj || !gj.type){ throw new Error('bad_geojson'); }
+        gj = filterShelters(gj);
+        window.sheltersLayer = L.geoJSON(gj, {
+          pointToLayer:(f,latlng)=>L.circleMarker(latlng, {radius:6, color:'#00695c', fillColor:'#26a69a', fillOpacity:0.85, weight:2}),
+          onEachFeature:(f,l)=>{ const p=f.properties||{}; l.bindPopup(`<b>Toplanma Alanı</b><br>${p.name||p.ad||'-'}`); }
+        }).addTo(map);
+        const cnt = (gj.features||[]).length; info.textContent=`Toplanma alanları açık (${cnt})`; setStatus(`Toplanma alanları açık (${cnt})`);
+      }catch(e1){
+        try{
+          let gj = await loadSheltersXLSX();
+          if (!gj || !gj.type || !(gj.features||[]).length) throw new Error('bad_xlsx');
+          gj = filterShelters(gj);
+          window.sheltersLayer = L.geoJSON(gj, {
+            pointToLayer:(f,latlng)=>L.circleMarker(latlng, {radius:6, color:'#00695c', fillColor:'#26a69a', fillOpacity:0.85, weight:2}),
+            onEachFeature:(f,l)=>{ const p=f.properties||{}; l.bindPopup(`<b>Toplanma Alanı</b><br>${p.name||p.ad||'-'}`); }
+          }).addTo(map);
+          const cnt = (gj.features||[]).length; info.textContent=`Toplanma alanları (XLSX) açık (${cnt})`; setStatus(`Toplanma alanları (XLSX) açık (${cnt})`);
+        }catch(e2){
+          try{
+            const gj = await loadSheltersCSV();
+            const filtered = filterShelters(gj);
+            window.sheltersLayer = L.geoJSON(filtered, {
+              pointToLayer:(f,latlng)=>L.circleMarker(latlng, {radius:6, color:'#00695c', fillColor:'#26a69a', fillOpacity:0.85, weight:2}),
+              onEachFeature:(f,l)=>{ const p=f.properties||{}; l.bindPopup(`<b>Toplanma Alanı</b><br>${p.name||p.ad||'-'}`); }
+            }).addTo(map);
+            const cnt = (filtered.features||[]).length; info.textContent=`Toplanma alanları (CSV) açık (${cnt})`; setStatus(`Toplanma alanları (CSV) açık (${cnt})`);
+          }catch(e3){ info.textContent='Toplanma alanları yüklenemedi'; setStatus('Toplanma alanları hata'); console.error(e1, e2, e3); }
+        }
+      }
+    });
+    document.getElementById('autoRef').addEventListener('change', (e)=> setAutoRefresh(e.target.checked));
+    document.getElementById('cellKm').addEventListener('change', ()=>{ if (riskActive) loadRiskForView(); });
+    document.getElementById('btnReset').addEventListener('click', resetMap);
+
+    // Harita hareketlerinde risk katmanını güncelle
+    map.on('moveend zoomend', ()=>{ if (riskActive) loadRiskForView(); });
+    document.getElementById('btnWind').addEventListener('click', loadWindAtCenter);
+    document.getElementById('btnSpread').addEventListener('click', drawSpread);
+
+    // ilk açılışta önbellekten yükle
+    loadFiresCached(false);
+  </script>
+</body>
+</html>
