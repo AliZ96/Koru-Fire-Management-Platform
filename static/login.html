@@ -16,7 +16,7 @@
     html, body { height: 100%; width: 100%; }
     
     body {
-      background-image: url('/static/img/Paragraf metniniz-7.svg');
+      background-image: url('/static/img/login-bg.svg');
       background-attachment: fixed;
       background-size: cover;
       background-position: center;
@@ -46,7 +46,7 @@
     /* Landing Page - Only Login Button */
     .landing-page {
       position: fixed;
-      bottom: 80px;
+      bottom: 120px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
@@ -640,7 +640,7 @@
       sessionStorage.setItem('username', username);
       sessionStorage.setItem('isLoggedIn', 'true');
       
-      window.location.href = '/';
+      window.location.href = '/welcome';
     });
 
     // Signup form submission
@@ -683,7 +683,7 @@
       sessionStorage.setItem('email', email);
       sessionStorage.setItem('isLoggedIn', 'true');
       
-      window.location.href = '/';
+      window.location.href = '/welcome';
     });
 
     function showError(message) {
@@ -700,7 +700,7 @@
 
     // Check if already logged in
     if (sessionStorage.getItem('isLoggedIn') === 'true') {
-      window.location.href = '/';
+      window.location.href = '/welcome';
     }
   </script>
 </body>

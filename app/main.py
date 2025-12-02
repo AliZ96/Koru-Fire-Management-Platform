@@ -30,6 +30,11 @@ def home():
 def login_page():
     return FileResponse("static/login.html")
 
+# Welcome sayfası
+@app.get("/welcome")
+def welcome_page():
+    return FileResponse("static/welcome.html")
+
 # Basit sağlık kontrolü
 @app.get("/api/ping")
 def ping():
