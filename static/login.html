@@ -6,9 +6,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet"/>
   <style>
-    :root { --brand-red: #8B0000; }
+    :root { 
+      --brand-red: #8B0000;
+      --dark-green: #2d5016;
+      --forest-green: #4a7c3a;
+      --light-green: #6b9d52;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { height: 100%; width: 100%; }
+    
     body {
       background-image: url('/static/img/Paragraf metniniz.svg');
       background-attachment: fixed;
@@ -23,6 +29,7 @@
       position: relative;
       overflow: hidden;
     }
+
     body::before {
       content: '';
       position: fixed;
@@ -32,20 +39,93 @@
       height: 100%;
       background: 
         radial-gradient(ellipse at 20% 20%, rgba(255, 255, 255, 0.03) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 80%, rgba(0, 0, 0, 0.25) 0%, transparent 50%);
+        radial-gradient(ellipse at 80% 80%, rgba(0, 0, 0, 0.15) 0%, transparent 50%);
       pointer-events: none;
     }
-    .login-container {
-      background: #fff;
-      border-radius: 16px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      width: 100%;
-      max-width: 420px;
-      padding: 40px;
-      animation: slideUp 0.6s ease;
-      position: relative;
-      z-index: 1;
+
+    /* Landing Page - Only Login Button */
+    .landing-page {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      animation: slideUp 0.8s ease;
+      z-index: 10;
     }
+
+    .landing-title {
+      text-align: center;
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--dark-green);
+      letter-spacing: -0.5px;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .landing-subtitle {
+      text-align: center;
+      font-size: 16px;
+      color: var(--forest-green);
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .landing-button {
+      padding: 16px 48px;
+      background: var(--dark-green);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 8px 20px rgba(45, 80, 22, 0.3);
+      margin-top: 12px;
+    }
+
+    .landing-button:hover {
+      background: var(--forest-green);
+      box-shadow: 0 12px 30px rgba(45, 80, 22, 0.4);
+      transform: translateY(-3px);
+    }
+
+    .landing-button:active {
+      transform: translateY(-1px);
+    }
+
+    /* Modal Overlay */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
     @keyframes slideUp {
       from {
         opacity: 0;
@@ -56,88 +136,196 @@
         transform: translateY(0);
       }
     }
-    .login-title {
-      text-align: center;
-      margin-bottom: 12px;
-      font-size: 28px;
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Modal Container */
+    .modal-container {
+      background: var(--dark-green);
+      border-radius: 16px;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+      width: 100%;
+      max-width: 450px;
+      padding: 40px;
+      animation: slideDown 0.4s ease;
+      position: relative;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+
+    .modal-title {
+      font-size: 24px;
       font-weight: 800;
-      color: var(--brand-red);
+      color: #fff;
       letter-spacing: -0.5px;
     }
-    .login-subtitle {
-      text-align: center;
-      margin-bottom: 32px;
-      font-size: 13px;
-      color: #666;
-      font-weight: 600;
-      letter-spacing: 0.3px;
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 28px;
+      cursor: pointer;
+      padding: 0;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      border-radius: 8px;
     }
+
+    .close-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Auth Toggle */
+    .auth-toggle {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 28px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 6px;
+      border-radius: 10px;
+    }
+
+    .auth-toggle-btn {
+      flex: 1;
+      padding: 12px 16px;
+      border: none;
+      background: transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 0.3px;
+      color: rgba(255, 255, 255, 0.6);
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      font-family: inherit;
+    }
+
+    .auth-toggle-btn:hover {
+      color: #fff;
+    }
+
+    .auth-toggle-btn.active {
+      background: var(--light-green);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    /* User Type Selector */
     .user-type-selector {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
-      margin-bottom: 28px;
+      margin-bottom: 24px;
     }
+
     .user-type-btn {
-      padding: 14px;
-      border: 2px solid #e0e0e0;
-      border-radius: 12px;
-      background: #f9f9f9;
+      padding: 12px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.05);
       cursor: pointer;
       transition: all 0.3s ease;
       font-family: inherit;
       font-weight: 700;
-      font-size: 13px;
-      color: #666;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.7);
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
+
     .user-type-btn:hover {
-      border-color: var(--brand-red);
-      background: #fff;
+      border-color: var(--light-green);
+      background: rgba(107, 157, 82, 0.2);
     }
+
     .user-type-btn.active {
-      background: var(--brand-red);
+      background: var(--light-green);
       color: #fff;
-      border-color: var(--brand-red);
-      box-shadow: 0 4px 12px rgba(139, 0, 0, 0.2);
+      border-color: var(--light-green);
+      box-shadow: 0 4px 12px rgba(107, 157, 82, 0.3);
     }
+
+    /* Form */
     .form-group {
       margin-bottom: 18px;
     }
+
     label {
       display: block;
       margin-bottom: 8px;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
-      color: #333;
+      color: rgba(255, 255, 255, 0.8);
       letter-spacing: 0.3px;
       text-transform: uppercase;
     }
+
     input[type="text"],
     input[type="password"],
     input[type="email"] {
       width: 100%;
       padding: 12px 14px;
-      border: 1.5px solid #e0e0e0;
+      border: 1.5px solid rgba(255, 255, 255, 0.15);
       border-radius: 8px;
       font-family: inherit;
       font-size: 14px;
       transition: all 0.3s ease;
-      background: #fafafa;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
     }
+
+    input[type="text"]::placeholder,
+    input[type="password"]::placeholder,
+    input[type="email"]::placeholder {
+      color: rgba(255, 255, 255, 0.4);
+    }
+
     input[type="text"]:focus,
     input[type="password"]:focus,
     input[type="email"]:focus {
       outline: none;
-      border-color: var(--brand-red);
-      background: #fff;
-      box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.1);
+      border-color: var(--light-green);
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 0 0 3px rgba(107, 157, 82, 0.2);
     }
-    .login-btn {
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .form-row .form-group {
+      margin-bottom: 0;
+    }
+
+    /* Buttons */
+    .submit-btn {
       width: 100%;
       padding: 14px;
-      background: var(--brand-red);
+      background: var(--light-green);
       color: #fff;
       border: none;
       border-radius: 8px;
@@ -150,192 +338,208 @@
       transition: all 0.3s ease;
       margin-top: 8px;
     }
-    .login-btn:hover {
-      background: #a00000;
-      box-shadow: 0 8px 20px rgba(139, 0, 0, 0.3);
+
+    .submit-btn:hover {
+      background: var(--light-green);
+      filter: brightness(1.1);
+      box-shadow: 0 8px 20px rgba(107, 157, 82, 0.3);
       transform: translateY(-2px);
     }
-    .login-btn:active {
+
+    .submit-btn:active {
       transform: translateY(0);
     }
+
+    /* Auth Form */
+    .auth-form {
+      display: none;
+    }
+
+    .auth-form.active {
+      display: block;
+      animation: slideDown 0.3s ease;
+    }
+
     .demo-note {
       text-align: center;
-      font-size: 12px;
-      color: #999;
-      margin-top: 20px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.6);
+      margin-top: 16px;
       font-weight: 600;
     }
+
     .error-message {
       display: none;
-      background: #ffebee;
-      color: #c62828;
+      background: rgba(255, 107, 107, 0.2);
+      color: #fff;
       padding: 12px;
       border-radius: 8px;
       margin-bottom: 16px;
       font-size: 13px;
       font-weight: 600;
-      border-left: 4px solid #c62828;
+      border-left: 4px solid #ff6b6b;
     }
+
     .error-message.show {
       display: block;
       animation: shake 0.4s ease;
     }
+
     @keyframes shake {
       0%, 100% { transform: translateX(0); }
       25% { transform: translateX(-5px); }
       75% { transform: translateX(5px); }
     }
-    .auth-toggle {
+
+    .checkbox-group {
       display: flex;
-      gap: 12px;
-      margin-bottom: 24px;
-      background: #f5f5f5;
-      padding: 4px;
-      border-radius: 10px;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
     }
-    .auth-toggle-btn {
-      flex: 1;
-      padding: 12px 16px;
-      border: none;
-      background: transparent;
-      border-radius: 8px;
+
+    .checkbox-group input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
       cursor: pointer;
-      font-weight: 700;
-      font-size: 13px;
-      letter-spacing: 0.3px;
-      color: #666;
-      transition: all 0.3s ease;
-      text-transform: uppercase;
-      font-family: inherit;
+      accent-color: var(--light-green);
     }
-    .auth-toggle-btn:hover {
-      color: var(--brand-red);
-    }
-    .auth-toggle-btn.active {
-      background: #fff;
-      color: var(--brand-red);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-    .auth-form {
-      display: none;
-    }
-    .auth-form.active {
-      display: block;
-      animation: slideUp 0.4s ease;
-    }
-    .signup-extra-fields {
-      display: none;
-    }
-    .signup-extra-fields.active {
-      display: block;
-    }
-    .signup-extra-fields .form-group {
-      margin-bottom: 12px;
-    }
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-    .form-row .form-group {
-      margin-bottom: 0;
+
+    .checkbox-group label {
+      margin: 0;
+      text-transform: none;
+      font-weight: 500;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.7);
     }
   </style>
 </head>
 <body>
-  <div class="login-container">
-    <h1 class="login-title">KORU</h1>
-    <p class="login-subtitle">Yangın Önleme Platformu</p>
-    
-    <div class="error-message" id="errorMsg"></div>
-    
-    <!-- Login/Signup Toggle -->
-    <div class="auth-toggle">
-      <button type="button" class="auth-toggle-btn active" id="btnLoginTab" data-tab="login">🔓 Giriş Yap</button>
-      <button type="button" class="auth-toggle-btn" id="btnSignupTab" data-tab="signup">📝 Kayıt Ol</button>
-    </div>
-    
-    <!-- User Type Selector (only for login) -->
-    <div class="user-type-selector" id="userTypeSelector">
-      <button type="button" class="user-type-btn active" data-type="user" id="btnUser">👤 Kullanıcı</button>
-      <button type="button" class="user-type-btn" data-type="admin" id="btnAdmin">🔐 Admin</button>
-    </div>
-    
-    <!-- Login Form -->
-    <form id="loginForm" class="auth-form active">
-      <div class="form-group">
-        <label for="username">Kullanıcı Adı</label>
-        <input type="text" id="username" name="username" placeholder="Kullanıcı adınızı girin" required/>
+  <!-- Landing Page -->
+  <div class="landing-page" id="landingPage">
+    <div class="landing-title">KORU</div>
+    <div class="landing-subtitle">Yangın Önleme Platformu</div>
+    <button class="landing-button" id="btnOpenModal">🔓 Giriş Yap</button>
+  </div>
+
+  <!-- Modal Overlay -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <div class="modal-title">KORU</div>
+        <button class="close-btn" id="btnCloseModal">&times;</button>
       </div>
-      
-      <div class="form-group">
-        <label for="password">Şifre</label>
-        <input type="password" id="password" name="password" placeholder="Şifrenizi girin" required/>
+
+      <div class="error-message" id="errorMsg"></div>
+
+      <!-- Auth Toggle -->
+      <div class="auth-toggle">
+        <button type="button" class="auth-toggle-btn active" id="btnLoginTab" data-tab="login">🔓 Giriş Yap</button>
+        <button type="button" class="auth-toggle-btn" id="btnSignupTab" data-tab="signup">📝 Kayıt Ol</button>
       </div>
-      
-      <button type="submit" class="login-btn">Giriş Yap</button>
-    </form>
-    
-    <p class="demo-note">Demo: Herhangi bir kullanıcı adı ve şifre ile giriş yapabilirsiniz</p>
-    
-    <div style="background: #f5f5f5; border-left: 4px solid var(--brand-red); padding: 12px; border-radius: 4px; margin-top: 16px; font-size: 12px;">
-      <p style="margin-bottom: 6px; font-weight: 700; color: #333;">📋 Örnek Giriş Bilgileri:</p>
-      <p style="margin: 2px 0; color: #666;"><strong>Kullanıcı:</strong> user1 / password123</p>
-      <p style="margin: 2px 0; color: #666;"><strong>Admin:</strong> admin / admin123</p>
-    </div>
-    
-    <!-- Signup Form -->
-    <form id="signupForm" class="auth-form">
-      <div class="form-group">
-        <label for="signup-fullname">Ad Soyad</label>
-        <input type="text" id="signup-fullname" name="fullname" placeholder="Ad ve soyadınızı girin" required/>
+
+      <!-- User Type Selector (only for login) -->
+      <div class="user-type-selector" id="userTypeSelector">
+        <button type="button" class="user-type-btn active" data-type="user" id="btnUser">👤 Kullanıcı</button>
+        <button type="button" class="user-type-btn" data-type="admin" id="btnAdmin">🔐 Admin</button>
       </div>
-      
-      <div class="form-group">
-        <label for="signup-email">E-posta</label>
-        <input type="email" id="signup-email" name="email" placeholder="E-posta adresinizi girin" required/>
-      </div>
-      
-      <div class="form-group">
-        <label for="signup-username">Kullanıcı Adı</label>
-        <input type="text" id="signup-username" name="username" placeholder="Bir kullanıcı adı seçin" required/>
-      </div>
-      
-      <div class="form-row">
+
+      <!-- Login Form -->
+      <form id="loginForm" class="auth-form active">
         <div class="form-group">
-          <label for="signup-password">Şifre</label>
-          <input type="password" id="signup-password" name="password" placeholder="Şifre" required/>
+          <label for="username">Kullanıcı Adı</label>
+          <input type="text" id="username" name="username" placeholder="Kullanıcı adınızı girin" required/>
         </div>
+        
         <div class="form-group">
-          <label for="signup-confirm-password">Şifre Tekrarı</label>
-          <input type="password" id="signup-confirm-password" name="confirm-password" placeholder="Şifre tekrarı" required/>
+          <label for="password">Şifre</label>
+          <input type="password" id="password" name="password" placeholder="Şifrenizi girin" required/>
         </div>
-      </div>
-      
-      <div class="form-group" style="margin-bottom: 16px;">
-        <label style="display: flex; align-items: center; text-transform: none; font-weight: 500; gap: 8px;">
-          <input type="checkbox" id="signup-terms" name="terms" style="width: 18px; height: 18px; cursor: pointer;"/>
-          <span>Şartları ve koşulları kabul ediyorum</span>
-        </label>
-      </div>
-      
-      <button type="submit" class="login-btn">Kayıt Ol</button>
-    </form>
+        
+        <button type="submit" class="submit-btn">Giriş Yap</button>
+
+        <p class="demo-note">Demo: Herhangi bir kullanıcı adı ve şifre ile giriş yapabilirsiniz</p>
+        
+        <div style="background: rgba(255, 255, 255, 0.08); border-left: 4px solid var(--light-green); padding: 12px; border-radius: 4px; margin-top: 12px; font-size: 11px;">
+          <p style="margin-bottom: 4px; font-weight: 700; color: #fff;">📋 Test Hesapları:</p>
+          <p style="margin: 2px 0; color: rgba(255, 255, 255, 0.7);"><strong>Kullanıcı:</strong> user1 / password123</p>
+          <p style="margin: 2px 0; color: rgba(255, 255, 255, 0.7);"><strong>Admin:</strong> admin / admin123</p>
+        </div>
+      </form>
+
+      <!-- Signup Form -->
+      <form id="signupForm" class="auth-form">
+        <div class="form-group">
+          <label for="signup-fullname">Ad Soyad</label>
+          <input type="text" id="signup-fullname" name="fullname" placeholder="Ad ve soyadınızı girin" required/>
+        </div>
+        
+        <div class="form-group">
+          <label for="signup-email">E-posta</label>
+          <input type="email" id="signup-email" name="email" placeholder="E-posta adresinizi girin" required/>
+        </div>
+        
+        <div class="form-group">
+          <label for="signup-username">Kullanıcı Adı</label>
+          <input type="text" id="signup-username" name="username" placeholder="Bir kullanıcı adı seçin" required/>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="signup-password">Şifre</label>
+            <input type="password" id="signup-password" name="password" placeholder="Şifre" required/>
+          </div>
+          <div class="form-group">
+            <label for="signup-confirm-password">Şifre Tekrarı</label>
+            <input type="password" id="signup-confirm-password" name="confirm-password" placeholder="Şifre tekrarı" required/>
+          </div>
+        </div>
+        
+        <div class="checkbox-group">
+          <input type="checkbox" id="signup-terms" name="terms" required/>
+          <label for="signup-terms">Şartları ve koşulları kabul ediyorum</label>
+        </div>
+        
+        <button type="submit" class="submit-btn">Kayıt Ol</button>
+      </form>
+    </div>
   </div>
 
   <script>
     let currentUserType = 'user';
     let currentTab = 'login';
-    
+
+    // Modal control
+    const modalOverlay = document.getElementById('modalOverlay');
+    const btnOpenModal = document.getElementById('btnOpenModal');
+    const btnCloseModal = document.getElementById('btnCloseModal');
+
+    btnOpenModal.addEventListener('click', () => {
+      modalOverlay.classList.add('active');
+    });
+
+    btnCloseModal.addEventListener('click', () => {
+      modalOverlay.classList.remove('active');
+      resetForms();
+    });
+
+    // Close modal when clicking overlay background
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) {
+        modalOverlay.classList.remove('active');
+        resetForms();
+      }
+    });
+
     // Tab switching
     document.getElementById('btnLoginTab').addEventListener('click', function() {
       switchTab('login');
     });
-    
+
     document.getElementById('btnSignupTab').addEventListener('click', function() {
       switchTab('signup');
     });
-    
+
     function switchTab(tab) {
       currentTab = tab;
       const errorMsg = document.getElementById('errorMsg');
@@ -355,20 +559,20 @@
         document.getElementById('btnLoginTab').classList.remove('active');
       }
     }
-    
+
     // User type selector
     document.getElementById('btnUser').addEventListener('click', function() {
       currentUserType = 'user';
       document.getElementById('btnUser').classList.add('active');
       document.getElementById('btnAdmin').classList.remove('active');
     });
-    
+
     document.getElementById('btnAdmin').addEventListener('click', function() {
       currentUserType = 'admin';
       document.getElementById('btnAdmin').classList.add('active');
       document.getElementById('btnUser').classList.remove('active');
     });
-    
+
     // Login form submission
     document.getElementById('loginForm').addEventListener('submit', function(e) {
       e.preventDefault();
@@ -377,24 +581,20 @@
       const password = document.getElementById('password').value.trim();
       const errorMsg = document.getElementById('errorMsg');
       
-      // Clear previous error
       errorMsg.classList.remove('show');
       
-      // Validation
       if (!username || !password) {
         showError('Lütfen tüm alanları doldurunuz');
         return;
       }
       
-      // Store user info in sessionStorage
       sessionStorage.setItem('userType', currentUserType);
       sessionStorage.setItem('username', username);
       sessionStorage.setItem('isLoggedIn', 'true');
       
-      // Redirect to main page
       window.location.href = '/';
     });
-    
+
     // Signup form submission
     document.getElementById('signupForm').addEventListener('submit', function(e) {
       e.preventDefault();
@@ -407,10 +607,8 @@
       const terms = document.getElementById('signup-terms').checked;
       const errorMsg = document.getElementById('errorMsg');
       
-      // Clear previous error
       errorMsg.classList.remove('show');
       
-      // Validation
       if (!fullname || !email || !username || !password || !confirmPassword) {
         showError('Lütfen tüm alanları doldurunuz');
         return;
@@ -431,23 +629,27 @@
         return;
       }
       
-      // Store user info in sessionStorage
       sessionStorage.setItem('userType', 'user');
       sessionStorage.setItem('username', username);
       sessionStorage.setItem('fullname', fullname);
       sessionStorage.setItem('email', email);
       sessionStorage.setItem('isLoggedIn', 'true');
       
-      // Redirect to main page
       window.location.href = '/';
     });
-    
+
     function showError(message) {
       const errorMsg = document.getElementById('errorMsg');
       errorMsg.textContent = message;
       errorMsg.classList.add('show');
     }
-    
+
+    function resetForms() {
+      document.getElementById('loginForm').reset();
+      document.getElementById('signupForm').reset();
+      switchTab('login');
+    }
+
     // Check if already logged in
     if (sessionStorage.getItem('isLoggedIn') === 'true') {
       window.location.href = '/';
