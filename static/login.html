@@ -10,7 +10,7 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { height: 100%; width: 100%; }
     body {
-      background-image: url('/static/img/forest-bg.svg');
+      background-image: url('/static/img/Paragraf metniniz.svg');
       background-attachment: fixed;
       background-size: cover;
       background-position: center;
@@ -185,6 +185,61 @@
       25% { transform: translateX(-5px); }
       75% { transform: translateX(5px); }
     }
+    .auth-toggle {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      background: #f5f5f5;
+      padding: 4px;
+      border-radius: 10px;
+    }
+    .auth-toggle-btn {
+      flex: 1;
+      padding: 12px 16px;
+      border: none;
+      background: transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.3px;
+      color: #666;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      font-family: inherit;
+    }
+    .auth-toggle-btn:hover {
+      color: var(--brand-red);
+    }
+    .auth-toggle-btn.active {
+      background: #fff;
+      color: var(--brand-red);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    .auth-form {
+      display: none;
+    }
+    .auth-form.active {
+      display: block;
+      animation: slideUp 0.4s ease;
+    }
+    .signup-extra-fields {
+      display: none;
+    }
+    .signup-extra-fields.active {
+      display: block;
+    }
+    .signup-extra-fields .form-group {
+      margin-bottom: 12px;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .form-row .form-group {
+      margin-bottom: 0;
+    }
   </style>
 </head>
 <body>
@@ -194,12 +249,20 @@
     
     <div class="error-message" id="errorMsg"></div>
     
-    <div class="user-type-selector">
-      <button class="user-type-btn active" data-type="user" id="btnUser">👤 Kullanıcı</button>
-      <button class="user-type-btn" data-type="admin" id="btnAdmin">🔐 Admin</button>
+    <!-- Login/Signup Toggle -->
+    <div class="auth-toggle">
+      <button type="button" class="auth-toggle-btn active" id="btnLoginTab" data-tab="login">🔓 Giriş Yap</button>
+      <button type="button" class="auth-toggle-btn" id="btnSignupTab" data-tab="signup">📝 Kayıt Ol</button>
     </div>
     
-    <form id="loginForm">
+    <!-- User Type Selector (only for login) -->
+    <div class="user-type-selector" id="userTypeSelector">
+      <button type="button" class="user-type-btn active" data-type="user" id="btnUser">👤 Kullanıcı</button>
+      <button type="button" class="user-type-btn" data-type="admin" id="btnAdmin">🔐 Admin</button>
+    </div>
+    
+    <!-- Login Form -->
+    <form id="loginForm" class="auth-form active">
       <div class="form-group">
         <label for="username">Kullanıcı Adı</label>
         <input type="text" id="username" name="username" placeholder="Kullanıcı adınızı girin" required/>
@@ -215,15 +278,83 @@
     
     <p class="demo-note">Demo: Herhangi bir kullanıcı adı ve şifre ile giriş yapabilirsiniz</p>
     
-    <div style="background: #f5f5f5; border-left: 4px solid var(--brand-red); padding: 12px; border-radius: 4px; margin-top: 20px; font-size: 12px;">
-      <p style="margin-bottom: 8px; font-weight: 700; color: #333;">Örnek Giriş Bilgileri:</p>
-      <p style="margin: 4px 0; color: #666;"><strong>Kullanıcı hesabı:</strong> user1 / password123</p>
-      <p style="margin: 4px 0; color: #666;"><strong>Admin hesabı:</strong> admin / admin123</p>
+    <div style="background: #f5f5f5; border-left: 4px solid var(--brand-red); padding: 12px; border-radius: 4px; margin-top: 16px; font-size: 12px;">
+      <p style="margin-bottom: 6px; font-weight: 700; color: #333;">📋 Örnek Giriş Bilgileri:</p>
+      <p style="margin: 2px 0; color: #666;"><strong>Kullanıcı:</strong> user1 / password123</p>
+      <p style="margin: 2px 0; color: #666;"><strong>Admin:</strong> admin / admin123</p>
     </div>
+    
+    <!-- Signup Form -->
+    <form id="signupForm" class="auth-form">
+      <div class="form-group">
+        <label for="signup-fullname">Ad Soyad</label>
+        <input type="text" id="signup-fullname" name="fullname" placeholder="Ad ve soyadınızı girin" required/>
+      </div>
+      
+      <div class="form-group">
+        <label for="signup-email">E-posta</label>
+        <input type="email" id="signup-email" name="email" placeholder="E-posta adresinizi girin" required/>
+      </div>
+      
+      <div class="form-group">
+        <label for="signup-username">Kullanıcı Adı</label>
+        <input type="text" id="signup-username" name="username" placeholder="Bir kullanıcı adı seçin" required/>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="signup-password">Şifre</label>
+          <input type="password" id="signup-password" name="password" placeholder="Şifre" required/>
+        </div>
+        <div class="form-group">
+          <label for="signup-confirm-password">Şifre Tekrarı</label>
+          <input type="password" id="signup-confirm-password" name="confirm-password" placeholder="Şifre tekrarı" required/>
+        </div>
+      </div>
+      
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label style="display: flex; align-items: center; text-transform: none; font-weight: 500; gap: 8px;">
+          <input type="checkbox" id="signup-terms" name="terms" style="width: 18px; height: 18px; cursor: pointer;"/>
+          <span>Şartları ve koşulları kabul ediyorum</span>
+        </label>
+      </div>
+      
+      <button type="submit" class="login-btn">Kayıt Ol</button>
+    </form>
   </div>
 
   <script>
     let currentUserType = 'user';
+    let currentTab = 'login';
+    
+    // Tab switching
+    document.getElementById('btnLoginTab').addEventListener('click', function() {
+      switchTab('login');
+    });
+    
+    document.getElementById('btnSignupTab').addEventListener('click', function() {
+      switchTab('signup');
+    });
+    
+    function switchTab(tab) {
+      currentTab = tab;
+      const errorMsg = document.getElementById('errorMsg');
+      errorMsg.classList.remove('show');
+      
+      if (tab === 'login') {
+        document.getElementById('loginForm').classList.add('active');
+        document.getElementById('signupForm').classList.remove('active');
+        document.getElementById('userTypeSelector').style.display = 'grid';
+        document.getElementById('btnLoginTab').classList.add('active');
+        document.getElementById('btnSignupTab').classList.remove('active');
+      } else {
+        document.getElementById('signupForm').classList.add('active');
+        document.getElementById('loginForm').classList.remove('active');
+        document.getElementById('userTypeSelector').style.display = 'none';
+        document.getElementById('btnSignupTab').classList.add('active');
+        document.getElementById('btnLoginTab').classList.remove('active');
+      }
+    }
     
     // User type selector
     document.getElementById('btnUser').addEventListener('click', function() {
@@ -238,7 +369,7 @@
       document.getElementById('btnUser').classList.remove('active');
     });
     
-    // Form submission
+    // Login form submission
     document.getElementById('loginForm').addEventListener('submit', function(e) {
       e.preventDefault();
       
@@ -258,6 +389,53 @@
       // Store user info in sessionStorage
       sessionStorage.setItem('userType', currentUserType);
       sessionStorage.setItem('username', username);
+      sessionStorage.setItem('isLoggedIn', 'true');
+      
+      // Redirect to main page
+      window.location.href = '/';
+    });
+    
+    // Signup form submission
+    document.getElementById('signupForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const fullname = document.getElementById('signup-fullname').value.trim();
+      const email = document.getElementById('signup-email').value.trim();
+      const username = document.getElementById('signup-username').value.trim();
+      const password = document.getElementById('signup-password').value.trim();
+      const confirmPassword = document.getElementById('signup-confirm-password').value.trim();
+      const terms = document.getElementById('signup-terms').checked;
+      const errorMsg = document.getElementById('errorMsg');
+      
+      // Clear previous error
+      errorMsg.classList.remove('show');
+      
+      // Validation
+      if (!fullname || !email || !username || !password || !confirmPassword) {
+        showError('Lütfen tüm alanları doldurunuz');
+        return;
+      }
+      
+      if (password !== confirmPassword) {
+        showError('Şifreler eşleşmiyor');
+        return;
+      }
+      
+      if (password.length < 6) {
+        showError('Şifre en az 6 karakter olmalıdır');
+        return;
+      }
+      
+      if (!terms) {
+        showError('Lütfen şartları ve koşulları kabul ediniz');
+        return;
+      }
+      
+      // Store user info in sessionStorage
+      sessionStorage.setItem('userType', 'user');
+      sessionStorage.setItem('username', username);
+      sessionStorage.setItem('fullname', fullname);
+      sessionStorage.setItem('email', email);
       sessionStorage.setItem('isLoggedIn', 'true');
       
       // Redirect to main page
