@@ -37,6 +37,8 @@
     .header{position:absolute;top:0;left:0;right:0;z-index:10000;background:var(--brand-blue);padding:10px 16px;display:flex;align-items:center;gap:10px;justify-content:space-between;border-bottom:2px solid rgba(255,255,255,0.15); color:#fff; flex-wrap:nowrap}
     .header .title{color:#fff; font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-weight:700; font-size:18px; letter-spacing:.1px; white-space:nowrap; flex:1}
     .header .user-info{ color:#fff; font-size:12px; font-weight:600; display:flex; align-items:center; gap:10px; white-space:nowrap; }
+    .header .back-btn{ background:rgba(255,255,255,0.2); color:#fff; border:1px solid rgba(255,255,255,0.4); padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; transition:all 0.2s ease; text-decoration:none; display:inline-block; white-space:nowrap; }
+    .header .back-btn:hover{ background:rgba(255,255,255,0.3); }
     .header .logout-btn{ background:rgba(255,255,255,0.2); color:#fff; border:1px solid rgba(255,255,255,0.4); padding:6px 12px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; transition:all 0.2s ease; }
     .header .logout-btn:hover{ background:rgba(255,255,255,0.3); }
     .logo{height:42px;width:auto; background: var(--brand-blue); display:block}
@@ -77,7 +79,7 @@
       <span><strong>E-Posta:</strong> <span class="copyable" data-copy="him@izmir.bel.tr"><a href="mailto:him@izmir.bel.tr">him@izmir.bel.tr</a><button type="button" class="copy-btn" aria-label="Kopyala">Kopyala</button></span></span>
     </div>
   </div>
-  <div class="header"><span class="title">KORU Yangın Önleme Platformu</span><div class="user-info"><span id="userDisplay"></span><button id="logoutBtn" class="logout-btn">Çıkış</button></div><button id="menuBtn" class="hamburger" aria-label="Menü"><span></span><span></span><span></span></button></div>
+  <div class="header"><a href="/welcome" class="back-btn" title="Geri">← Geri</a><span class="title">KORU Yangın Önleme Platformu</span><div class="user-info"><span id="userDisplay"></span><button id="logoutBtn" class="logout-btn">Çıkış</button></div><button id="menuBtn" class="hamburger" aria-label="Menü"><span></span><span></span><span></span></button></div>
   <div id="sidebar" class="sidebar" aria-hidden="true">
     <a href="#" id="mFires">İzmir Yangınları</a>
     <a href="#" id="mNearest">Bana En Yakın Toplanma Alanı</a>
