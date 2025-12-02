@@ -4,7 +4,7 @@
   <meta charset="utf-8"/>
   <title>KORU Yangın Önleme Platformu - Giriş</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <style>
     :root { 
       --brand-red: #8B0000;
@@ -16,7 +16,7 @@
     html, body { height: 100%; width: 100%; }
     
     body {
-      background-image: url('/static/img/Paragraf metniniz.svg');
+      background-image: url('/static/img/Paragraf metniniz-7.svg');
       background-attachment: fixed;
       background-size: cover;
       background-position: center;
@@ -66,20 +66,20 @@
     }
 
     .landing-button {
-      padding: 16px 48px;
+      padding: 12px 36px;
       background: var(--dark-green);
       color: #fff;
       border: none;
       border-radius: 12px;
       font-family: inherit;
-      font-weight: 700;
-      font-size: 16px;
+      font-weight: 400;
+      font-size: 13px;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 1.5px;
       cursor: pointer;
       transition: all 0.3s ease;
       box-shadow: 0 8px 20px rgba(45, 80, 22, 0.3);
-      margin-top: 12px;
+      margin-top: 0;
     }
 
     .landing-button:hover {
@@ -90,6 +90,46 @@
 
     .landing-button:active {
       transform: translateY(-1px);
+    }
+
+    /* Language Selector */
+    .language-selector {
+      position: fixed;
+      bottom: 12px;
+      left: 12px;
+      display: flex;
+      gap: 4px;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 4px 6px;
+      border-radius: 6px;
+      backdrop-filter: blur(10px);
+      z-index: 100;
+    }
+
+    .lang-btn {
+      padding: 3px 8px;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      font-family: inherit;
+      font-weight: 400;
+      font-size: 9px;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+    }
+
+    .lang-btn:hover {
+      color: rgba(255, 255, 255, 0.8);
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+
+    .lang-btn.active {
+      background: var(--light-green);
+      color: #fff;
+      border-color: var(--light-green);
     }
 
     /* Modal Overlay */
@@ -204,9 +244,9 @@
       background: transparent;
       border-radius: 8px;
       cursor: pointer;
-      font-weight: 700;
+      font-weight: 400;
       font-size: 12px;
-      letter-spacing: 0.3px;
+      letter-spacing: 0.8px;
       color: rgba(255, 255, 255, 0.6);
       transition: all 0.3s ease;
       text-transform: uppercase;
@@ -408,7 +448,13 @@
 <body>
   <!-- Landing Page -->
   <div class="landing-page" id="landingPage">
-    <button class="landing-button" id="btnOpenModal">🔓 Giriş Yap</button>
+    <button class="landing-button" id="btnOpenModal">Giriş Yap</button>
+  </div>
+
+  <!-- Language Selector -->
+  <div class="language-selector">
+    <button class="lang-btn active" data-lang="tr">TR</button>
+    <button class="lang-btn" data-lang="en">ENG</button>
   </div>
 
   <!-- Modal Overlay -->
@@ -423,8 +469,8 @@
 
       <!-- Auth Toggle -->
       <div class="auth-toggle">
-        <button type="button" class="auth-toggle-btn active" id="btnLoginTab" data-tab="login">🔓 Giriş Yap</button>
-        <button type="button" class="auth-toggle-btn" id="btnSignupTab" data-tab="signup">📝 Kayıt Ol</button>
+        <button type="button" class="auth-toggle-btn active" id="btnLoginTab" data-tab="login">Giriş Yap</button>
+        <button type="button" class="auth-toggle-btn" id="btnSignupTab" data-tab="signup">Kayıt Ol</button>
       </div>
 
       <!-- User Type Selector (only for login) -->
@@ -497,6 +543,19 @@
   <script>
     let currentUserType = 'user';
     let currentTab = 'login';
+    let currentLanguage = 'tr';
+
+    // Language Selector
+    const langBtns = document.querySelectorAll('.lang-btn');
+    langBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        langBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentLanguage = btn.dataset.lang;
+        console.log('Language changed to:', currentLanguage);
+        // Add translation logic here in the future
+      });
+    });
 
     // Modal control
     const modalOverlay = document.getElementById('modalOverlay');
