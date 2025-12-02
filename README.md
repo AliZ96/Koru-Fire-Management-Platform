@@ -1,0 +1,2 @@
+# koru_bitirme
+firstkorudemo
