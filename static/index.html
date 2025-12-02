@@ -11,17 +11,22 @@
     :root{ --brand-blue:#8B0000; --brand-blue-rgb:139,0,0; }
     html,body{height:100%;margin:0}
     body{ box-sizing:border-box; border:6px solid rgba(var(--brand-blue-rgb),0.35); background: var(--brand-blue); }
-    .map-frame{ position:absolute; top:76px; left:12px; right:12px; bottom:68px; background:#fff; border:6px solid rgba(var(--brand-blue-rgb),0.22); border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,.18); overflow:hidden }
+    .map-frame{ position:absolute; top:76px; left:12px; right:372px; bottom:68px; background:#fff; border:6px solid rgba(var(--brand-blue-rgb),0.22); border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,.18); overflow:hidden; transition:right 0.3s ease }
+    .map-frame.panel-open{ right:372px }
     #map{height:100%}
-    .panel{position:absolute;top:96px;left:12px;right:12px;z-index:9999;background:#fff;padding:6px 10px;border-radius:10px;box-shadow:0 3px 10px rgba(0,0,0,.10);font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .panel{position:fixed;top:76px;right:0;width:360px;height:calc(100% - 76px - 60px);z-index:9999;background:#fff;padding:16px;border-radius:0;box-shadow:-2px 0 16px rgba(0,0,0,.15);font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;display:flex;flex-direction:column;gap:12px;overflow-y:auto;transform:translateX(100%);transition:transform 0.3s ease}
+    .panel.open{transform:translateX(0)}
     .panel input{width:56px}
-    .panel .section{margin:0;padding:0;display:flex;align-items:center;gap:8px;border:none;border-right:1px dashed rgba(0,0,0,0.12);padding-right:10px}
-    .panel .section:last-child{border-right:none}
-    .panel .section-title{display:none}
-    .panel .row{display:flex;gap:6px;align-items:center;flex-wrap:nowrap}
+    .panel .section{margin:0;padding:12px 0;display:flex;flex-direction:column;gap:8px;border:none;border-bottom:1px dashed rgba(0,0,0,0.12);padding-right:0}
+    .panel .section:last-child{border-bottom:none}
+    .panel .section-title{display:block;font-weight:700;font-size:13px;color:var(--brand-blue);margin-bottom:4px}
+    .panel .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
     .panel label{font-size:11px;color:#344;opacity:.85}
     .panel input[type=number]{height:28px;padding:3px 8px;border:1px solid #d3d7e3;border-radius:8px;font-family:inherit}
     .panel input[type=number]:focus{outline:none;border-color:rgba(var(--brand-blue-rgb),0.6);box-shadow:0 0 0 3px rgba(var(--brand-blue-rgb),0.18)}
+    .panel-toggle{position:absolute;top:88px;right:24px;z-index:9998;width:40px;height:40px;background:var(--brand-blue);color:#fff;border:none;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;transition:all 0.2s ease;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+    .panel-toggle:hover{transform:scale(1.05);box-shadow:0 4px 12px rgba(0,0,0,.2)}
+    .panel-toggle.open{right:calc(360px + 24px)}
     .btn{cursor:pointer; border:1px solid rgba(0,0,0,0.1); border-radius:10px; padding:6px 10px; background:#fff; transition:all .15s ease; font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size:12px; height:30px }
     .btn:hover{ box-shadow:0 3px 8px rgba(0,0,0,0.12) }
     .btn:active{ transform:translateY(1px) }
@@ -67,7 +72,7 @@
     .copyable{ position:relative; display:inline-flex; align-items:center; gap:6px; color: var(--brand-blue); padding:0 2px }
     .copy-btn{ display:none; font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-weight:700; font-size:11px; color:#fff; background: var(--brand-blue); border:none; border-radius:10px; padding:2px 8px; cursor:pointer; line-height:1 }
     .copyable:hover .copy-btn{ display:inline-block }
-    @media (max-width:480px){ .panel{top:108px; left:8px; right:8px; width:auto} .header{padding:10px 12px} .logo{height:34px} .header .title{font-size:14px; letter-spacing:.05px; white-space:nowrap} .map-frame{top:88px; left:8px; right:8px; bottom:68px; border-width:4px} .footer{height:64px} .footer img{height:44px; max-width:45vw} .footer .contact{font-size:11px} }
+    @media (max-width:480px){ .panel{width:100%;top:76px;right:0;height:calc(100% - 76px - 60px);transform:translateX(100%)} .panel-toggle{right:12px} .panel-toggle.open{right:12px} .map-frame{top:88px; left:8px; right:8px; bottom:68px; border-width:4px} .header{padding:10px 12px} .logo{height:34px} .header .title{font-size:14px; letter-spacing:.05px; white-space:nowrap} .footer{height:64px} .footer img{height:44px; max-width:45vw} .footer .contact{font-size:11px} }
   </style>
 </head>
 <body>
@@ -80,6 +85,7 @@
     </div>
   </div>
   <div class="header"><a href="/welcome" class="back-btn" title="Geri">← Geri</a><span class="title">KORU Yangın Önleme Platformu</span><div class="user-info"><span id="userDisplay"></span><button id="logoutBtn" class="logout-btn">Çıkış</button></div><button id="menuBtn" class="hamburger" aria-label="Menü"><span></span><span></span><span></span></button></div>
+  <button id="panelToggle" class="panel-toggle" title="Kontrol Panelini Aç">⚙️</button>
   <div id="sidebar" class="sidebar" aria-hidden="true">
     <a href="#" id="mFires">İzmir Yangınları</a>
     <a href="#" id="mNearest">Bana En Yakın Toplanma Alanı</a>
@@ -217,6 +223,15 @@
 
     // Sidebar menu actions
     document.getElementById('mFires').addEventListener('click', (e)=>{ e.preventDefault(); closeSidebar(); document.getElementById('btnFiresCached').click(); });
+
+    // Panel Toggle
+    const panel = document.querySelector('.panel');
+    const panelToggle = document.getElementById('panelToggle');
+    const mapFrame = document.querySelector('.map-frame');
+    function openPanel(){ panel.classList.add('open'); panelToggle.classList.add('open'); mapFrame.classList.add('panel-open'); }
+    function closePanel(){ panel.classList.remove('open'); panelToggle.classList.remove('open'); mapFrame.classList.remove('panel-open'); }
+    function togglePanel(){ if (panel.classList.contains('open')) closePanel(); else openPanel(); }
+    panelToggle.addEventListener('click', togglePanel);
 
     async function getUserPosition(){
       return new Promise((resolve)=>{
