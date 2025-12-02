@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs>
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a3a2a;stop-opacity:1" />
+      <stop offset="40%" style="stop-color:#224d3a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2d5016;stop-opacity:1" />
+    </linearGradient>
+    <filter id="treeShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="2" dy="4" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+    <pattern id="leafPattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="10" cy="10" r="2" fill="#2d7a3a" opacity="0.4"/>
+    </pattern>
+  </defs>
+  
+  <!-- Sky background -->
+  <rect width="1920" height="1080" fill="url(#skyGrad)"/>
+  
+  <!-- Atmospheric effect -->
+  <rect width="1920" height="1080" fill="url(#leafPattern)"/>
+  
+  <!-- Far trees (background) -->
+  <g opacity="0.15" id="farTrees">
+    <path d="M200 600 Q150 450 200 300 Q250 450 200 600" fill="#1a5a2a" filter="url(#treeShadow)"/>
+    <path d="M400 650 Q330 480 400 280 Q470 480 400 650" fill="#1a5a2a" filter="url(#treeShadow)"/>
+    <path d="M700 620 Q600 420 700 200 Q800 420 700 620" fill="#1a6b3a" filter="url(#treeShadow)"/>
+    <path d="M1100 630 Q950 450 1100 250 Q1250 450 1100 630" fill="#1a5a2a" filter="url(#treeShadow)"/>
+    <path d="M1500 600 Q1380 420 1500 280 Q1620 420 1500 600" fill="#1a6b3a" filter="url(#treeShadow)"/>
+    <path d="M1800 580 Q1700 400 1800 220 Q1900 400 1800 580" fill="#1a5a2a" filter="url(#treeShadow)"/>
+  </g>
+  
+  <!-- Mid-ground trees -->
+  <g opacity="0.25" id="midTrees">
+    <path d="M150 800 Q100 600 150 350 Q200 600 150 800" fill="#2a6a3a" filter="url(#treeShadow)"/>
+    <path d="M450 850 Q350 600 450 280 Q550 600 450 850" fill="#2a7a4a" filter="url(#treeShadow)"/>
+    <path d="M850 820 Q700 550 850 220 Q1000 550 850 820" fill="#2a6a3a" filter="url(#treeShadow)"/>
+    <path d="M1300 840 Q1150 580 1300 250 Q1450 580 1300 840" fill="#2a7a4a" filter="url(#treeShadow)"/>
+    <path d="M1650 800 Q1550 600 1650 320 Q1750 600 1650 800" fill="#2a6a3a" filter="url(#treeShadow)"/>
+  </g>
+  
+  <!-- Foreground trees (larger, more detailed) -->
+  <g opacity="0.35" id="foreTrees">
+    <g filter="url(#treeShadow)">
+      <path d="M100 1080 Q50 850 100 500 Q150 850 100 1080" fill="#3a7a4a"/>
+      <circle cx="100" cy="480" r="35" fill="#3a8a5a"/>
+      <circle cx="70" cy="520" r="30" fill="#3a8a5a"/>
+      <circle cx="130" cy="520" r="28" fill="#3a8a5a"/>
+    </g>
+    
+    <g filter="url(#treeShadow)">
+      <path d="M380 1080 Q280 800 380 350 Q480 800 380 1080" fill="#3a8a5a"/>
+      <circle cx="380" cy="330" r="45" fill="#4a9a6a"/>
+      <circle cx="340" cy="390" r="38" fill="#4a9a6a"/>
+      <circle cx="420" cy="390" r="40" fill="#4a9a6a"/>
+      <circle cx="360" cy="320" r="35" fill="#4a9a6a"/>
+      <circle cx="400" cy="320" r="33" fill="#4a9a6a"/>
+    </g>
+    
+    <g filter="url(#treeShadow)">
+      <path d="M900 1080 Q750 750 900 250 Q1050 750 900 1080" fill="#3a8a5a"/>
+      <circle cx="900" cy="230" r="50" fill="#4a9a6a"/>
+      <circle cx="850" cy="310" r="42" fill="#4a9a6a"/>
+      <circle cx="950" cy="310" r="44" fill="#4a9a6a"/>
+      <circle cx="870" cy="240" r="38" fill="#4a9a6a"/>
+      <circle cx="930" cy="240" r="36" fill="#4a9a6a"/>
+      <circle cx="900" cy="180" r="32" fill="#5aaa7a"/>
+    </g>
+    
+    <g filter="url(#treeShadow)">
+      <path d="M1600 1080 Q1500 800 1600 350 Q1700 800 1600 1080" fill="#3a7a4a"/>
+      <circle cx="1600" cy="330" r="48" fill="#4a9a6a"/>
+      <circle cx="1560" cy="400" r="40" fill="#4a9a6a"/>
+      <circle cx="1640" cy="400" r="42" fill="#4a9a6a"/>
+      <circle cx="1575" cy="310" r="35" fill="#4a9a6a"/>
+      <circle cx="1625" cy="310" r="34" fill="#4a9a6a"/>
+    </g>
+  </g>
+  
+  <!-- Lighting effects -->
+  <radial-gradient id="lightGrad" cx="30%" cy="20%">
+    <stop offset="0%" style="stop-color:#fff;stop-opacity:0.08" />
+    <stop offset="50%" style="stop-color:#fff;stop-opacity:0.02" />
+    <stop offset="100%" style="stop-color:#fff;stop-opacity:0" />
+  </radial-gradient>
+  
+  <ellipse cx="576" cy="216" rx="600" ry="400" fill="url(#lightGrad)"/>
+  
+  <!-- Sun/Moon glow -->
+  <circle cx="1700" cy="150" r="80" fill="#f4a460" opacity="0.08"/>
+  <circle cx="1700" cy="150" r="60" fill="#ffa500" opacity="0.04"/>
+</svg>
