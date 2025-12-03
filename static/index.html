@@ -15,6 +15,8 @@
     #map{height:100%}
     .panel{position:fixed;top:76px;right:0;width:360px;height:calc(100% - 76px - 60px);z-index:9999;background:#fff;padding:16px;border-radius:0;box-shadow:-2px 0 16px rgba(0,0,0,.15);font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;display:flex;flex-direction:column;gap:12px;overflow-y:auto;transform:translateX(100%);transition:transform 0.3s ease}
     .panel.open{transform:translateX(0)}
+    .panel-close-btn{position:absolute;top:2px;left:2px;width:24px;height:24px;background:none;border:none;color:#999;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all 0.2s ease;padding:0;margin:0;z-index:10001;font-weight:bold}
+    .panel-close-btn:hover{color:#666;transform:scale(1.1)}
     .panel input{width:56px}
     .panel .section{margin:0;padding:12px 0;display:flex;flex-direction:column;gap:8px;border:none;border-bottom:1px dashed rgba(0,0,0,0.12);padding-right:0}
     .panel .section:last-child{border-bottom:none}
@@ -98,6 +100,7 @@
   </div>
   <div id="backdrop" class="backdrop"></div>
   <div class="panel">
+    <button class="panel-close-btn" id="panelCloseBtn" title="Paneli Kapat">×</button>
     <div class="section">
       <div class="section-title">İzmir Yangınları</div>
       <div class="row">
@@ -256,11 +259,13 @@
     // Panel Toggle
     const panel = document.querySelector('.panel');
     const panelToggle = document.getElementById('panelToggle');
+    const panelCloseBtn = document.getElementById('panelCloseBtn');
     const mapFrame = document.querySelector('.map-frame');
     function openPanel(){ panel.classList.add('open'); panelToggle.classList.add('open'); mapFrame.classList.add('panel-open'); }
     function closePanel(){ panel.classList.remove('open'); panelToggle.classList.remove('open'); mapFrame.classList.remove('panel-open'); }
     function togglePanel(){ if (panel.classList.contains('open')) closePanel(); else openPanel(); }
     panelToggle.addEventListener('click', togglePanel);
+    panelCloseBtn.addEventListener('click', closePanel);
 
     async function getUserPosition(){
       return new Promise((resolve)=>{
