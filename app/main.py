@@ -9,6 +9,19 @@ import re
 from .weather import get_wind
 from .spread import make_spread_sector, meters_to_deg
 
+# Excel dosya okuma için openpyxl
+try:
+    import openpyxl
+    HAS_OPENPYXL = True
+except ImportError:
+    HAS_OPENPYXL = False
+
+try:
+    import xlrd
+    HAS_XLRD = True
+except ImportError:
+    HAS_XLRD = False
+
 # (opsiyonel) FIRMS; dosyan hazırsa çalışır, değilse ping yine çalışır
 try:
     from .firms import fetch_firms_geojson
@@ -82,6 +95,104 @@ def spread(
 ):
     feat = make_spread_sector(lat, lon, wind_dir_deg, wind_speed_ms, duration_min)
     return JSONResponse({"type": "FeatureCollection", "features": [feat]})
+
+# 🔹 Toplanma Alanları: Excel dosyalarından oku ve GeoJSON olarak döndür
+@app.get("/api/shelters_from_excel")
+def shelters_from_excel():
+    """
+    static/data/toplanma-alanları/ klasöründeki Excel dosyalarını oku
+    Beklenen kolonlar: ad/name, enlem/latitude/lat, boyam/longitude/lon
+    """
+    shelters_dir = Path("static/data/toplanma-alanları")
+    features = []
+    
+    if not shelters_dir.exists():
+        return {"type": "FeatureCollection", "features": [], "error": "Toplanma alanları klasörü bulunamadı"}
+    
+    # Excel dosyalarını bul
+    excel_files = list(shelters_dir.glob("*.xlsx")) + list(shelters_dir.glob("*.xls"))
+    
+    for excel_file in excel_files:
+        try:
+            # openpyxl ile .xlsx okuyabilir
+            if HAS_OPENPYXL and excel_file.suffix.lower() == '.xlsx':
+                wb = openpyxl.load_workbook(excel_file)
+                ws = wb.active
+                
+                # İlk satır header'ı varsayalım
+                headers = []
+                for cell in ws[1]:
+                    headers.append((cell.value or "").lower().strip())
+                
+                # Enlem, boyam, ad sütunlarını bul
+                lat_col = lon_col = name_col = None
+                for i, h in enumerate(headers):
+                    if 'enlem' in h or 'latitude' in h or 'lat' in h:
+                        lat_col = i
+                    elif 'boyam' in h or 'longitude' in h or 'lon' in h:
+                        lon_col = i
+                    elif 'ad' in h or 'name' in h:
+                        name_col = i
+                
+                # Satırları oku
+                for row in ws.iter_rows(min_row=2, values_only=True):
+                    if not row or all(v is None for v in row):
+                        continue
+                    
+                    try:
+                        lat = float(row[lat_col]) if lat_col is not None and row[lat_col] else None
+                        lon = float(row[lon_col]) if lon_col is not None and row[lon_col] else None
+                        name = str(row[name_col]) if name_col is not None and row[name_col] else f"Toplanma Alanı ({excel_file.stem})"
+                        
+                        if lat and lon:
+                            features.append({
+                                "type": "Feature",
+                                "geometry": {"type": "Point", "coordinates": [lon, lat]},
+                                "properties": {"name": name, "ilçe": excel_file.stem.split("_")[0]}
+                            })
+                    except (ValueError, TypeError, IndexError):
+                        continue
+            
+            # xlrd ile .xls okuyabilir
+            elif HAS_XLRD and excel_file.suffix.lower() == '.xls':
+                wb = xlrd.open_workbook(str(excel_file))
+                ws = wb.sheet_by_index(0)
+                
+                # İlk satır header
+                headers = []
+                for cell in ws.row(0):
+                    headers.append((cell.value or "").lower().strip())
+                
+                lat_col = lon_col = name_col = None
+                for i, h in enumerate(headers):
+                    if 'enlem' in h or 'latitude' in h or 'lat' in h:
+                        lat_col = i
+                    elif 'boyam' in h or 'longitude' in h or 'lon' in h:
+                        lon_col = i
+                    elif 'ad' in h or 'name' in h:
+                        name_col = i
+                
+                for row_idx in range(1, ws.nrows):
+                    row = ws.row(row_idx)
+                    try:
+                        lat = float(row[lat_col].value) if lat_col is not None and row[lat_col].value else None
+                        lon = float(row[lon_col].value) if lon_col is not None and row[lon_col].value else None
+                        name = str(row[name_col].value) if name_col is not None and row[name_col].value else f"Toplanma Alanı ({excel_file.stem})"
+                        
+                        if lat and lon:
+                            features.append({
+                                "type": "Feature",
+                                "geometry": {"type": "Point", "coordinates": [lon, lat]},
+                                "properties": {"name": name, "ilçe": excel_file.stem.split("_")[0]}
+                            })
+                    except (ValueError, TypeError, IndexError):
+                        continue
+        
+        except Exception as e:
+            print(f"Excel okuma hatası {excel_file}: {e}")
+            continue
+    
+    return {"type": "FeatureCollection", "features": features}
 
 # ============================
 # FIRMS cache (background)
