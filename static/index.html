@@ -25,7 +25,7 @@
     .panel input[type=number]:focus{outline:none;border-color:rgba(var(--brand-blue-rgb),0.6);box-shadow:0 0 0 3px rgba(var(--brand-blue-rgb),0.18)}
     .panel select{height:28px;padding:3px 8px;border:1px solid #d3d7e3;border-radius:8px;font-family:inherit;font-size:12px;background:#fff;color:#333;cursor:pointer}
     .panel select:focus{outline:none;border-color:rgba(var(--brand-blue-rgb),0.6);box-shadow:0 0 0 3px rgba(var(--brand-blue-rgb),0.18)}
-    .panel-toggle{width:32px;height:32px;background:transparent;color:#fff;border:none;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all 0.2s ease;padding:0;margin:0}
+    .panel-toggle{position:absolute;top:12px;right:12px;width:40px;height:40px;background:#fff;color:var(--brand-blue);border:none;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;transition:all 0.2s ease;padding:0;margin:0;z-index:9998;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
     .btn{cursor:pointer; border:1px solid rgba(0,0,0,0.1); border-radius:10px; padding:6px 10px; background:#fff; transition:all .15s ease; font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size:12px; height:30px }
     .btn:hover{ box-shadow:0 3px 8px rgba(0,0,0,0.12) }
     .btn:active{ transform:translateY(1px) }
@@ -41,10 +41,16 @@
     .header{position:absolute;top:0;left:0;right:0;z-index:10000;background:var(--brand-blue);padding:10px 16px;display:flex;align-items:center;gap:10px;justify-content:space-between;border-bottom:2px solid rgba(255,255,255,0.15); color:#fff; flex-wrap:nowrap}
     .header .title{color:#fff; font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-weight:700; font-size:18px; letter-spacing:.1px; white-space:nowrap; flex:1}
     .header .user-info{ color:#fff; font-size:12px; font-weight:600; display:flex; align-items:center; gap:10px; white-space:nowrap; }
-    .header .back-btn{ background:rgba(255,255,255,0.2); color:#fff; border:1px solid rgba(255,255,255,0.4); padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; transition:all 0.2s ease; text-decoration:none; display:inline-block; white-space:nowrap; }
-    .header .back-btn:hover{ background:rgba(255,255,255,0.3); }
-    .header .logout-btn{ background:rgba(255,255,255,0.2); color:#fff; border:1px solid rgba(255,255,255,0.4); padding:6px 12px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; transition:all 0.2s ease; }
-    .header .logout-btn:hover{ background:rgba(255,255,255,0.3); }
+    .header .back-btn{ background:none; color:#fff; border:none; padding:0; margin:0; cursor:pointer; font-size:18px; font-weight:600; font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; transition:all 0.2s ease; text-decoration:none; display:inline-block; white-space:nowrap; }
+    .header .back-btn:hover{ opacity:0.8; }
+    .user-dropdown{ position:relative; display:inline-block }
+    .user-dropdown-toggle{ cursor:pointer; padding:4px 0; border:none; background:none; color:#fff; font-size:12px; font-weight:600; font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; display:flex; align-items:center; gap:4px }
+    .user-dropdown-toggle:hover{ opacity:0.8 }
+    .user-dropdown-menu{ position:absolute; top:100%; right:0; background:#fff; border:1px solid rgba(0,0,0,0.1); border-radius:6px; min-width:160px; box-shadow:0 4px 12px rgba(0,0,0,0.15); opacity:0; pointer-events:none; transform:translateY(-4px); transition:all 0.2s ease; z-index:10001; margin-top:6px }
+    .user-dropdown-menu.show{ opacity:1; pointer-events:auto; transform:translateY(0) }
+    .user-dropdown-menu a{ display:block; padding:10px 14px; color:var(--brand-blue); text-decoration:none; border-bottom:1px solid rgba(0,0,0,0.08); font-size:12px; font-weight:600; font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; white-space:nowrap; cursor:pointer }
+    .user-dropdown-menu a:last-child{ border-bottom:none }
+    .user-dropdown-menu a:hover{ background:rgba(0,0,0,0.04) }
     .logo{height:42px;width:auto; background: var(--brand-blue); display:block}
     .hamburger{width:32px;height:24px;display:inline-flex;flex-direction:column;justify-content:space-between;cursor:pointer;background:transparent;border:none;padding:0;margin:0}
     .hamburger span{display:block;height:3px;background:#fff;border-radius:2px;opacity:0.9}
@@ -75,7 +81,7 @@
   </style>
 </head>
 <body>
-  <div class="map-frame"><div id="map"></div></div>
+  <div class="map-frame"><div id="map"></div><button id="panelToggle" class="panel-toggle" title="Kontrol Panelini Aç">⚙️</button></div>
   <div class="footer">
     <div class="contact">
       <span><strong>Telefon:</strong> <span class="copyable" data-copy="153"><span class="copy-val">153</span><button type="button" class="copy-btn" aria-label="Kopyala">Kopyala</button></span></span>
@@ -83,7 +89,7 @@
       <span><strong>E-Posta:</strong> <span class="copyable" data-copy="him@izmir.bel.tr"><a href="mailto:him@izmir.bel.tr">him@izmir.bel.tr</a><button type="button" class="copy-btn" aria-label="Kopyala">Kopyala</button></span></span>
     </div>
   </div>
-  <div class="header"><a href="/welcome" class="back-btn" title="Geri">← Geri</a><span class="title">KORU Yangın Önleme Platformu</span><div class="user-info"><span id="userDisplay"></span><button id="logoutBtn" class="logout-btn">Çıkış</button><button id="panelToggle" class="panel-toggle" title="Kontrol Panelini Aç">⚙️</button></div><button id="menuBtn" class="hamburger" aria-label="Menü"><span></span><span></span><span></span></button></div>
+  <div class="header"><a href="/welcome" class="back-btn" title="Geri">←</a><span class="title">KORU Yangın Önleme Platformu</span><div class="user-info"><div class="user-dropdown"><span id="userDisplay" class="user-dropdown-toggle"></span><div id="userDropdownMenu" class="user-dropdown-menu"><a href="#" id="profileLink">👤 Profil</a><a href="#" id="logoutLink">🚪 Oturum Kapat</a></div></div></div><button id="menuBtn" class="hamburger" aria-label="Menü"><span></span><span></span><span></span></button></div>
   <div id="sidebar" class="sidebar" aria-hidden="true">
     <a href="#" id="mFires">İzmir Yangınları</a>
     <a href="#" id="mNearest">Bana En Yakın Toplanma Alanı</a>
@@ -115,12 +121,13 @@
         <button id="btnRisk" class="btn btn-outline">Risk Overlay</button>
         <button id="btnShelters" class="btn btn-outline">Toplanma Alanları</button>
         <button id="btnReservoirs" class="btn btn-outline">💧 Barajlar</button>
+        <button id="btnWaterTanks" class="btn btn-outline">💧 Su Tankları</button>
         <button id="btnLakes" class="btn btn-outline">💧 Göller</button>
       </div>
     </div>
     <div class="section">
       <div class="row">
-        <button id="btnReset" class="btn">Sıfırla (Default)</button>
+        <button id="btnReset" class="btn">Sıfırla</button>
         <span id="info" style="margin-left:6px;color:#555"></span>
       </div>
     </div>
@@ -142,17 +149,44 @@
       const username = sessionStorage.getItem('username') || 'Kullanıcı';
       const userType = sessionStorage.getItem('userType') || 'user';
       const userDisplay = document.getElementById('userDisplay');
+      const userDropdownMenu = document.getElementById('userDropdownMenu');
+      const logoutLink = document.getElementById('logoutLink');
+      const profileLink = document.getElementById('profileLink');
+      
       if (userDisplay) {
-        const typeLabel = userType === 'admin' ? '🔐 Admin' : '👤 Kullanıcı';
+        const typeLabel = userType === 'admin' ? 'Kullanıcı - Admin' : 'Kullanıcı';
         userDisplay.textContent = `${typeLabel} - ${username}`;
+        userDisplay.innerHTML += ' ▼';
+        
+        // Dropdown menüyü aç/kapat
+        userDisplay.addEventListener('click', function(e) {
+          e.stopPropagation();
+          userDropdownMenu.classList.toggle('show');
+        });
       }
       
-      // Çıkış butonunu ayarla
-      const logoutBtn = document.getElementById('logoutBtn');
-      if (logoutBtn) {
-        logoutBtn.addEventListener('click', function() {
+      // Sayfa başka yerine tıklanınca menüyü kapat
+      document.addEventListener('click', function() {
+        if (userDropdownMenu) {
+          userDropdownMenu.classList.remove('show');
+        }
+      });
+      
+      // Oturum Kapat bağlantısı
+      if (logoutLink) {
+        logoutLink.addEventListener('click', function(e) {
+          e.preventDefault();
           sessionStorage.clear();
           window.location.href = '/login';
+        });
+      }
+      
+      // Profil bağlantısı
+      if (profileLink) {
+        profileLink.addEventListener('click', function(e) {
+          e.preventDefault();
+          alert(`Profil: ${username} (${userType === 'admin' ? 'Admin' : 'Kullanıcı'})`);
+          userDropdownMenu.classList.remove('show');
         });
       }
     })();
@@ -289,7 +323,8 @@
     const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       {maxZoom:19, attribution:'&copy; Esri'});
     
-    osmLayer.addTo(map);
+    // Başlangıçta uydu modunu etkinleştir
+    satelliteLayer.addTo(map);
     
     // Default marker icon'u devre dışı bırak (mavi pin'ler gösterilmesini engelle)
     L.Icon.Default.prototype.options.imagePath = '';
@@ -442,7 +477,7 @@
       if (s) s.textContent = msg || '';
     }
 
-    // Barajları Overpass API'den yükle
+    // Barajları backend API'den yükle
     async function loadReservoirs(){
       const info = document.getElementById('info');
       if (reservoirLayer){
@@ -454,74 +489,43 @@
       }
       
       info.textContent = 'Barajlar yükleniyor...';
-      setStatus('Barajlar Overpass API\'den yükleniyor...');
+      setStatus('Barajlar yükleniyor...');
       try {
-        const query = `[out:json][timeout:60];(nwr["man_made"="reservoir"](37.8,26.0,39.4,28.8);nwr["water"="reservoir"](37.8,26.0,39.4,28.8););out geom;`;
-        const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
-        
-        const r = await fetch(url);
+        // Backend API'den baraj verisi getir
+        const r = await fetch('/api/dams');
         if (!r.ok) throw new Error('API hatası');
-        const data = await r.json();
+        const gj = await r.json();
         
-        // OSM verilerini GeoJSON'a dönüştür - sadece point'ler
-        const features = [];
-        if (data.elements) {
-          data.elements.forEach(el => {
-            let lat = null, lon = null, name = null;
-            
-            if (el.type === 'node' && el.lat && el.lon) {
-              lat = el.lat;
-              lon = el.lon;
-              name = el.tags?.name || 'Baraj';
-            } else if (el.type === 'way' && el.geometry && el.geometry.length > 0) {
-              // Way için merkez noktasını hesapla
-              const centerIdx = Math.floor(el.geometry.length / 2);
-              lat = el.geometry[centerIdx].lat;
-              lon = el.geometry[centerIdx].lon;
-              name = el.tags?.name || 'Baraj';
-            } else if (el.type === 'relation' && el.center) {
-              // Relation için merkez koordinatını kullan
-              lat = el.center.lat;
-              lon = el.center.lon;
-              name = el.tags?.name || 'Baraj';
-            }
-            
-            if (lat && lon) {
-              features.push({
-                type: 'Feature',
-                geometry: { type: 'Point', coordinates: [lon, lat] },
-                properties: { name: name, type: 'Baraj' }
-              });
-            }
-          });
-        }
-        
-        if (features.length === 0) {
+        if (!gj.features || gj.features.length === 0) {
           info.textContent = 'Baraj verisi bulunamadı';
           return;
         }
         
-        // Sadece İzmir sınırı içindeki barajları filtrele
-        const filteredFeatures = features.filter(f => {
+        console.log('Barajlar toplam:', gj.features.length);
+        
+        // İzmir sınırı içindeki barajları filtrele
+        const filteredFeatures = gj.features.filter(f => {
           const [lon, lat] = f.geometry.coordinates;
           return isInIzmir(lat, lon);
         });
         
-        const gj = { type: 'FeatureCollection', features: filteredFeatures };
+        console.log('İzmir içinde:', filteredFeatures.length);
         
-        reservoirLayer = L.geoJSON(gj, {
+        const filteredGj = { type: 'FeatureCollection', features: filteredFeatures };
+        
+        reservoirLayer = L.geoJSON(filteredGj, {
           pointToLayer: (feature, latlng) => {
-            return L.circleMarker(latlng, {
-              radius: 8,
-              color: '#0066CC',
-              fillColor: '#00AAFF',
-              fillOpacity: 0.8,
-              weight: 2
+            // Kare şekli - koyu mavi
+            const div = L.divIcon({
+              html: '<div style="width: 12px; height: 12px; background-color: #1565C0; border: 2px solid #0D47A1; border-radius: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+              iconSize: [12, 12],
+              className: 'dam-marker'
             });
+            return L.marker(latlng, { icon: div });
           },
           onEachFeature: (feature, layer) => {
             const props = feature.properties;
-            const popup = `<b>💧 ${props.type}</b><br>${props.name}`;
+            const popup = `<div style="font-weight: bold; color: #1565C0;">🏗️ ${props.name}</div><div style="font-size: 12px; margin-top: 4px;">Baraj</div>`;
             layer.bindPopup(popup);
           }
         }).addTo(map);
@@ -531,6 +535,91 @@
       } catch (e) {
         info.textContent = 'Barajlar yüklenemedi: ' + e.message;
         console.error('Baraj yükleme hatası:', e);
+      }
+    }
+
+    async function loadWaterTanks(){
+      const info = document.getElementById('info');
+      if (window.waterTanksLayer){
+        map.removeLayer(window.waterTanksLayer);
+        window.waterTanksLayer = null;
+        info.textContent = 'Su tankları kapatıldı';
+        setStatus('Su tankları kapatıldı');
+        return;
+      }
+      
+      info.textContent = 'Su tankları yükleniyor...';
+      setStatus('Su tankları yükleniyor...');
+      try {
+        // Backend API'den su tankı verisi getir
+        const r = await fetch('/api/water_tanks');
+        if (!r.ok) throw new Error('API hatası');
+        const gj = await r.json();
+        
+        if (!gj.features || gj.features.length === 0) {
+          info.textContent = 'Su tankı verisi bulunamadı';
+          return;
+        }
+        
+        console.log('Su tankları toplam:', gj.features.length);
+        
+        // Tüm geometri türlerini Point'e çevir
+        const filteredFeatures = gj.features.map(f => {
+          const geom = f.geometry;
+          let lon, lat;
+          
+          if (geom.type === 'Point') {
+            [lon, lat] = geom.coordinates;
+          } else if (geom.type === 'Polygon' && geom.coordinates[0]) {
+            // Polygon'un merkezi
+            const coords = geom.coordinates[0];
+            lon = coords.reduce((sum, c) => sum + c[0], 0) / coords.length;
+            lat = coords.reduce((sum, c) => sum + c[1], 0) / coords.length;
+          } else if (geom.type === 'LineString' && geom.coordinates) {
+            // LineString'in merkezi
+            const coords = geom.coordinates;
+            lon = coords.reduce((sum, c) => sum + c[0], 0) / coords.length;
+            lat = coords.reduce((sum, c) => sum + c[1], 0) / coords.length;
+          } else {
+            return null;
+          }
+          
+          return {
+            ...f,
+            geometry: {
+              type: 'Point',
+              coordinates: [lon, lat]
+            }
+          };
+        }).filter(f => f !== null);
+        
+        console.log('Gösterilecek su tankları:', filteredFeatures.length);
+        
+        const filteredGj = { type: 'FeatureCollection', features: filteredFeatures };
+        
+        window.waterTanksLayer = L.geoJSON(filteredGj, {
+          pointToLayer: (feature, latlng) => {
+            // Üçgen şekli - açık mavi (biraz daha büyük)
+            const triangleIcon = L.divIcon({
+              html: '<div style="width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 15px solid #64B5F6; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></div>',
+              iconSize: [16, 15],
+              className: 'water-tank-marker'
+            });
+            return L.marker(latlng, { icon: triangleIcon });
+          },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties;
+            const name = props.name || 'Su Noktası';
+            const popup = `<div style="font-weight: bold; color: #64B5F6;">💧 ${name}</div><div style="font-size: 12px; margin-top: 4px;">Su Noktası</div>`;
+            layer.bindPopup(popup);
+          }
+        }).addTo(map);
+        
+        info.textContent = `Su tankları açık (${filteredFeatures.length} bulundu)`;
+        setStatus(`Su tankları açık (${filteredFeatures.length})`);
+      } catch (e) {
+        info.textContent = 'Su tankları yüklenemedi: ' + e.message;
+        console.error('Su tankı yükleme hatası:', e);
       }
     }
 
@@ -573,24 +662,24 @@
         
         lakesLayer = L.geoJSON(filteredGj, {
           style: {
-            color: '#0066CC',
-            fillColor: '#00AAFF',
-            fillOpacity: 0.6,
-            weight: 2
+            color: '#001A2E',
+            fillColor: '#1565C0',
+            fillOpacity: 0.65,
+            weight: 3
           },
           pointToLayer: (feature, latlng) => {
-            return L.circleMarker(latlng, {
-              radius: 6,
-              color: '#0066CC',
-              fillColor: '#00AAFF',
-              fillOpacity: 0.8,
-              weight: 2
+            // Kare şekli - gradyan (koyu maviden açık maviye)
+            const div = L.divIcon({
+              html: `<div style="width: 12px; height: 12px; background: linear-gradient(135deg, #0D1B3D 0%, #1565C0 50%, #42A5F5 100%); border: 2.5px solid #001A2E; border-radius: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.4);"></div>`,
+              iconSize: [12, 12],
+              className: 'lake-marker'
             });
+            return L.marker(latlng, { icon: div });
           },
           onEachFeature: (feature, layer) => {
             const props = feature.properties;
             const name = props.name || props.ad || 'Göl/Gölet';
-            const popup = `<b>💧 ${name}</b>`;
+            const popup = `<div style="font-weight: bold; color: #0D1B3D;">🌊 ${name}</div><div style="font-size: 12px; margin-top: 4px;">Göl/Gölet</div>`;
             layer.bindPopup(popup);
           }
         }).addTo(map);
@@ -918,25 +1007,46 @@
 
     function resetMap(){
       const info = document.getElementById('info');
-      // stop auto refresh
-      document.getElementById('autoRef').checked = false;
-      setAutoRefresh(false);
-      // remove layers
-      if (firesLayer){ try{ map.removeLayer(firesLayer); }catch(e){} firesLayer=null; }
-      if (spreadLayer){ try{ map.removeLayer(spreadLayer); }catch(e){} spreadLayer=null; }
-      if (riskLayer){ try{ map.removeLayer(riskLayer); }catch(e){} riskLayer=null; }
-      if (reservoirLayer){ try{ map.removeLayer(reservoirLayer); }catch(e){} reservoirLayer=null; }
-      if (boundaryPointsLayer){ try{ map.removeLayer(boundaryPointsLayer); }catch(e){} boundaryPointsLayer=null; }
-      if (legendCtl){ try{ legendCtl.remove(); }catch(e){} legendCtl=null; }
-      riskActive=false;
-      lastWind=null;
-      // reset inputs
-      document.getElementById('dr').value = '3';
-      document.getElementById('dur').value = '30';
-      document.getElementById('cellKm').value = '8';
-      // reset view
-      map.setView([38.42, 27.14], 8);
-      info.textContent = 'Varsayılan görünüm yüklendi'; setStatus('Varsayılan görünüm');
+      try {
+        // stop auto refresh
+        document.getElementById('autoRef').checked = false;
+        setAutoRefresh(false);
+        
+        // remove all layers
+        if (firesLayer){ map.removeLayer(firesLayer); firesLayer=null; }
+        if (spreadLayer){ map.removeLayer(spreadLayer); spreadLayer=null; }
+        if (riskLayer){ map.removeLayer(riskLayer); riskLayer=null; }
+        if (reservoirLayer){ map.removeLayer(reservoirLayer); reservoirLayer=null; }
+        if (window.waterTanksLayer){ map.removeLayer(window.waterTanksLayer); window.waterTanksLayer=null; }
+        if (window.sheltersLayer){ map.removeLayer(window.sheltersLayer); window.sheltersLayer=null; }
+        if (boundaryPointsLayer){ map.removeLayer(boundaryPointsLayer); boundaryPointsLayer=null; }
+        
+        // remove legend
+        if (legendCtl){ legendCtl.remove(); legendCtl=null; }
+        
+        // remove all GeoJSON layers
+        map.eachLayer(function(layer) {
+          if (layer instanceof L.GeoJSON) {
+            map.removeLayer(layer);
+          }
+        });
+        
+        riskActive=false;
+        lastWind=null;
+        
+        // reset inputs
+        document.getElementById('dr').value = '3';
+        document.getElementById('dur').value = '30';
+        document.getElementById('cellKm').value = '8';
+        
+        // reset view
+        map.setView([38.42, 27.14], 8);
+        info.textContent = 'Harita temizlendi';
+        setStatus('Harita temizlendi');
+      } catch(e) {
+        console.error('Reset hatası:', e);
+        info.textContent = 'Reset sırasında hata oluştu';
+      }
     }
 
     function setAutoRefresh(on){
@@ -984,6 +1094,7 @@
     document.getElementById('btnLiveTracking').addEventListener('click', ()=>loadLiveTracking(true));
     document.getElementById('btnRisk').addEventListener('click', toggleRisk);
     document.getElementById('btnReservoirs').addEventListener('click', loadReservoirs);
+    document.getElementById('btnWaterTanks').addEventListener('click', loadWaterTanks);
     document.getElementById('btnLakes').addEventListener('click', loadLakes);
     document.getElementById('btnBoundaryPoints').addEventListener('click', loadBoundaryPoints);
     document.getElementById('btnShelters').addEventListener('click', async ()=>{
@@ -1012,7 +1123,9 @@
           throw new Error('Excel dosyalarından veri yüklenemedi');
         }
         
+        console.log('Shelters before filter:', gj.features.length);
         gj = filterShelters(gj);
+        console.log('Shelters after filter:', gj.features.length);
         window.sheltersLayer = L.geoJSON(gj, {
           pointToLayer:(f,latlng)=>L.circleMarker(latlng, {radius:6, color:'#00695c', fillColor:'#26a69a', fillOpacity:0.85, weight:2}),
           onEachFeature:(f,l)=>{ const p=f.properties||{}; const ilce = p.ilçe ? ` (${p.ilçe})` : ''; l.bindPopup(`<b>Toplanma Alanı</b><br>${p.name||p.ad||'-'}${ilce}`); }

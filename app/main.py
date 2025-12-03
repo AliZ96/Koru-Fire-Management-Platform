@@ -105,50 +105,67 @@ def shelters_from_excel():
     """
     shelters_dir = Path("static/data/toplanma-alanları")
     features = []
+    debug_info = []
     
     if not shelters_dir.exists():
         return {"type": "FeatureCollection", "features": [], "error": "Toplanma alanları klasörü bulunamadı"}
     
     # Excel dosyalarını bul
     excel_files = list(shelters_dir.glob("*.xlsx")) + list(shelters_dir.glob("*.xls"))
+    debug_info.append(f"Bulunan Excel dosyaları: {len(excel_files)}")
     
     for excel_file in excel_files:
         try:
+            debug_info.append(f"İşleniyor: {excel_file.name} (suffix={excel_file.suffix.lower()}, HAS_OPENPYXL={HAS_OPENPYXL}, HAS_XLRD={HAS_XLRD})")
+            
             # openpyxl ile .xlsx okuyabilir
             if HAS_OPENPYXL and excel_file.suffix.lower() == '.xlsx':
                 wb = openpyxl.load_workbook(excel_file)
                 ws = wb.active
                 
-                # İlk satır header'ı varsayalım
+                # Satır 2 header'ı (satır 1 başlık açıklaması)
                 headers = []
-                for cell in ws[1]:
+                for cell in ws[2]:
                     headers.append((cell.value or "").lower().strip())
                 
-                # Enlem, boyam, ad sütunlarını bul
-                lat_col = lon_col = name_col = None
+                # Enlem, boyam, ad sütunlarını bul (0-indexed)
+                lat_col = lon_col = name_col = ilce_col = None
                 for i, h in enumerate(headers):
-                    if 'enlem' in h or 'latitude' in h or 'lat' in h:
+                    if 'enlem' in h:
                         lat_col = i
-                    elif 'boyam' in h or 'longitude' in h or 'lon' in h:
+                    elif 'boylam' in h:
                         lon_col = i
-                    elif 'ad' in h or 'name' in h:
+                    elif 'ilçe, mahalle' in h:
                         name_col = i
+                    elif 'ilçe' in h and 'adı' in h:
+                        ilce_col = i
                 
-                # Satırları oku
-                for row in ws.iter_rows(min_row=2, values_only=True):
+                # Fallback: sütun indekslerini direkt ata
+                if lat_col is None:
+                    lat_col = 8  # Col 9: ENLEM
+                if lon_col is None:
+                    lon_col = 9  # Col 10: BOYLAM
+                if name_col is None:
+                    name_col = 3  # Col 4: İLÇE, MAHALLE, AFET VE ACİL DURUM TOPLANMA ALANI SIRA NO
+                if ilce_col is None:
+                    ilce_col = 2  # Col 3: İLÇE ADI
+                
+                # Satırları oku (satır 3'ten başla)
+                for row_idx, row in enumerate(ws.iter_rows(min_row=3, values_only=True), 3):
                     if not row or all(v is None for v in row):
                         continue
                     
                     try:
-                        lat = float(row[lat_col]) if lat_col is not None and row[lat_col] else None
-                        lon = float(row[lon_col]) if lon_col is not None and row[lon_col] else None
-                        name = str(row[name_col]) if name_col is not None and row[name_col] else f"Toplanma Alanı ({excel_file.stem})"
+                        lat = float(row[lat_col]) if lat_col is not None and lat_col < len(row) and row[lat_col] else None
+                        lon = float(row[lon_col]) if lon_col is not None and lon_col < len(row) and row[lon_col] else None
+                        name = str(row[name_col]).strip() if name_col is not None and name_col < len(row) and row[name_col] else f"Toplanma Alanı"
+                        ilce = str(row[ilce_col]).strip() if ilce_col is not None and ilce_col < len(row) and row[ilce_col] else excel_file.stem.split("_")[0]
                         
                         if lat and lon:
                             features.append({
                                 "type": "Feature",
                                 "geometry": {"type": "Point", "coordinates": [lon, lat]},
-                                "properties": {"name": name, "ilçe": excel_file.stem.split("_")[0]}
+                                "properties": {"name": name, "ilçe": ilce}
                             })
                     except (ValueError, TypeError, IndexError):
                         continue
@@ -158,32 +175,45 @@ def shelters_from_excel():
                 wb = xlrd.open_workbook(str(excel_file))
                 ws = wb.sheet_by_index(0)
                 
-                # İlk satır header
+                # Satır 2 (index 1) header
                 headers = []
-                for cell in ws.row(0):
+                for cell in ws.row(1):
                     headers.append((cell.value or "").lower().strip())
                 
-                lat_col = lon_col = name_col = None
+                lat_col = lon_col = name_col = ilce_col = None
                 for i, h in enumerate(headers):
-                    if 'enlem' in h or 'latitude' in h or 'lat' in h:
+                    if 'enlem' in h:
                         lat_col = i
-                    elif 'boyam' in h or 'longitude' in h or 'lon' in h:
+                    elif 'boylam' in h:
                         lon_col = i
-                    elif 'ad' in h or 'name' in h:
+                    elif 'ilçe, mahalle' in h:
                         name_col = i
+                    elif 'ilçe' in h and 'adı' in h:
+                        ilce_col = i
                 
-                for row_idx in range(1, ws.nrows):
+                # Fallback: sütun indekslerini direkt ata
+                if lat_col is None:
+                    lat_col = 8  # Col 9: ENLEM
+                if lon_col is None:
+                    lon_col = 9  # Col 10: BOYLAM
+                if name_col is None:
+                    name_col = 3  # Col 4: İLÇE, MAHALLE, AFET VE ACİL DURUM TOPLANMA ALANI SIRA NO
+                if ilce_col is None:
+                    ilce_col = 2  # Col 3: İLÇE ADI
+                
+                for row_idx in range(2, ws.nrows):
                     row = ws.row(row_idx)
                     try:
-                        lat = float(row[lat_col].value) if lat_col is not None and row[lat_col].value else None
-                        lon = float(row[lon_col].value) if lon_col is not None and row[lon_col].value else None
-                        name = str(row[name_col].value) if name_col is not None and row[name_col].value else f"Toplanma Alanı ({excel_file.stem})"
+                        lat = float(row[lat_col].value) if lat_col is not None and lat_col < len(row) and row[lat_col].value else None
+                        lon = float(row[lon_col].value) if lon_col is not None and lon_col < len(row) and row[lon_col].value else None
+                        name = str(row[name_col].value).strip() if name_col is not None and name_col < len(row) and row[name_col].value else f"Toplanma Alanı"
+                        ilce = str(row[ilce_col].value).strip() if ilce_col is not None and ilce_col < len(row) and row[ilce_col].value else excel_file.stem.split("_")[0]
                         
                         if lat and lon:
                             features.append({
                                 "type": "Feature",
                                 "geometry": {"type": "Point", "coordinates": [lon, lat]},
-                                "properties": {"name": name, "ilçe": excel_file.stem.split("_")[0]}
+                                "properties": {"name": name, "ilçe": ilce}
                             })
                     except (ValueError, TypeError, IndexError):
                         continue
@@ -192,7 +222,7 @@ def shelters_from_excel():
             print(f"Excel okuma hatası {excel_file}: {e}")
             continue
     
-    return {"type": "FeatureCollection", "features": features}
+    return {"type": "FeatureCollection", "features": features, "debug": debug_info}
 
 # ============================
 # FIRMS cache (background)
@@ -768,3 +798,148 @@ def risk_test(bbox: str | None = Query(None)):
         return JSONResponse({"type": "FeatureCollection", "features": features, "meta": {"test": True}})
     except Exception as e:
         return JSONResponse({"error": f"risk_test_failed: {e}"}, status_code=500)
+
+@app.get("/api/dams")
+def get_dams():
+    """
+    İzmir bölgesindeki barajları water-reservoirs.geojson dosyasından yükle
+    """
+    import json
+    from pathlib import Path
+    
+    # water-reservoirs.geojson dosyasından barajları çek
+    reservoir_file = Path(__file__).parent.parent / "static" / "data" / "water-reservoirs.geojson"
+    
+    if not reservoir_file.exists():
+        return {"type": "FeatureCollection", "features": []}
+    
+    try:
+        with open(reservoir_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        # Barajları filtrele (water: reservoir olan features)
+        features = []
+        for feature in data.get('features', []):
+            props = feature.get('properties', {})
+            if props.get('water') == 'reservoir' or 'Baraj' in props.get('name', '') or 'baraj' in props.get('name', '').lower():
+                name = props.get('name:tr') or props.get('name', 'Bilinmeyen Baraj')
+                geom = feature.get('geometry', {})
+                
+                # Polygon'un merkezini hesapla
+                if geom.get('type') == 'Polygon':
+                    coords = geom.get('coordinates', [[]])[0]
+                    if coords and len(coords) > 0:
+                        lon = sum(c[0] for c in coords) / len(coords)
+                        lat = sum(c[1] for c in coords) / len(coords)
+                        
+                        features.append({
+                            "type": "Feature",
+                            "geometry": {"type": "Point", "coordinates": [lon, lat]},
+                            "properties": {
+                                "name": name,
+                                "type": "Baraj",
+                                "@id": props.get('@id', '')
+                            }
+                        })
+        
+        return {
+            "type": "FeatureCollection",
+            "features": features
+        }
+    except Exception as e:
+        return {
+            "type": "FeatureCollection",
+            "features": [],
+            "error": str(e)
+        }
+
+@app.get("/api/water_tanks")
+def get_water_tanks():
+    """
+    İzmir bölgesindeki su takviye şu tankları (water_point)
+    water-tank.geojson dosyasından yükleniyor
+    """
+    import json
+    from pathlib import Path
+    
+    tank_file = Path(__file__).parent.parent / "static" / "data" / "water-tank.geojson"
+    
+    if not tank_file.exists():
+        return {
+            "type": "FeatureCollection",
+            "features": []
+        }
+    
+    try:
+        with open(tank_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            return data
+    except Exception as e:
+        return {
+            "type": "FeatureCollection",
+            "features": [],
+            "error": str(e)
+        }
+
+@app.get("/api/water_tanks_overpass")
+def get_water_tanks_overpass():
+    """
+    Overpass API'den İzmir bölgesindeki su noktalarını çek
+    """
+    import json
+    import urllib.request
+    import urllib.parse
+    
+    # İzmir bounding box (south, west, north, east)
+    bbox = "37.5,26.0,39.5,28.5"
+    
+    # Overpass query
+    query = f"""[bbox:{bbox}];
+(node["amenity"="water_point"];way["amenity"="water_point"];);
+out geom;"""
+    
+    try:
+        url = f"https://overpass-api.de/api/interpreter"
+        data = urllib.parse.urlencode({'data': query}).encode('utf-8')
+        
+        req = urllib.request.Request(url, data=data)
+        with urllib.request.urlopen(req, timeout=30) as response:
+            osm_data = json.loads(response.read())
+        
+        # OSM verisini GeoJSON'a çevir
+        features = []
+        for elem in osm_data.get('elements', []):
+            if elem.get('type') == 'node' and 'lat' in elem and 'lon' in elem:
+                features.append({
+                    "type": "Feature",
+                    "properties": elem.get('tags', {'name': 'Su Noktası'}),
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [elem['lon'], elem['lat']]
+                    }
+                })
+            elif elem.get('type') == 'way' and 'geometry' in elem:
+                coords = [[pt['lon'], pt['lat']] for pt in elem.get('geometry', [])]
+                if len(coords) >= 3:
+                    features.append({
+                        "type": "Feature",
+                        "properties": elem.get('tags', {'name': 'Su Yapısı'}),
+                        "geometry": {
+                            "type": "Polygon",
+                            "coordinates": [coords]
+                        }
+                    })
+        
+        return {
+            "type": "FeatureCollection",
+            "features": features
+        }
+    except urllib.error.URLError as e:
+        # Overpass başarısız olursa lokal dosyayı kullan
+        tank_file = Path(__file__).parent.parent / "static" / "data" / "water-tank.geojson"
+        if tank_file.exists():
+            with open(tank_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        return {"type": "FeatureCollection", "features": []}
+    except Exception as e:
+        return {"type": "FeatureCollection", "features": [], "error": str(e)}
