@@ -23,6 +23,8 @@
     .panel label{font-size:11px;color:#344;opacity:.85}
     .panel input[type=number]{height:28px;padding:3px 8px;border:1px solid #d3d7e3;border-radius:8px;font-family:inherit}
     .panel input[type=number]:focus{outline:none;border-color:rgba(var(--brand-blue-rgb),0.6);box-shadow:0 0 0 3px rgba(var(--brand-blue-rgb),0.18)}
+    .panel select{height:28px;padding:3px 8px;border:1px solid #d3d7e3;border-radius:8px;font-family:inherit;font-size:12px;background:#fff;color:#333;cursor:pointer}
+    .panel select:focus{outline:none;border-color:rgba(var(--brand-blue-rgb),0.6);box-shadow:0 0 0 3px rgba(var(--brand-blue-rgb),0.18)}
     .panel-toggle{width:32px;height:32px;background:transparent;color:#fff;border:none;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all 0.2s ease;padding:0;margin:0}
     .btn{cursor:pointer; border:1px solid rgba(0,0,0,0.1); border-radius:10px; padding:6px 10px; background:#fff; transition:all .15s ease; font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size:12px; height:30px }
     .btn:hover{ box-shadow:0 3px 8px rgba(0,0,0,0.12) }
@@ -93,8 +95,14 @@
     <div class="section">
       <div class="section-title">İzmir Yangınları</div>
       <div class="row">
-        <label for="dr">Gün aralığı</label>
-        <input id="dr" type="number" value="3" min="1" max="10"/>
+        <label for="dr">Yangın Aralığı</label>
+        <select id="dr" style="height:28px;padding:3px 8px;border:1px solid #d3d7e3;border-radius:8px;font-family:inherit;font-size:12px">
+          <option value="1">Son 24 saat</option>
+          <option value="7">Son 1 hafta</option>
+          <option value="30">Son 1 ay</option>
+          <option value="365">Son 1 yıl</option>
+          <option value="1825">Son 5 yıl</option>
+        </select>
         <button id="btnFires" class="btn btn-outline">Noktaları Getir</button>
         <button id="btnFiresCached" class="btn btn-primary">Önbellekten</button>
         <label style="margin-left:6px"><input id="autoRef" type="checkbox"> Auto (60s)</label>
