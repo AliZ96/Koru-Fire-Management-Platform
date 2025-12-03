@@ -104,7 +104,7 @@
           <option value="1825">Son 5 yıl</option>
         </select>
         <button id="btnFires" class="btn btn-outline">Noktaları Getir</button>
-        <button id="btnFiresCached" class="btn btn-primary">Önbellekten</button>
+        <button id="btnLiveTracking" class="btn btn-primary">🔴 Canlı Takip</button>
         <label style="margin-left:6px"><input id="autoRef" type="checkbox"> Auto (60s)</label>
       </div>
     </div>
@@ -226,7 +226,7 @@
     window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeSidebar(); });
 
     // Sidebar menu actions
-    document.getElementById('mFires').addEventListener('click', (e)=>{ e.preventDefault(); closeSidebar(); document.getElementById('btnFiresCached').click(); });
+    document.getElementById('mFires').addEventListener('click', (e)=>{ e.preventDefault(); closeSidebar(); document.getElementById('btnLiveTracking').click(); });
 
     // Panel Toggle
     const panel = document.querySelector('.panel');
@@ -286,7 +286,10 @@
     document.getElementById('mNearest').addEventListener('click', async (e)=>{ e.preventDefault(); closeSidebar(); await findNearestShelter(); });
     document.getElementById('mVolunteer').addEventListener('click', (e)=>{ e.preventDefault(); closeSidebar(); window.open('https://gonullu.afad.gov.tr/', '_blank'); });
     document.getElementById('mContact').addEventListener('click', (e)=>{ e.preventDefault(); closeSidebar(); window.open('https://www.izmir.bel.tr/', '_blank'); });
-    const map = L.map('map').setView([38.42, 27.14], 8);
+    const map = L.map('map', {
+      zoomControl: false, 
+      attributionControl: false
+    }).setView([38.42, 27.14], 8);
     
     // Harita katmanları
     const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -297,12 +300,15 @@
     
     osmLayer.addTo(map);
     
+    // Default marker icon'u devre dışı bırak (mavi pin'ler gösterilmesini engelle)
+    L.Icon.Default.prototype.options.imagePath = '';
+    
     // Harita katman seçicisi
     const baseMaps = {
       'Standart': osmLayer,
       'Uydu': satelliteLayer
     };
-    L.control.layers(baseMaps).addTo(map);
+    L.control.layers(baseMaps, {}, {position: 'topleft', collapsed: true}).addTo(map);
 
     // İzmir idari sınırı (gerçek poligon)
     map.createPane('izmirBoundary');
@@ -384,7 +390,8 @@
         
         izmirBoundaryLayer = L.geoJSON(gj, {
           pane:'izmirBoundary',
-          style: { color:'#8B0000', weight:5, fillOpacity:0, opacity:1, dashArray:'' }
+          style: { color:'#8B0000', weight:5, fillOpacity:0, opacity:1, dashArray:'' },
+          pointToLayer: () => null  // Point'leri gizle - sadece poligonları göster
         }).addTo(map);
       }catch(e){ console.warn('İzmir sınır GeoJSON yüklenemedi:', e); }
     })();
@@ -715,11 +722,19 @@
       }catch(e){ info.textContent = 'Ağ hatası'; console.error(e); }
     }
 
-    async function loadFiresCached(refresh=false){
+    async function loadLiveTracking(startTracking=false){
       const info = document.getElementById('info');
-      info.textContent = refresh ? 'Önbellek yenileniyor...' : 'Önbellek okunuyor...'; setStatus('Önbellek kullanılıyor');
+      const autoRefCheckbox = document.getElementById('autoRef');
+      
+      // Eğer canlı takip başlatılıyorsa otomatik güncellemeyi aç
+      if (startTracking){
+        autoRefCheckbox.checked = true;
+      }
+      
+      info.textContent = autoRefCheckbox.checked ? 'Canlı takip aktif...' : 'Veriler yükleniyor...'; 
+      setStatus('Yangın verileri yükleniyor');
       try{
-        const res = await fetch(`/api/fires_cached${refresh?"?refresh=true":""}`);
+        const res = await fetch(`/api/fires_cached?refresh=true`);
         const geo = await res.json();
         if (firesLayer) map.removeLayer(firesLayer);
         if (geo.error){ info.textContent='Hata: '+geo.error; return; }
@@ -729,7 +744,7 @@
         const updatedRaw = geo.meta?.updated_at || '';
         const updatedTime = updatedRaw ? updatedRaw.slice(11,16) : '';
         const suffix = updatedTime ? ` • Son güncelleme: ${updatedTime}` : '';
-        const msg = `İzmir Yangınları: ${count}${suffix}`;
+        const msg = `İzmir Yangınları: ${count}${suffix} ${autoRefCheckbox.checked ? '(Canlı)' : ''}`;
         info.textContent = msg; setStatus(msg);
       }catch(e){ info.textContent = 'Ağ hatası'; console.error(e); }
     }
@@ -868,7 +883,7 @@
       const info = document.getElementById('info');
       if (autoTimer){ clearInterval(autoTimer); autoTimer=null; }
       if (on){
-        autoTimer = setInterval(()=>loadFiresCached(false), 60000);
+        autoTimer = setInterval(()=>loadLiveTracking(false), 60000);
         info.textContent = 'Otomatik yenileme açık (60s)';
       } else {
         info.textContent = 'Otomatik yenileme kapalı';
@@ -906,7 +921,7 @@
     }
 
     document.getElementById('btnFires').addEventListener('click', loadFires);
-    document.getElementById('btnFiresCached').addEventListener('click', ()=>loadFiresCached(true));
+    document.getElementById('btnLiveTracking').addEventListener('click', ()=>loadLiveTracking(true));
     document.getElementById('btnRisk').addEventListener('click', toggleRisk);
     document.getElementById('btnReservoirs').addEventListener('click', loadReservoirs);
     document.getElementById('btnBoundaryPoints').addEventListener('click', loadBoundaryPoints);
@@ -975,8 +990,7 @@
     document.getElementById('btnWind').addEventListener('click', loadWindAtCenter);
     document.getElementById('btnSpread').addEventListener('click', drawSpread);
 
-    // ilk açılışta önbellekten yükle
-    loadFiresCached(false);
+    // Harita açılırken otomatik veri yükleme yapma - kullanıcı Canlı Takip tuşuna tıklayınca yüklenecek
   </script>
 </body>
 </html>
