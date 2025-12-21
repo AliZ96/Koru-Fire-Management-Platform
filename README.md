@@ -1,127 +1,184 @@
 # KORU Yangın Önleme Platformu
 
-İzmir ilinde yangın riskinin izlenmesi ve yönetilmesi için geliştirilmiş gerçek zamanlı harita tabanlı bir sistem.
+İzmir ilinde yangın riskinin izlenmesi ve yönetilmesi için geliştirilmiş gerçek zamanlı, harita tabanlı bir karar destek sistemidir.
+
+Bu proje, bitirme projesi kapsamında geliştirilmiş olup yangın risk analizi, kullanıcı yönetimi ve rol bazlı erişim kontrolü içermektedir.
+
+---
 
 ## Özellikler
 
-- 🗺️ **İzmir Haritası**: Leaflet.js tabanlı interaktif harita
-- 🔥 **Yangın Algılama**: NASA FIRMS uydu verileri ile gerçek zamanlı yangın tespiti
-- 💧 **Barajlar**: OpenStreetMap Overpass API ile baraj ve su kaynaklarını gösterme
-- 🏢 **Toplanma Alanları**: İzmir ilindeki toplanma alanlarının haritalanması
-- 🌪️ **Rüzgâr Analizi**: Gerçek zamanlı rüzgâr verisi ve yangın yayılım tahmini
-- ⚠️ **Risk Haritası**: Wind-aligned risk grid ile yangın risk analizi
-- 🛡️ **Uydu Haritası**: Esri ArcGIS uydu görüntüleri desteği
-- 👤 **Kullanıcı Yönetimi**: Giriş sistemi (Kullanıcı ve Admin rolleri)
+- 🗺️ İzmir Haritası: Leaflet.js tabanlı interaktif harita
+- 🔥 Yangın Algılama: NASA FIRMS uydu verileri ile gerçek zamanlı yangın tespiti
+- 💧 Barajlar: OpenStreetMap Overpass API ile baraj ve su kaynaklarını gösterme
+- 🏢 Toplanma Alanları: İzmir ilindeki toplanma alanlarının haritalanması
+- 🌪️ Rüzgâr Analizi: Gerçek zamanlı rüzgâr verisi ve yangın yayılım tahmini
+- ⚠️ Risk Haritası: Wind-aligned risk grid ile yangın risk analizi
+- 🛡️ Uydu Haritası: Esri ArcGIS uydu görüntüleri desteği
+- 👤 Kullanıcı Yönetimi: Kullanıcı, İtfaiyeci ve Admin rolleri
+- 🔐 Kimlik Doğrulama: JWT tabanlı authentication sistemi
+
+---
 
 ## Teknoloji Stack
 
-- **Backend**: FastAPI (Python)
-- **Frontend**: Leaflet.js, D3.js, XLSX.js
-- **Harita**: OpenStreetMap, Esri ArcGIS
-- **Uydu Verisi**: NASA FIRMS API, Overpass API
-- **Hava Durumu**: Open-Meteo API
+- Backend: FastAPI (Python)
+- Frontend: Leaflet.js, D3.js, XLSX.js
+- Harita Servisleri: OpenStreetMap, Esri ArcGIS
+- Uydu Verisi: NASA FIRMS API, Overpass API
+- Hava Durumu: Open-Meteo API
+- Veritabanı: PostgreSQL
+- ORM: SQLAlchemy
+- Kimlik Doğrulama: JWT (JSON Web Token)
+- API Testleri: Postman
+
+---
 
 ## Kurulum
 
 ### Gereksinimler
+
 - Python 3.11+
 - pip
 - Virtual Environment
+- PostgreSQL
+- pgAdmin (önerilir)
 
-### Adımlar
+---
 
-1. **Repository'yi klonlayın**:
-   ```bash
-   git clone https://github.com/bbgmfun/koru_bitirme.git
-   cd koru_bitirme
-   ```
+### Kurulum Adımları
 
-2. **Virtual environment oluşturun**:
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate  # macOS/Linux
-   # or
-   venv\Scripts\activate  # Windows
-   ```
+1. Repository’yi klonlayın  
+git clone https://github.com/bbgmfun/koru_bitirme.git  
+cd koru_bitirme  
 
-3. **Bağımlılıkları yükleyin**:
-   ```bash
-   pip install fastapi uvicorn pydantic requests
-   ```
+2. Virtual environment oluşturun ve aktif edin  
+python -m venv venv  
+venv\Scripts\activate  
 
-4. **Sunucuyu başlatın**:
-   ```bash
-   python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-   ```
+3. Bağımlılıkları yükleyin  
+pip install -r requirements.txt  
 
-5. **Tarayıcıda açın**:
-   ```
-   http://localhost:8000
-   ```
+4. PostgreSQL üzerinde veritabanını oluşturun  
+CREATE DATABASE koru_db;  
+
+5. Veritabanı tablolarını oluşturun  
+Windows için (psql yolu PATH’te değilse):
+
+"C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -d koru_db -f database/schema.sql  
+
+Alternatif olarak pgAdmin üzerinden:  
+- koru_db → Query Tool  
+- database/schema.sql içeriğini yapıştır  
+- Execute (F5)
+
+6. Ortam değişkenlerini ayarlayın (.env)  
+DATABASE_URL=postgresql+psycopg2://postgres:SIFRE@localhost:5432/koru_db  
+JWT_SECRET_KEY=degistirilecek_secret  
+
+7. Uygulamayı çalıştırın  
+uvicorn app.main:app --reload  
+
+8. Tarayıcıdan erişin  
+http://localhost:8000  
+
+---
 
 ## Proje Yapısı
 
-```
-.
+KORU_BITIRME/
 ├── app/
-│   ├── __init__.py
-│   ├── main.py           # FastAPI uygulaması
-│   ├── firms.py          # NASA FIRMS API
-│   ├── weather.py        # Hava durumu servisi
-│   └── spread.py         # Yangın yayılım modeli
+│   ├── main.py
+│   ├── auth/
+│   ├── models/
+│   ├── repositories/
+│   ├── services/
+│   └── db/                (SQLAlchemy bağlantı ve session kodları)
 ├── static/
-│   ├── index.html        # Ana dashboard
-│   ├── login.html        # Giriş sayfası
-│   ├── data/             # GeoJSON verileri
-│   └── img/              # Görseller
+│   ├── index.html
+│   ├── login.html
+│   └── data/
 ├── data/
-│   └── firms.json        # Önbelleklenmiş yangın verileri
-├── PROJECT.md            # Proje belgeleri
-└── README.md             # Bu dosya
-```
+│   └── firms.json
+├── database/
+│   └── schema.sql         (manuel veritabanı kurulum dosyası)
+├── .env.example
+├── requirements.txt
+└── README.md
 
-## Giriş Bilgileri (Demo)
+---
 
-**Kullanıcı:**
-- Kullanıcı adı: `user1`
-- Şifre: `password123`
+## Veritabanı Yapısı
 
-**Admin:**
-- Kullanıcı adı: `admin`
-- Şifre: `admin123`
+Veritabanı şeması manuel olarak `database/schema.sql` dosyasında tanımlıdır.
 
-## Kullanım
+Bu dosya sadece tablo ve index tanımlarını içerir.  
+Gerçek veriler, kullanıcı bilgileri veya şifreler repository içerisinde yer almaz.
 
-1. Giriş sayfasında kullanıcı türünü seçin
-2. Haritada etkileşimli olarak veri katmanlarını kontrol edin
-3. Yangınları, barajları ve toplanma alanlarını gösterebilirsiniz
-4. Rüzgâr ve yangın yayılım tahminlerini kullanın
-5. Risk haritasında yüksek risk alanlarını belirleyin
+Tablolar `IF NOT EXISTS` kullanılarak tanımlandığı için dosya tekrar tekrar güvenle çalıştırılabilir.
 
-## API Endpoints
+---
 
-- `GET /api/ping` - Sunucu durumu kontrolü
-- `GET /api/fires` - NASA FIRMS yangın verileri
-- `GET /api/fires_cached` - Önbelleklenmiş yangın verileri
-- `GET /api/wind` - Rüzgâr verisi
-- `GET /api/spread` - Yangın yayılım tahmini
-- `GET /api/risk` - Risk grid'i
-- `GET /api/risk_grid` - Risk scalar grid'i
-- `GET /api/shelters_manifest` - Toplanma alanları listesi
+## Kimlik Doğrulama ve Roller
+
+Sistem JWT tabanlı kimlik doğrulama kullanır.
+
+Roller:
+- USER: Standart kullanıcı
+- FIREFIGHTER: İtfaiyeci
+- ADMIN: Yönetici
+
+Tüm kullanıcılar API üzerinden register edilerek oluşturulur.  
+Repository içerisinde sabit kullanıcı adı veya şifre bulunmaz.
+
+---
+
+## API Endpoints (Özet)
+
+- GET /health/db
+- POST /auth/user/register
+- POST /auth/user/login
+- POST /auth/firefighter/register
+- POST /auth/firefighter/login
+- GET /auth/me
+- GET /api/fires
+- GET /api/wind
+- GET /api/spread
+- GET /api/risk
+
+---
+
+## Postman API Testleri
+
+Base URL:  
+http://127.0.0.1:8000
+
+Test edilen senaryolar:
+- Kullanıcı kayıt ve giriş
+- İtfaiyeci kayıt ve giriş
+- JWT token üretimi
+- Token doğrulama (/auth/me)
+- Rol bazlı erişim kontrolü
+- Veritabanı bağlantı kontrolü
+
+Örnek test akışı:
+- POST /auth/firefighter/register
+- POST /auth/firefighter/login
+- GET /auth/me (Authorization: Bearer token)
+
+Tüm testler Postman kullanılarak başarıyla gerçekleştirilmiştir.
+
+---
 
 ## Veri Kaynakları
 
-- **NASA FIRMS**: Uydulardan elde edilen yangın algıları
-- **OpenStreetMap**: Baraj ve coğrafi veriler
-- **Open-Meteo**: Rüzgâr ve hava durumu verileri
-- **İzmir Büyükşehir Belediyesi**: Toplanma alanları
+- NASA FIRMS – Yangın algılama verileri
+- OpenStreetMap – Coğrafi veriler
+- Open-Meteo – Rüzgâr ve hava durumu
+- İzmir Büyükşehir Belediyesi – Toplanma alanları
+
+---
 
 ## Lisans
 
 Bu proje eğitim amaçlı geliştirilmiştir.
-
-## İletişim
-
-**Telefon**: 153  
-**Faks**: (0232) 293 39 95  
-**E-Posta**: him@izmir.bel.tr

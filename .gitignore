@@ -1,12 +1,17 @@
+# ===============================
 # Python
+# ===============================
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
 .Python
+
+# ===============================
+# Build / Distribution
+# ===============================
 build/
-develop-eggs/
 dist/
+develop-eggs/
 downloads/
 eggs/
 .eggs/
@@ -23,34 +28,41 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Virtual Environment
+# ===============================
+# Virtual Environments
+# ===============================
 venv/
+.venv/
 env/
 ENV/
 env.bak/
 venv.bak/
 
-# IDE
+# ===============================
+# Environment Variables (CRITICAL)
+# ===============================
+.env
+.env.local
+
+# ===============================
+# IDE / Editor Settings
+# ===============================
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 .DS_Store
+*.sublime-project
+*.sublime-workspace
 
-# Environment variables
-.env
-.env.local
-
+# ===============================
 # Cache
+# ===============================
 .cache/
 *.cache
 
-# Data files (optional - uncomment if needed)
+# ===============================
+# Optional Data (keep commented)
+# ===============================
 # data/firms.json
-
-# IDE & Editor
-.vscode/
-.idea/
-*.sublime-project
-*.sublime-workspace
