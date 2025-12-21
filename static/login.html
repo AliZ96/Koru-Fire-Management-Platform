@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8"/>
+  <title>KORU Yangın Önleme Platformu - Giriş</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root { 
+      --brand-red: #8B0000;
+      --dark-green: #2d5016;
+      --forest-green: #4a7c3a;
+      --light-green: #6b9d52;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; width: 100%; }
+    
+    body {
+      background-image: url('/static/img/login-bg.svg');
+      background-attachment: fixed;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      min-height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(ellipse at 20% 20%, rgba(255, 255, 255, 0.03) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(0, 0, 0, 0.15) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    /* Landing Page - Only Login Button */
+    .landing-page {
+      position: fixed;
+      bottom: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      animation: slideUp 0.8s ease;
+      z-index: 10;
+    }
+
+    .landing-title {
+      display: none;
+    }
+
+    .landing-subtitle {
+      display: none;
+    }
+
+    .landing-button {
+      padding: 12px 36px;
+      background: var(--dark-green);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-family: inherit;
+      font-weight: 400;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 8px 20px rgba(45, 80, 22, 0.3);
+      margin-top: 0;
+    }
+
+    .landing-button:hover {
+      background: var(--forest-green);
+      box-shadow: 0 12px 30px rgba(45, 80, 22, 0.4);
+      transform: translateY(-3px);
+    }
+
+    .landing-button:active {
+      transform: translateY(-1px);
+    }
+
+    /* Language Selector */
+    .language-selector {
+      position: fixed;
+      bottom: 12px;
+      left: 12px;
+      display: flex;
+      gap: 4px;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 4px 6px;
+      border-radius: 6px;
+      backdrop-filter: blur(10px);
+      z-index: 100;
+    }
+
+    .lang-btn {
+      padding: 3px 8px;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      font-family: inherit;
+      font-weight: 400;
+      font-size: 9px;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+    }
+
+    .lang-btn:hover {
+      color: rgba(255, 255, 255, 0.8);
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+
+    .lang-btn.active {
+      background: var(--light-green);
+      color: #fff;
+      border-color: var(--light-green);
+    }
+
+    /* Modal Overlay */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Modal Container */
+    .modal-container {
+      background: var(--dark-green);
+      border-radius: 16px;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+      width: 100%;
+      max-width: 450px;
+      padding: 40px;
+      animation: slideDown 0.4s ease;
+      position: relative;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+
+    .modal-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 28px;
+      cursor: pointer;
+      padding: 0;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      border-radius: 8px;
+    }
+
+    .close-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Auth Toggle */
+    .auth-toggle {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 28px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 6px;
+      border-radius: 10px;
+    }
+
+    .auth-toggle-btn {
+      flex: 1;
+      padding: 12px 16px;
+      border: none;
+      background: transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 400;
+      font-size: 12px;
+      letter-spacing: 0.8px;
+      color: rgba(255, 255, 255, 0.6);
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      font-family: inherit;
+    }
+
+    .auth-toggle-btn:hover {
+      color: #fff;
+    }
+
+    .auth-toggle-btn.active {
+      background: var(--light-green);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    /* User Type Selector */
+    .user-type-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .user-type-btn {
+      padding: 12px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.7);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .user-type-btn:hover {
+      border-color: var(--light-green);
+      background: rgba(107, 157, 82, 0.2);
+    }
+
+    .user-type-btn.active {
+      background: var(--light-green);
+      color: #fff;
+      border-color: var(--light-green);
+      box-shadow: 0 4px 12px rgba(107, 157, 82, 0.3);
+    }
+
+    /* Form */
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.8);
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="email"] {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+    }
+
+    input[type="text"]::placeholder,
+    input[type="password"]::placeholder,
+    input[type="email"]::placeholder {
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus,
+    input[type="email"]:focus {
+      outline: none;
+      border-color: var(--light-green);
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 0 0 3px rgba(107, 157, 82, 0.2);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .form-row .form-group {
+      margin-bottom: 0;
+    }
+
+    /* Buttons */
+    .submit-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--light-green);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 8px;
+    }
+
+    .submit-btn:hover {
+      background: var(--light-green);
+      filter: brightness(1.1);
+      box-shadow: 0 8px 20px rgba(107, 157, 82, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .submit-btn:active {
+      transform: translateY(0);
+    }
+
+    /* Auth Form */
+    .auth-form {
+      display: none;
+    }
+
+    .auth-form.active {
+      display: block;
+      animation: slideDown 0.3s ease;
+    }
+
+    .demo-note {
+      text-align: center;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.6);
+      margin-top: 16px;
+      font-weight: 600;
+    }
+
+    .error-message {
+      display: none;
+      background: rgba(255, 107, 107, 0.2);
+      color: #fff;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      font-weight: 600;
+      border-left: 4px solid #ff6b6b;
+    }
+
+    .error-message.show {
+      display: block;
+      animation: shake 0.4s ease;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--light-green);
+    }
+
+    .checkbox-group label {
+      margin: 0;
+      text-transform: none;
+      font-weight: 500;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+  </style>
+</head>
+<body>
+  <!-- Landing Page -->
+  <div class="landing-page" id="landingPage">
+    <button class="landing-button" id="btnOpenModal">Giriş Yap</button>
+  </div>
+
+  <!-- Language Selector -->
+  <div class="language-selector">
+    <button class="lang-btn active" data-lang="tr">TR</button>
+    <button class="lang-btn" data-lang="en">ENG</button>
+  </div>
+
+  <!-- Modal Overlay -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <div class="modal-title">KORU</div>
+        <button class="close-btn" id="btnCloseModal">&times;</button>
+      </div>
+
+      <div class="error-message" id="errorMsg"></div>
+
+      <!-- Auth Toggle -->
+      <div class="auth-toggle">
+        <button type="button" class="auth-toggle-btn active" id="btnLoginTab" data-tab="login">Giriş Yap</button>
+        <button type="button" class="auth-toggle-btn" id="btnSignupTab" data-tab="signup">Kayıt Ol</button>
+      </div>
+
+      <!-- User Type Selector (only for login) -->
+      <div class="user-type-selector" id="userTypeSelector">
+        <button type="button" class="user-type-btn active" data-type="user" id="btnUser">👤 Kullanıcı</button>
+        <button type="button" class="user-type-btn" data-type="admin" id="btnAdmin">🔐 Admin</button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="loginForm" class="auth-form active">
+        <div class="form-group">
+          <label for="username">Kullanıcı Adı</label>
+          <input type="text" id="username" name="username" placeholder="Kullanıcı adınızı girin" required/>
+        </div>
+        
+        <div class="form-group">
+          <label for="password">Şifre</label>
+          <input type="password" id="password" name="password" placeholder="Şifrenizi girin" required/>
+        </div>
+        
+        <button type="submit" class="submit-btn">Giriş Yap</button>
+
+        <p class="demo-note">Demo: Herhangi bir kullanıcı adı ve şifre ile giriş yapabilirsiniz</p>
+        
+        <div style="background: rgba(255, 255, 255, 0.08); border-left: 4px solid var(--light-green); padding: 12px; border-radius: 4px; margin-top: 12px; font-size: 11px;">
+          <p style="margin-bottom: 4px; font-weight: 700; color: #fff;">📋 Test Hesapları:</p>
+          <p style="margin: 2px 0; color: rgba(255, 255, 255, 0.7);"><strong>Kullanıcı:</strong> user1 / password123</p>
+          <p style="margin: 2px 0; color: rgba(255, 255, 255, 0.7);"><strong>Admin:</strong> admin / admin123</p>
+        </div>
+      </form>
+
+      <!-- Signup Form -->
+      <form id="signupForm" class="auth-form">
+        <div class="form-group">
+          <label for="signup-fullname">Ad Soyad</label>
+          <input type="text" id="signup-fullname" name="fullname" placeholder="Ad ve soyadınızı girin" required/>
+        </div>
+        
+        <div class="form-group">
+          <label for="signup-email">E-posta</label>
+          <input type="email" id="signup-email" name="email" placeholder="E-posta adresinizi girin" required/>
+        </div>
+        
+        <div class="form-group">
+          <label for="signup-username">Kullanıcı Adı</label>
+          <input type="text" id="signup-username" name="username" placeholder="Bir kullanıcı adı seçin" required/>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="signup-password">Şifre</label>
+            <input type="password" id="signup-password" name="password" placeholder="Şifre" required/>
+          </div>
+          <div class="form-group">
+            <label for="signup-confirm-password">Şifre Tekrarı</label>
+            <input type="password" id="signup-confirm-password" name="confirm-password" placeholder="Şifre tekrarı" required/>
+          </div>
+        </div>
+        
+        <div class="checkbox-group">
+          <input type="checkbox" id="signup-terms" name="terms" required/>
+          <label for="signup-terms">Şartları ve koşulları kabul ediyorum</label>
+        </div>
+        
+        <button type="submit" class="submit-btn">Kayıt Ol</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let currentUserType = 'user';
+    let currentTab = 'login';
+    let currentLanguage = 'tr';
+
+    // Language Selector
+    const langBtns = document.querySelectorAll('.lang-btn');
+    langBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        langBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentLanguage = btn.dataset.lang;
+        console.log('Language changed to:', currentLanguage);
+        // Add translation logic here in the future
+      });
+    });
+
+    // Modal control
+    const modalOverlay = document.getElementById('modalOverlay');
+    const btnOpenModal = document.getElementById('btnOpenModal');
+    const btnCloseModal = document.getElementById('btnCloseModal');
+
+    btnOpenModal.addEventListener('click', () => {
+      modalOverlay.classList.add('active');
+    });
+
+    btnCloseModal.addEventListener('click', () => {
+      modalOverlay.classList.remove('active');
+      resetForms();
+    });
+
+    // Close modal when clicking overlay background
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) {
+        modalOverlay.classList.remove('active');
+        resetForms();
+      }
+    });
+
+    // Tab switching
+    document.getElementById('btnLoginTab').addEventListener('click', function() {
+      switchTab('login');
+    });
+
+    document.getElementById('btnSignupTab').addEventListener('click', function() {
+      switchTab('signup');
+    });
+
+    function switchTab(tab) {
+      currentTab = tab;
+      const errorMsg = document.getElementById('errorMsg');
+      errorMsg.classList.remove('show');
+      
+      if (tab === 'login') {
+        document.getElementById('loginForm').classList.add('active');
+        document.getElementById('signupForm').classList.remove('active');
+        document.getElementById('userTypeSelector').style.display = 'grid';
+        document.getElementById('btnLoginTab').classList.add('active');
+        document.getElementById('btnSignupTab').classList.remove('active');
+      } else {
+        document.getElementById('signupForm').classList.add('active');
+        document.getElementById('loginForm').classList.remove('active');
+        document.getElementById('userTypeSelector').style.display = 'none';
+        document.getElementById('btnSignupTab').classList.add('active');
+        document.getElementById('btnLoginTab').classList.remove('active');
+      }
+    }
+
+    // User type selector
+    document.getElementById('btnUser').addEventListener('click', function() {
+      currentUserType = 'user';
+      document.getElementById('btnUser').classList.add('active');
+      document.getElementById('btnAdmin').classList.remove('active');
+    });
+
+    document.getElementById('btnAdmin').addEventListener('click', function() {
+      currentUserType = 'admin';
+      document.getElementById('btnAdmin').classList.add('active');
+      document.getElementById('btnUser').classList.remove('active');
+    });
+
+    // Login form submission
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const errorMsg = document.getElementById('errorMsg');
+      
+      errorMsg.classList.remove('show');
+      
+      if (!username || !password) {
+        showError('Lütfen tüm alanları doldurunuz');
+        return;
+      }
+      
+      sessionStorage.setItem('userType', currentUserType);
+      sessionStorage.setItem('username', username);
+      sessionStorage.setItem('isLoggedIn', 'true');
+      
+      window.location.href = '/welcome';
+    });
+
+    // Signup form submission
+    document.getElementById('signupForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const fullname = document.getElementById('signup-fullname').value.trim();
+      const email = document.getElementById('signup-email').value.trim();
+      const username = document.getElementById('signup-username').value.trim();
+      const password = document.getElementById('signup-password').value.trim();
+      const confirmPassword = document.getElementById('signup-confirm-password').value.trim();
+      const terms = document.getElementById('signup-terms').checked;
+      const errorMsg = document.getElementById('errorMsg');
+      
+      errorMsg.classList.remove('show');
+      
+      if (!fullname || !email || !username || !password || !confirmPassword) {
+        showError('Lütfen tüm alanları doldurunuz');
+        return;
+      }
+      
+      if (password !== confirmPassword) {
+        showError('Şifreler eşleşmiyor');
+        return;
+      }
+      
+      if (password.length < 6) {
+        showError('Şifre en az 6 karakter olmalıdır');
+        return;
+      }
+      
+      if (!terms) {
+        showError('Lütfen şartları ve koşulları kabul ediniz');
+        return;
+      }
+      
+      sessionStorage.setItem('userType', 'user');
+      sessionStorage.setItem('username', username);
+      sessionStorage.setItem('fullname', fullname);
+      sessionStorage.setItem('email', email);
+      sessionStorage.setItem('isLoggedIn', 'true');
+      
+      window.location.href = '/welcome';
+    });
+
+    function showError(message) {
+      const errorMsg = document.getElementById('errorMsg');
+      errorMsg.textContent = message;
+      errorMsg.classList.add('show');
+    }
+
+    function resetForms() {
+      document.getElementById('loginForm').reset();
+      document.getElementById('signupForm').reset();
+      switchTab('login');
+    }
+
+    // Check if already logged in
+    if (sessionStorage.getItem('isLoggedIn') === 'true') {
+      window.location.href = '/welcome';
+    }
+  </script>
+</body>
+</html>

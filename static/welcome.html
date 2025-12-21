@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8"/>
+  <title>KORU - Hoş Geldiniz</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { width:100%; height:100%; }
+    body {
+      background:#000;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-family:'Montserrat', system-ui, sans-serif;
+      overflow:hidden;
+    }
+    
+    video {
+      position:fixed;
+      top:0;
+      left:0;
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      z-index:1;
+    }
+    
+    .welcome-container {
+      position:relative;
+      z-index:2;
+      text-align:center;
+      padding:60px 40px;
+      border-radius:20px;
+      max-width:800px;
+      width:90%;
+    }
+    
+    h1 {
+      font-size:64px;
+      font-weight:800;
+      color:#fff;
+      margin-bottom:50px;
+      letter-spacing:3px;
+      text-shadow:0 4px 20px rgba(0,0,0,0.5);
+    }
+    
+    .buttons {
+      display:flex;
+      gap:30px;
+      flex-wrap:wrap;
+      justify-content:center;
+      align-items:center;
+    }
+    
+    .btn-welcome {
+      background:rgba(255,255,255,0.1);
+      border:2px solid rgba(255,255,255,0.3);
+      border-radius:20px;
+      padding:60px 70px;
+      cursor:pointer;
+      font-family:'Montserrat', sans-serif;
+      font-size:24px;
+      font-weight:700;
+      color:#fff;
+      transition:all 0.3s ease;
+      min-width:380px;
+      text-align:center;
+      box-shadow:0 8px 32px rgba(31, 38, 135, 0.37);
+      text-decoration:none;
+      display:inline-block;
+      backdrop-filter:blur(4px);
+      -webkit-backdrop-filter:blur(4px);
+    }
+    
+    .btn-welcome:hover {
+      background:rgba(255,255,255,0.2);
+      border-color:rgba(255,255,255,0.6);
+      box-shadow:0 12px 48px rgba(255,255,255,.3);
+      transform:translateY(-6px);
+    }
+    
+    .btn-welcome:active {
+      transform:translateY(-3px);
+    }
+    
+    @media (max-width:768px) {
+      h1 {
+        font-size:48px;
+        margin-bottom:40px;
+      }
+      
+      .buttons {
+        gap:20px;
+      }
+      
+      .btn-welcome {
+        padding:45px 55px;
+        font-size:18px;
+        min-width:280px;
+      }
+      
+      .welcome-container {
+        padding:40px 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <video muted loop autoplay playsinline preload="auto">
+    <source src="/static/img/Paragraf%20metniniz.mp4" type="video/mp4">
+  </video>
+  
+  <div class="welcome-container">
+    <h1>KORU</h1>
+    <div class="buttons">
+      <a href="/" class="btn-welcome">Canlı Yangın ve Risk Haritası</a>
+      <a href="/" class="btn-welcome" onclick="alert('İtfaiye istasyonları özelliği yakında açılacak'); return false;">İtfaiye Nerede?</a>
+    </div>
+  </div>
+  
+  <script>
+    // Check if logged in
+    const isLoggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
+    if (!isLoggedIn) {
+      window.location.href = '/login';
+    }
+    
+    // Video'yu oynat - aggressive approach
+    const video = document.querySelector('video');
+    if (video) {
+      // Video hazır olduğunda oynat
+      video.onloadedmetadata = () => {
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(err => {
+            console.log('Autoplay prevented:', err);
+          });
+        }
+      };
+      
+      // Muted'ı zorla
+      video.muted = true;
+      
+      // User interaction üzerine de oynat
+      const startPlay = () => {
+        video.play().catch(e => console.log('Play error:', e));
+        document.removeEventListener('click', startPlay);
+        document.removeEventListener('touchstart', startPlay);
+      };
+      document.addEventListener('click', startPlay);
+      document.addEventListener('touchstart', startPlay);
+    }
+  </script>
+</body>
+</html>
