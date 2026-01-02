@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from app.api.routers.core import router as core_router
 from app.api.routers.auth import router as auth_router
 from app.api.routers.health_router import router as health_router
+from app.api.routers.fire_risk import router as fire_risk_router
 
 
 def create_app() -> FastAPI:
@@ -25,6 +26,9 @@ def create_app() -> FastAPI:
 
     # Health / DB test endpointleri
     app.include_router(health_router)
+
+    # Fire risk endpointleri
+    app.include_router(fire_risk_router)
 
     return app
 
