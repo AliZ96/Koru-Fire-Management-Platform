@@ -94,7 +94,6 @@
   <div class="header"><a href="/welcome" class="back-btn" title="Geri">←</a><span class="title">KORU Yangın Önleme Platformu</span><div class="user-info"><div class="user-dropdown"><span id="userDisplay" class="user-dropdown-toggle"></span><div id="userDropdownMenu" class="user-dropdown-menu"><a href="#" id="profileLink">👤 Profil</a><a href="#" id="logoutLink">🚪 Oturum Kapat</a></div></div></div><button id="menuBtn" class="hamburger" aria-label="Menü"><span></span><span></span><span></span></button></div>
   <div id="sidebar" class="sidebar" aria-hidden="true">
     <a href="#" id="mFires">İzmir Yangınları</a>
-    <a href="#" id="mNearest">Bana En Yakın Toplanma Alanı</a>
     <a href="#" id="mVolunteer">AFAD Gönüllüsü olun</a>
     <a href="#" id="mContact">Bize Ulaşın</a>
   </div>
@@ -108,9 +107,6 @@
         <select id="dr" style="height:28px;padding:3px 8px;border:1px solid #d3d7e3;border-radius:8px;font-family:inherit;font-size:12px">
           <option value="1">Son 24 saat</option>
           <option value="7">Son 1 hafta</option>
-          <option value="30">Son 1 ay</option>
-          <option value="365">Son 1 yıl</option>
-          <option value="1825">Son 5 yıl</option>
         </select>
         <button id="btnFires" class="btn btn-outline">Göster</button>
         <button id="btnLiveTracking" class="btn btn-primary">🔴 Canlı Takip</button>
@@ -119,13 +115,12 @@
     <div class="section">
       <div class="section-title">Risk ve Katmanlar</div>
       <div class="row">
-        <label for="cellKm">Hücre (km)</label>
-        <input id="cellKm" type="number" value="8" min="2" max="50" style="width:64px">
-        <button id="btnRisk" class="btn btn-outline">Risk Overlay</button>
-        <button id="btnShelters" class="btn btn-outline">Toplanma Alanları</button>
-        <button id="btnReservoirs" class="btn btn-outline">💧 Barajlar</button>
-        <button id="btnWaterTanks" class="btn btn-outline">💧 Su Tankları</button>
-        <button id="btnLakes" class="btn btn-outline">💧 Göller</button>
+        <button id="btnFireRisk" class="btn btn-outline">Riskli Bölgeler</button>
+        <button id="btnHeatmap" class="btn btn-outline">Isıl Harita</button>
+        <button id="btnReservoirs" class="btn btn-outline">Su Rezervuarları</button>
+        <button id="btnWaterSources" class="btn btn-outline">Su Kaynakları</button>
+        <button id="btnWaterTanks" class="btn btn-outline">Su Tankları</button>
+        <button id="btnLakes" class="btn btn-outline">Göl ve Göletler</button>
       </div>
     </div>
     <div class="section">
@@ -284,36 +279,6 @@
       const h = Math.sin(dLat/2)**2 + Math.cos(la1)*Math.cos(la2)*Math.sin(dLon/2)**2;
       return 2*R*Math.asin(Math.sqrt(h));
     }
-    async function ensureSheltersLoaded(){
-      if (window.sheltersLayer) return true;
-      document.getElementById('btnShelters').click();
-      // wait until window.sheltersLayer appears (max ~2s)
-      for (let i=0;i<10;i++){
-        await new Promise(r=>setTimeout(r,200));
-        if (window.sheltersLayer) return true;
-      }
-      return !!window.sheltersLayer;
-    }
-    async function findNearestShelter(){
-      const info = document.getElementById('info');
-      const ok = await ensureSheltersLoaded();
-      if (!ok){ info.textContent='Toplanma alanları yüklenemedi'; return; }
-      const user = await getUserPosition();
-      const center = map.getCenter();
-      const src = user ? {lat:user.lat, lon:user.lon} : {lat:center.lat, lon:center.lng};
-      let best = null; let bestD = Infinity; let bestLayer = null;
-      (window.sheltersLayer.getLayers()||[]).forEach(l=>{
-        if (!l.getLatLng) return;
-        const ll = l.getLatLng();
-        const d = haversineKm(src.lat, src.lon, ll.lat, ll.lng);
-        if (d < bestD){ bestD = d; best = {lat: ll.lat, lon: ll.lng, props: l.feature?.properties||{}}; bestLayer = l; }
-      });
-      if (!best){ info.textContent='Uygun toplanma alanı bulunamadı'; return; }
-      map.setView([best.lat, best.lon], Math.max(map.getZoom(), 14));
-      if (bestLayer && bestLayer.openPopup) bestLayer.openPopup();
-      info.textContent = `En yakın toplanma alanı: ~${bestD.toFixed(1)} km`;
-    }
-    document.getElementById('mNearest').addEventListener('click', async (e)=>{ e.preventDefault(); closeSidebar(); await findNearestShelter(); });
     document.getElementById('mVolunteer').addEventListener('click', (e)=>{ e.preventDefault(); closeSidebar(); window.open('https://gonullu.afad.gov.tr/', '_blank'); });
     document.getElementById('mContact').addEventListener('click', (e)=>{ e.preventDefault(); closeSidebar(); window.open('https://www.izmir.bel.tr/', '_blank'); });
     const map = L.map('map', {
@@ -426,87 +391,11 @@
         }).addTo(map);
       }catch(e){ console.warn('İzmir sınır GeoJSON yüklenemedi:', e); }
     })();
-    let firesLayer, spreadLayer, riskLayer, reservoirLayer=null, autoTimer=null, legendCtl=null, riskActive=false;
-
-    /* Validation helpers for fire-risk responses */
-    async function validateAndParseResponse(response, info, notFoundMessage){
-      if (!response || !response.ok) {
-        throw new Error('API hatası: ' + (response ? response.status : 'no_response'));
-      }
-      const geoJson = await response.json();
-      if (!geoJson || !geoJson.features || geoJson.features.length === 0) {
-        if (info) info.textContent = notFoundMessage || 'Veri bulunamadı';
-        return null;
-      }
-      console.log('Yangın risk noktaları toplam:', geoJson.features.length);
-      return geoJson;
-    }
-
-    function filterFeaturesInIzmir(features){
-      if (!features || !features.length) return [];
-      return features.filter(f => {
-        const coords = f.geometry?.coordinates;
-        if (!coords || coords.length < 2) return false;
-        const [lon, lat] = coords;
-        return isInIzmir(lat, lon);
-      });
-    }
-
-    function orderFeaturesByRisk(features){
-      const lowRiskFeatures = features.filter(f => f.properties?.risk_class !== 'HIGH_RISK' && f.properties?.risk_class !== 'MEDIUM_RISK');
-      const mediumRiskFeatures = features.filter(f => f.properties?.risk_class === 'MEDIUM_RISK');
-      const highRiskFeatures = features.filter(f => f.properties?.risk_class === 'HIGH_RISK');
-      return { ordered: [...lowRiskFeatures, ...mediumRiskFeatures, ...highRiskFeatures], lowRiskFeatures, mediumRiskFeatures, highRiskFeatures };
-    }
-
-    function getCircleStyleForRisk(riskClass){
-      let radius = 3; let opacity = 0.5; let fillOpacity = 0.4;
-      if (riskClass === 'HIGH_RISK') { radius = 8; opacity = 1; fillOpacity = 0.85; }
-      else if (riskClass === 'MEDIUM_RISK') { radius = 6; opacity = 0.9; fillOpacity = 0.75; }
-      else if (riskClass === 'LOW_RISK') { radius = 4; opacity = 0.7; fillOpacity = 0.6; }
-      return { radius, opacity, fillOpacity };
-    }
-
-    function buildRiskPopup(feature){
-      const props = feature.properties || {};
-      const riskClass = props.risk_class || 'N/A';
-      const fireProb = (props.fire_probability !== undefined && props.fire_probability !== null) ? (props.fire_probability * 100).toFixed(1) : 'N/A';
-      const riskScoreNum = Number(props.combined_risk_score) || 0;
-      const riskScore = riskScoreNum.toFixed(3);
-      const lat = parseFloat(feature.geometry.coordinates[1]).toFixed(4);
-      const lon = parseFloat(feature.geometry.coordinates[0]).toFixed(4);
-      return `<b>Yangın Risk Analizi</b><br><strong>${riskClass}</strong><br>Yangın Olasılığı: ${fireProb}%<br>Risk Skoru: ${riskScore}<br>Konum: (${lat}, ${lon})`;
-    }
-
-    function buildLegendCounts(div, lowRiskFeatures, mediumRiskFeatures, highRiskFeatures){
-      if (!div) return;
-      const lowCount = (lowRiskFeatures||[]).filter(f => f.properties?.risk_class === 'LOW_RISK').length;
-      const safeCount = (lowRiskFeatures||[]).filter(f => f.properties?.risk_class !== 'LOW_RISK').length;
-      div.innerHTML = '<b>Yangın Risk Sınıfları</b><br>' +
-        'Yüksek Risk (' + (highRiskFeatures||[]).length + ')<br>' +
-        'Orta Risk (' + (mediumRiskFeatures||[]).length + ')<br>' +
-        'Düşük Risk (' + lowCount + ')<br>' +
-        'Güvenli (' + safeCount + ')';
-    }
-
-    function mapHeatmapColorAndOpacity(riskScore){
-      let color='#ffff00', opacity=0.65;
-      if (riskScore >= 0.8) { color = '#8b0000'; opacity = 0.85; }
-      else if (riskScore >= 0.6) { color = '#d70000'; opacity = 0.80; }
-      else if (riskScore >= 0.4) { color = '#ff4500'; opacity = 0.75; }
-      else if (riskScore >= 0.2) { color = '#ffa500'; opacity = 0.70; }
-      return { color, opacity };
-    }
-
-    async function safeExecute(fn, info){
-      try{
-        await fn();
-      }catch(e){
-        if (info) info.textContent = 'Yangın risk yükleme hatası: ' + (e && e.message ? e.message : e);
-        console.error('Yangın risk yükleme hatası:', e);
-      }
-    }
+    let firesLayer, spreadLayer, reservoirLayer=null, autoTimer=null;
     let lastWind = null;
+    
+    // Tüm aktif layer'ları track et
+    let allActiveLayers = [];
 
     function markerStyle(p){
       const c = (p.confidence||'').toLowerCase();
@@ -561,19 +450,19 @@
       if (s) s.textContent = msg || '';
     }
 
-    // Barajları backend API'den yükle
+    // Barajları backend API'den yükle - Koyu Kırmızı
     async function loadReservoirs(){
       const info = document.getElementById('info');
       if (reservoirLayer){
         map.removeLayer(reservoirLayer);
         reservoirLayer = null;
-        info.textContent = 'Barajlar kapatıldı';
-        setStatus('Barajlar kapatıldı');
+        info.textContent = 'Su Rezervuarları kapatıldı';
+        setStatus('Su Rezervuarları kapatıldı');
         return;
       }
       
-      info.textContent = 'Barajlar yükleniyor...';
-      setStatus('Barajlar yükleniyor...');
+      info.textContent = 'Su Rezervuarları yükleniyor...';
+      setStatus('Su Rezervuarları yükleniyor...');
       try {
         // Backend API'den baraj verisi getir
         const r = await fetch('/api/dams');
@@ -581,7 +470,7 @@
         const gj = await r.json();
         
         if (!gj.features || gj.features.length === 0) {
-          info.textContent = 'Baraj verisi bulunamadı';
+          info.textContent = 'Su Rezervuarı verisi bulunamadı';
           return;
         }
         
@@ -589,8 +478,21 @@
         
         // İzmir sınırı içindeki barajları filtrele
         const filteredFeatures = gj.features.filter(f => {
-          const [lon, lat] = f.geometry.coordinates;
-          return isInIzmir(lat, lon);
+          try {
+            let lat, lon;
+            if (f.geometry.type === 'Point') {
+              [lon, lat] = f.geometry.coordinates;
+            } else if (f.geometry.type === 'Polygon') {
+              [lon, lat] = f.geometry.coordinates[0][0];
+            } else if (f.geometry.type === 'MultiPolygon') {
+              [lon, lat] = f.geometry.coordinates[0][0][0];
+            } else {
+              return false;
+            }
+            return isInIzmir(lat, lon);
+          } catch (e) {
+            return false;
+          }
         });
         
         console.log('İzmir içinde:', filteredFeatures.length);
@@ -598,27 +500,114 @@
         const filteredGj = { type: 'FeatureCollection', features: filteredFeatures };
         
         reservoirLayer = L.geoJSON(filteredGj, {
+          style: {
+            color: '#C41E3A',
+            weight: 3,
+            opacity: 0.9,
+            fillColor: '#DC143C',
+            fillOpacity: 0.4
+          },
           pointToLayer: (feature, latlng) => {
-            // Kare şekli - koyu mavi
             const div = L.divIcon({
-              html: '<div style="width: 12px; height: 12px; background-color: #1565C0; border: 2px solid #0D47A1; border-radius: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
-              iconSize: [12, 12],
+              html: '<div style="width: 14px; height: 14px; background-color: #C41E3A; border: 2px solid #8B0000; border-radius: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+              iconSize: [14, 14],
               className: 'dam-marker'
             });
             return L.marker(latlng, { icon: div });
           },
           onEachFeature: (feature, layer) => {
             const props = feature.properties;
-            const popup = `<div style="font-weight: bold; color: #1565C0;">🏗️ ${props.name}</div><div style="font-size: 12px; margin-top: 4px;">Baraj</div>`;
+            const popup = `<div style="font-weight: bold; color: #C41E3A;">${props.name || 'Baraj'}</div><div style="font-size: 12px; margin-top: 4px;">Baraj</div>`;
             layer.bindPopup(popup);
           }
         }).addTo(map);
         
-        info.textContent = `Barajlar açık (${filteredFeatures.length} bulundu)`;
-        setStatus(`Barajlar açık (${filteredFeatures.length})`);
+        info.textContent = `Su Rezervuarları açık (${filteredFeatures.length} bulundu)`;
+        setStatus(`Su Rezervuarları açık (${filteredFeatures.length})`);
       } catch (e) {
-        info.textContent = 'Barajlar yüklenemedi: ' + e.message;
+        info.textContent = 'Su Rezervuarları yüklenemedi: ' + e.message;
         console.error('Baraj yükleme hatası:', e);
+      }
+    }
+
+    // Su Kaynakları - Açık Mavi
+    let waterSourcesLayer = null;
+    async function loadWaterSources(){
+      const info = document.getElementById('info');
+      if (waterSourcesLayer){
+        map.removeLayer(waterSourcesLayer);
+        waterSourcesLayer = null;
+        info.textContent = 'Su Kaynakları kapatıldı';
+        setStatus('Su Kaynakları kapatıldı');
+        return;
+      }
+      
+      info.textContent = 'Su Kaynakları yükleniyor...';
+      setStatus('Su Kaynakları yükleniyor...');
+      try {
+        const r = await fetch('/api/water_sources');
+        if (!r.ok) throw new Error('API hatası');
+        const gj = await r.json();
+        
+        if (!gj.features || gj.features.length === 0) {
+          info.textContent = 'Su Kaynağı verisi bulunamadı';
+          return;
+        }
+        
+        console.log('Su Kaynakları toplam:', gj.features.length);
+        
+        const filteredFeatures = gj.features.filter(f => {
+          try {
+            let lat, lon;
+            if (f.geometry.type === 'Point') {
+              [lon, lat] = f.geometry.coordinates;
+            } else if (f.geometry.type === 'Polygon') {
+              [lon, lat] = f.geometry.coordinates[0][0];
+            } else if (f.geometry.type === 'MultiPolygon') {
+              [lon, lat] = f.geometry.coordinates[0][0][0];
+            } else {
+              return false;
+            }
+            return isInIzmir(lat, lon);
+          } catch (e) {
+            return false;
+          }
+        });
+        
+        console.log('İzmir içinde su kaynakları:', filteredFeatures.length);
+        
+        const filteredGj = { type: 'FeatureCollection', features: filteredFeatures };
+        
+        waterSourcesLayer = L.geoJSON(filteredGj, {
+          style: {
+            color: '#0277BD',
+            weight: 2,
+            opacity: 0.7,
+            fillColor: '#4FC3F7',
+            fillOpacity: 0.3
+          },
+          pointToLayer: (feature, latlng) => {
+            return L.circleMarker(latlng, {
+              radius: 5,
+              fillColor: '#4FC3F7',
+              color: '#0277BD',
+              weight: 2,
+              opacity: 1,
+              fillOpacity: 0.7
+            });
+          },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties;
+            const popup = `<div style="font-weight: bold; color: #0277BD;">${props.name || 'Su Kaynağı'}</div><div style="font-size: 12px; margin-top: 4px;">Su Kaynağı</div>`;
+            layer.bindPopup(popup);
+          }
+        }).addTo(map);
+        
+        info.textContent = `Su Kaynakları açık (${filteredFeatures.length} bulundu)`;
+        setStatus(`Su Kaynakları açık (${filteredFeatures.length})`);
+      } catch (e) {
+        info.textContent = 'Su Kaynakları yüklenemedi: ' + e.message;
+        console.error('Su kaynakları yükleme hatası:', e);
       }
     }
 
@@ -714,13 +703,13 @@
       if (lakesLayer){
         map.removeLayer(lakesLayer);
         lakesLayer = null;
-        info.textContent = 'Göller kapatıldı';
-        setStatus('Göller kapatıldı');
+        info.textContent = 'Göl ve Göletler kapatıldı';
+        setStatus('Göl ve Göletler kapatıldı');
         return;
       }
       
-      info.textContent = 'Göller yükleniyor...';
-      setStatus('Göller yükleniyor...');
+      info.textContent = 'Göl ve Göletler yükleniyor...';
+      setStatus('Göl ve Göletler yükleniyor...');
       try {
         const r = await fetch('/static/data/ponds-lakes.geojson');
         if (!r.ok) throw new Error('Dosya yüklenemedi');
@@ -768,10 +757,10 @@
           }
         }).addTo(map);
         
-        info.textContent = `Göller açık (${filteredFeatures.length} bulundu)`;
-        setStatus(`Göller açık (${filteredFeatures.length})`);
+        info.textContent = `Göl ve Göletler açık (${filteredFeatures.length} bulundu)`;
+        setStatus(`Göl ve Göletler açık (${filteredFeatures.length})`);
       } catch (e) {
-        info.textContent = 'Göller yüklenemedi: ' + e.message;
+        info.textContent = 'Göl ve Göletler yüklenemedi: ' + e.message;
         console.error('Göl yükleme hatası:', e);
       }
     }
@@ -941,10 +930,11 @@
 
     async function loadFires(){
       const info = document.getElementById('info');
-      const d = Math.max(1, Math.min(10, parseInt(document.getElementById('dr').value||'3',10)));
+      let d = parseInt(document.getElementById('dr').value||'1',10);
+      d = Math.max(1, Math.min(10, d)); // Validate between 1-10
       info.textContent = 'FIRMS yükleniyor...'; setStatus('FIRMS yükleniyor...');
       try{
-        const res = await fetch(`/api/fires?day_range=${d}`);
+        const res = await fetch(`/api/firms?day_range=${d}`);
         const geo = await res.json();
         if (firesLayer) map.removeLayer(firesLayer);
         if (geo.error){ info.textContent='Hata: '+geo.error; return; }
@@ -956,30 +946,47 @@
     }
 
     async function loadLiveTracking(startTracking=false){
+      const btn = document.getElementById('btnLiveTracking');
       const info = document.getElementById('info');
-      const autoRefCheckbox = document.getElementById('autoRef');
       
-      // Eğer canlı takip başlatılıyorsa otomatik güncellemeyi aç
-      if (startTracking){
-        autoRefCheckbox.checked = true;
+      // Toggle canlı takip durumu
+      if (btn.dataset.isLive === 'true') {
+        // Kapatış - canlı takip durdur
+        btn.dataset.isLive = 'false';
+        btn.textContent = '🔴 Canlı Takip';
+        btn.style.filter = 'brightness(1)';
+        if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+        if (firesLayer) map.removeLayer(firesLayer);
+        info.textContent = 'Canlı takip durduruldu';
+        return;
       }
       
-      info.textContent = autoRefCheckbox.checked ? 'Canlı takip aktif...' : 'Veriler yükleniyor...'; 
-      setStatus('Yangın verileri yükleniyor');
+      // Açılış - canlı takip başlat
+      btn.dataset.isLive = 'true';
+      btn.textContent = '🟢 Canlı Takip';
+      btn.style.filter = 'brightness(1.2) drop-shadow(0 0 8px rgba(0,255,0,0.6))';
+      
+      // İlk veriyi yükle
+      await updateLiveData();
+      
+      // Her 30 saniyede bir güncelle (NASA FIRMS varsayılan: ~30dk)
+      if (autoTimer) clearInterval(autoTimer);
+      autoTimer = setInterval(updateLiveData, 30000);
+    }
+    
+    async function updateLiveData(){
+      const info = document.getElementById('info');
       try{
-        const res = await fetch(`/api/fires_cached?refresh=true`);
+        const res = await fetch(`/api/fires?day_range=1`);
         const geo = await res.json();
         if (firesLayer) map.removeLayer(firesLayer);
         if (geo.error){ info.textContent='Hata: '+geo.error; return; }
         firesLayer = createFiresLayer(geo).addTo(map);
         try{ const b = firesLayer.getBounds(); if (b.isValid()) map.fitBounds(b.pad(0.2)); }catch(e){}
         const count = (geo.features||[]).length;
-        const updatedRaw = geo.meta?.updated_at || '';
-        const updatedTime = updatedRaw ? updatedRaw.slice(11,16) : '';
-        const suffix = updatedTime ? ` • Son güncelleme: ${updatedTime}` : '';
-        const msg = `İzmir Yangınları: ${count}${suffix} ${autoRefCheckbox.checked ? '(Canlı)' : ''}`;
-        info.textContent = msg; setStatus(msg);
-      }catch(e){ info.textContent = 'Ağ hatası'; console.error(e); }
+        const now = new Date().toLocaleTimeString('tr-TR');
+        info.textContent = `🟢 Canlı Yangınlar: ${count} | Güncelleme: ${now}`;
+      }catch(e){ console.error(e); }
     }
 
     function ensureLegend(){
@@ -1016,6 +1023,295 @@
       return '#fef0d9';
     }
 
+    let fireRiskLayer = null;
+    let fireRiskLegendCtl = null;
+
+    function getFireRiskColor(riskClass) {
+      const colors = {
+        'SAFE_UNBURNABLE': '#2ecc71',
+        'LOW_RISK': '#f39c12',
+        'MEDIUM_RISK': '#e74c3c',
+        'HIGH_RISK': '#8b0000'
+      };
+      return colors[riskClass] || '#808080';
+    }
+
+    function getFireRiskLabel(riskClass) {
+      const labels = {
+        'SAFE_UNBURNABLE': 'Güvenli/Yanmayan',
+        'LOW_RISK': 'Düşük Risk',
+        'MEDIUM_RISK': 'Orta Risk',
+        'HIGH_RISK': 'Yüksek Risk'
+      };
+      return labels[riskClass] || riskClass;
+    }
+
+    async function loadFireRiskPoints() {
+      const info = document.getElementById('info');
+      info.textContent = 'ML Yangın Risk Noktaları yükleniyor...';
+      setStatus('Yangın risk yükleniyor...');
+      
+      try {
+        const response = await fetch('/api/fire-risk/points?limit=50000');
+        if (!response.ok) throw new Error('API hatası: ' + response.status);
+        
+        const geoJson = await response.json();
+        
+        if (!geoJson.features || geoJson.features.length === 0) {
+          info.textContent = 'Yangın risk verisi bulunamadı';
+          return;
+        }
+        
+        console.log('Yangın risk noktaları toplam:', geoJson.features.length);
+        
+        // Filtre: İzmir sınırı içindeki noktalar
+        const filteredFeatures = geoJson.features.filter(f => {
+          const coords = f.geometry?.coordinates;
+          if (!coords || coords.length < 2) return false;
+          const [lon, lat] = coords;
+          return isInIzmir(lat, lon);
+        });
+        
+        console.log('İzmir içinde:', filteredFeatures.length);
+        
+        const filteredGj = { type: 'FeatureCollection', features: filteredFeatures };
+        
+        if (fireRiskLayer) map.removeLayer(fireRiskLayer);
+        
+        // Önce düşük risk noktalarını ekle (arka planda)
+        let lowRiskFeatures = filteredFeatures.filter(f => f.properties.risk_class !== 'HIGH_RISK' && f.properties.risk_class !== 'MEDIUM_RISK');
+        let mediumRiskFeatures = filteredFeatures.filter(f => f.properties.risk_class === 'MEDIUM_RISK');
+        let highRiskFeatures = filteredFeatures.filter(f => f.properties.risk_class === 'HIGH_RISK');
+        
+        // Tüm özellikleri birleştir (başta düşük riskler, sonra yüksek riskler)
+        const orderedFeatures = [...lowRiskFeatures, ...mediumRiskFeatures, ...highRiskFeatures];
+        
+        fireRiskLayer = L.geoJSON({type: 'FeatureCollection', features: orderedFeatures}, {
+          pointToLayer: (feature, latlng) => {
+            const props = feature.properties || {};
+            const riskClass = props.risk_class || 'SAFE_UNBURNABLE';
+            const color = getFireRiskColor(riskClass);
+            
+            // Radius boyutu risk sınıfına göre değiş - daha belirgin
+            let radius = 3;
+            let opacity = 0.5;
+            let fillOpacity = 0.4;
+            
+            if (riskClass === 'HIGH_RISK') {
+              radius = 8;
+              opacity = 1;
+              fillOpacity = 0.85;
+            } else if (riskClass === 'MEDIUM_RISK') {
+              radius = 6;
+              opacity = 0.9;
+              fillOpacity = 0.75;
+            } else if (riskClass === 'LOW_RISK') {
+              radius = 4;
+              opacity = 0.7;
+              fillOpacity = 0.6;
+            }
+            
+            return L.circleMarker(latlng, {
+              radius: radius,
+              color: color,
+              fillColor: color,
+              fillOpacity: fillOpacity,
+              weight: 1,
+              opacity: opacity
+            });
+          },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties || {};
+            const riskClass = props.risk_class || 'SAFE_UNBURNABLE';
+            const fireProb = (props.fire_probability * 100).toFixed(1);
+            const riskScore = (props.combined_risk_score).toFixed(3);
+            
+            const popup = `<b>Yangın Risk Analizi</b><br>
+              <span style="font-size: 12px;">
+              <strong>${getFireRiskLabel(riskClass)}</strong><br>
+              Yangın Olasılığı: ${fireProb}%<br>
+              Risk Skoru: ${riskScore}<br>
+              Konum: (${parseFloat(feature.geometry.coordinates[1]).toFixed(4)}, ${parseFloat(feature.geometry.coordinates[0]).toFixed(4)})</span>`;
+            
+            layer.bindPopup(popup);
+          }
+        }).addTo(map);
+        
+        // Legend ekle
+        if (fireRiskLegendCtl) {
+          try { fireRiskLegendCtl.remove(); } catch(e) {}
+        }
+        
+        fireRiskLegendCtl = L.control({ position: 'bottomright' });
+        fireRiskLegendCtl.onAdd = function() {
+          const div = L.DomUtil.create('div', 'legend');
+          div.style.backgroundColor = 'white';
+          div.style.padding = '10px';
+          div.style.borderRadius = '5px';
+          div.style.boxShadow = '0 0 15px rgba(0,0,0,0.2)';
+          div.style.fontSize = '12px';
+          
+          div.innerHTML = '<b>Yangın Risk Sınıfları</b><br>' +
+            '<div class="row"><span class="sw" style="background:#8b0000; width: 12px; height: 12px; display: inline-block; margin-right: 5px; border-radius: 50%;"></span>Yüksek Risk (' + highRiskFeatures.length + ')</div>' +
+            '<div class="row"><span class="sw" style="background:#e74c3c; width: 10px; height: 10px; display: inline-block; margin-right: 5px; border-radius: 50%;"></span>Orta Risk (' + mediumRiskFeatures.length + ')</div>' +
+            '<div class="row"><span class="sw" style="background:#f39c12; width: 8px; height: 8px; display: inline-block; margin-right: 5px; border-radius: 50%;"></span>Düşük Risk (' + lowRiskFeatures.filter(f => f.properties.risk_class === 'LOW_RISK').length + ')</div>' +
+            '<div class="row"><span class="sw" style="background:#2ecc71; width: 6px; height: 6px; display: inline-block; margin-right: 5px; border-radius: 50%;"></span>Güvenli (' + lowRiskFeatures.filter(f => f.properties.risk_class !== 'LOW_RISK').length + ')</div>';
+          return div;
+        };
+        fireRiskLegendCtl.addTo(map);
+        
+        info.textContent = `ML Yangın Risk Noktaları açık (${filteredFeatures.length} bulundu)`;
+        setStatus(`Yangın risk açık (${filteredFeatures.length})`);
+        
+      } catch (e) {
+        info.textContent = 'Yangın risk yükleme hatası: ' + e.message;
+        console.error('Yangın risk yükleme hatası:', e);
+      }
+    }
+
+    let heatmapLayer = null;
+    let heatmapLegendCtl = null;
+
+    async function loadHeatmapGrid() {
+      const info = document.getElementById('info');
+      info.textContent = 'Heatmap grid yükleniyor...';
+      setStatus('Heatmap grid yükleniyor...');
+      
+      try {
+        const response = await fetch('/api/fire-risk/heatmap-data?cell_size=0.05');
+        if (!response.ok) throw new Error('API hatası: ' + response.status);
+        
+        const geoJson = await response.json();
+        
+        if (!geoJson.features || geoJson.features.length === 0) {
+          info.textContent = 'Heatmap verisi bulunamadı';
+          return;
+        }
+        
+        console.log('Heatmap grid hücreleri:', geoJson.features.length);
+        
+        if (heatmapLayer) map.removeLayer(heatmapLayer);
+        
+        heatmapLayer = L.geoJSON(geoJson, {
+          style: (feature) => {
+            const props = feature.properties || {};
+            const riskScore = props.combined_risk_score || 0;
+            
+            // Risk skoruna göre renk (sarı -> turuncu -> kırmızı)
+            let color, opacity;
+            if (riskScore >= 0.8) {
+              color = "#8b0000";
+              opacity = 0.85;
+            } else if (riskScore >= 0.6) {
+              color = "#d70000";
+              opacity = 0.80;
+            } else if (riskScore >= 0.4) {
+              color = "#ff4500";
+              opacity = 0.75;
+            } else if (riskScore >= 0.2) {
+              color = "#ffa500";
+              opacity = 0.70;
+            } else {
+              color = "#ffff00";
+              opacity = 0.65;
+            }
+            
+            return {
+              color: color,
+              weight: 0.5,
+              fillColor: color,
+              fillOpacity: opacity,
+              opacity: 0.8
+            };
+          },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties || {};
+            const riskScore = props.combined_risk_score || 0;
+            const fireProb = (props.fire_probability * 100).toFixed(1);
+            
+            const popup = `<b>Yangın Risk Heatmap</b><br>
+              <span style="font-size: 12px;">
+              Risk Skoru: ${riskScore.toFixed(3)}<br>
+              Yangın Olasılığı: ${fireProb}%<br>
+              Sınıf: ${props.risk_class || 'N/A'}</span>`;
+            
+            layer.bindPopup(popup);
+          }
+        }).addTo(map);
+        
+        // Legend ekle
+        if (heatmapLegendCtl) {
+          try { heatmapLegendCtl.remove(); } catch(e) {}
+        }
+        
+        heatmapLegendCtl = L.control({ position: 'bottomright' });
+        heatmapLegendCtl.onAdd = function() {
+          const div = L.DomUtil.create('div', 'legend');
+          div.style.backgroundColor = 'white';
+          div.style.padding = '12px';
+          div.style.borderRadius = '5px';
+          div.style.boxShadow = '0 0 15px rgba(0,0,0,0.3)';
+          div.style.fontSize = '13px';
+          div.style.lineHeight = '1.6';
+          
+          div.innerHTML = '<b>Yangın Risk Heatmap</b><br>' +
+            '<div style="margin-top: 8px;">' +
+            '<div><span style="display:inline-block; width: 15px; height: 15px; background: #8b0000; margin-right: 8px;"></span>Çok Yüksek (≥0.8)</div>' +
+            '<div><span style="display:inline-block; width: 15px; height: 15px; background: #d70000; margin-right: 8px;"></span>Yüksek (≥0.6)</div>' +
+            '<div><span style="display:inline-block; width: 15px; height: 15px; background: #ff4500; margin-right: 8px;"></span>Orta (≥0.4)</div>' +
+            '<div><span style="display:inline-block; width: 15px; height: 15px; background: #ffa500; margin-right: 8px;"></span>Düşük (≥0.2)</div>' +
+            '<div><span style="display:inline-block; width: 15px; height: 15px; background: #ffff00; border: 1px solid #333; margin-right: 8px;"></span>Çok Düşük (&lt;0.2)</div>' +
+            '</div>';
+          return div;
+        };
+        heatmapLegendCtl.addTo(map);
+        
+        info.textContent = `Yangın Risk Heatmap açık (${geoJson.features.length} hücre)`;
+        setStatus(`Heatmap açık (${geoJson.features.length} hücre)`);
+        
+      } catch (e) {
+        info.textContent = 'Heatmap yükleme hatası: ' + e.message;
+        console.error('Heatmap yükleme hatası:', e);
+      }
+    }
+
+    async function toggleHeatmap() {
+      const info = document.getElementById('info');
+      
+      if (heatmapLayer) {
+        map.removeLayer(heatmapLayer);
+        heatmapLayer = null;
+        if (heatmapLegendCtl) {
+          try { heatmapLegendCtl.remove(); } catch(e) {}
+          heatmapLegendCtl = null;
+        }
+        info.textContent = 'Yangın Risk Heatmap kapatıldı';
+        setStatus('Heatmap kapatıldı');
+        return;
+      }
+      
+      await loadHeatmapGrid();
+    }
+
+
+    async function toggleFireRisk() {
+      const info = document.getElementById('info');
+      
+      if (fireRiskLayer) {
+        map.removeLayer(fireRiskLayer);
+        fireRiskLayer = null;
+        if (fireRiskLegendCtl) {
+          try { fireRiskLegendCtl.remove(); } catch(e) {}
+          fireRiskLegendCtl = null;
+        }
+        info.textContent = 'ML Yangın Risk Noktaları kapatıldı';
+        setStatus('Yangın risk kapatıldı');
+        return;
+      }
+      
+      await loadFireRiskPoints();
+    }
+
     async function loadRiskForView(){
       const info = document.getElementById('info');
       const cellKm = Math.max(2, Math.min(50, parseInt(document.getElementById('cellKm').value||'8',10)));
@@ -1023,9 +1319,7 @@
       try{
         const url = `/api/risk_grid?cell_km=${cellKm}&use_default_wind=true&${currentBboxParam()}`;
         const r = await fetch(url);
-        if (!r.ok) { info.textContent = 'Risk API hatası: ' + r.status; console.error('Risk API hata', r.status); return; }
         const grid = await r.json();
-        if (!grid || !grid.values || !grid.values.length) { info.textContent = 'Risk verisi bulunamadı'; return; }
         if (grid.error){ info.textContent = 'Risk hata: '+grid.error; return; }
         const {bbox, nrows, ncols, values} = grid;
         const minx=bbox[0], miny=bbox[1], maxx=bbox[2], maxy=bbox[3];
@@ -1076,49 +1370,7 @@
         };
         legendCtl.addTo(map);
         info.textContent = 'Risk izohips çizgileri açık'; setStatus('Risk katmanı açık');
-        // Ayrıca risk noktalarını da yükle (validation ile)
-        safeExecute(async ()=>{ await loadFireRiskPoints(); }, info);
       }catch(e){ info.textContent = 'Risk hatası'; console.error(e); }
-    }
-
-    async function loadFireRiskPoints(){
-      const info = document.getElementById('info');
-      info.textContent = 'Yangın risk noktaları yükleniyor...';
-      try{
-        const url = '/api/fire-risk/points';
-        const resp = await fetch(url);
-        const featuresGc = await validateAndParseResponse(resp, info, 'Risk noktası bulunamadı');
-        if (!featuresGc || !featuresGc.features || !featuresGc.features.length) return;
-        const features = featuresGc.features;
-        const filtered = filterFeaturesInIzmir(features);
-        const orderedObj = orderFeaturesByRisk(filtered);
-        const ordered = orderedObj.ordered || filtered;
-
-        // remove existing layer if present
-        if (window.fireRiskPointsLayer){ map.removeLayer(window.fireRiskPointsLayer); }
-
-        const layer = L.geoJSON({type:'FeatureCollection', features: ordered}, {
-          pointToLayer: (f, latlng)=>{
-            const cls = f.properties && f.properties.risk_class;
-            const style = getCircleStyleForRisk(cls) || {radius:4, opacity:0.8, fillOpacity:0.8};
-            return L.circleMarker(latlng, { radius: style.radius, color:'#000', weight:0.6, opacity:style.opacity, fillColor: (cls==='HIGH_RISK'? '#d32f2f' : cls==='MEDIUM_RISK'? '#ff9800' : '#4caf50'), fillOpacity: style.fillOpacity });
-          },
-          onEachFeature: (f, l)=>{ l.bindPopup(buildRiskPopup(f)); }
-        });
-        layer.addTo(map);
-        window.fireRiskPointsLayer = layer;
-
-        // legend / counts
-        const counts = {};
-        ordered.forEach(f=>{ const k = (f.properties && f.properties.risk_class) || 'unknown'; counts[k] = (counts[k]||0)+1; });
-        if (window.fireRiskCountsCtl){ map.removeControl(window.fireRiskCountsCtl); }
-        const countsCtl = L.control({position:'bottomright'});
-        countsCtl.onAdd = ()=>{ const d = L.DomUtil.create('div','risk-counts'); buildLegendCounts(d, orderedObj.lowRiskFeatures||[], orderedObj.mediumRiskFeatures||[], orderedObj.highRiskFeatures||[]); return d; };
-        countsCtl.addTo(map);
-        window.fireRiskCountsCtl = countsCtl;
-
-        info.textContent = 'Yangın risk noktaları yüklendi.'; setStatus('Risk noktaları açık');
-      }catch(e){ info.textContent = 'Risk noktaları yüklenemedi'; console.error(e); }
     }
 
     async function toggleRisk(){
@@ -1134,47 +1386,63 @@
     }
 
     function resetMap(){
-      const info = document.getElementById('info');
-      try {
-        // stop auto refresh
-        document.getElementById('autoRef').checked = false;
-        setAutoRefresh(false);
-        
-        // remove all layers
-        if (firesLayer){ map.removeLayer(firesLayer); firesLayer=null; }
-        if (spreadLayer){ map.removeLayer(spreadLayer); spreadLayer=null; }
-        if (riskLayer){ map.removeLayer(riskLayer); riskLayer=null; }
-        if (reservoirLayer){ map.removeLayer(reservoirLayer); reservoirLayer=null; }
-        if (window.waterTanksLayer){ map.removeLayer(window.waterTanksLayer); window.waterTanksLayer=null; }
-        if (window.sheltersLayer){ map.removeLayer(window.sheltersLayer); window.sheltersLayer=null; }
-        if (boundaryPointsLayer){ map.removeLayer(boundaryPointsLayer); boundaryPointsLayer=null; }
-        
-        // remove legend
-        if (legendCtl){ legendCtl.remove(); legendCtl=null; }
-        
-        // remove all GeoJSON layers
-        map.eachLayer(function(layer) {
-          if (layer instanceof L.GeoJSON) {
-            map.removeLayer(layer);
-          }
-        });
-        
-        riskActive=false;
-        lastWind=null;
-        
-        // reset inputs
-        document.getElementById('dr').value = '3';
-        document.getElementById('dur').value = '30';
-        document.getElementById('cellKm').value = '8';
-        
-        // reset view
-        map.setView([38.42, 27.14], 8);
-        info.textContent = 'Harita temizlendi';
-        setStatus('Harita temizlendi');
-      } catch(e) {
-        console.error('Reset hatası:', e);
-        info.textContent = 'Reset sırasında hata oluştu';
+      // Canlı takip durdur
+      if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+      const btn = document.getElementById('btnLiveTracking');
+      if (btn) {
+        btn.dataset.isLive = 'false';
+        btn.textContent = '🔴 Canlı Takip';
+        btn.style.filter = 'brightness(1)';
       }
+      
+      // Tracked layers'ı kaldır
+      allActiveLayers.forEach(layer => {
+        try { map.removeLayer(layer); } catch(e) {}
+      });
+      allActiveLayers = [];
+      
+      // Adlandırılmış layer variable'larını kaldır
+      if (firesLayer){ try { map.removeLayer(firesLayer); } catch(e) {} firesLayer=null; }
+      if (spreadLayer){ try { map.removeLayer(spreadLayer); } catch(e) {} spreadLayer=null; }
+      if (fireRiskLayer){ try { map.removeLayer(fireRiskLayer); } catch(e) {} fireRiskLayer=null; }
+      if (heatmapLayer){ try { map.removeLayer(heatmapLayer); } catch(e) {} heatmapLayer=null; }
+      if (reservoirLayer){ try { map.removeLayer(reservoirLayer); } catch(e) {} reservoirLayer=null; }
+      if (waterTanksLayer){ try { map.removeLayer(waterTanksLayer); } catch(e) {} waterTanksLayer=null; }
+      if (waterSourcesLayer){ try { map.removeLayer(waterSourcesLayer); } catch(e) {} waterSourcesLayer=null; }
+      if (lakesLayer){ try { map.removeLayer(lakesLayer); } catch(e) {} lakesLayer=null; }
+      if (typeof sheltersLayer !== 'undefined' && sheltersLayer){ try { map.removeLayer(sheltersLayer); } catch(e) {} sheltersLayer=null; }
+      if (boundaryPointsLayer){ try { map.removeLayer(boundaryPointsLayer); } catch(e) {} boundaryPointsLayer=null; }
+      if (izmirBoundaryLayer){ try { map.removeLayer(izmirBoundaryLayer); } catch(e) {} izmirBoundaryLayer=null; }
+      
+      // Control'leri kaldır
+      if (legendCtl){ try { legendCtl.remove(); } catch(e) {} legendCtl=null; }
+      if (fireRiskLegendCtl){ try { fireRiskLegendCtl.remove(); } catch(e) {} fireRiskLegendCtl=null; }
+      if (heatmapLegendCtl){ try { heatmapLegendCtl.remove(); } catch(e) {} heatmapLegendCtl=null; }
+      
+      // NÜKLEİR SEÇENEK: Tüm layer'ları force remove
+      const layersToRemove = [];
+      map.eachLayer(function(layer) {
+        // Tile layers hariç (base map)
+        if (!(layer instanceof L.TileLayer) && !(layer instanceof L.BaseLayer)) {
+          layersToRemove.push(layer);
+        }
+      });
+      layersToRemove.forEach(layer => {
+        try { map.removeLayer(layer); } catch(e) {}
+      });
+      
+      // Haritayı sıfırla
+      map.setView([38.42, 27.14], 8);
+      
+      // Input'ları sıfırla
+      const drSelect = document.getElementById('dr');
+      if (drSelect) drSelect.value = '1';
+      
+      // Bilgi panelini temizle
+      const info = document.getElementById('info');
+      if (info) info.textContent = '';
+      
+      setStatus('Harita sıfırlandı');
     }
 
     function setAutoRefresh(on){
@@ -1220,86 +1488,13 @@
 
     document.getElementById('btnFires').addEventListener('click', loadFires);
     document.getElementById('btnLiveTracking').addEventListener('click', ()=>loadLiveTracking(true));
-    document.getElementById('btnRisk').addEventListener('click', toggleRisk);
+    document.getElementById('btnFireRisk').addEventListener('click', toggleFireRisk);
+    document.getElementById('btnHeatmap').addEventListener('click', toggleHeatmap);
     document.getElementById('btnReservoirs').addEventListener('click', loadReservoirs);
+    document.getElementById('btnWaterSources').addEventListener('click', loadWaterSources);
     document.getElementById('btnWaterTanks').addEventListener('click', loadWaterTanks);
     document.getElementById('btnLakes').addEventListener('click', loadLakes);
     document.getElementById('btnBoundaryPoints').addEventListener('click', loadBoundaryPoints);
-    document.getElementById('btnShelters').addEventListener('click', async ()=>{
-      const info = document.getElementById('info');
-      if (window.sheltersLayer){ map.removeLayer(window.sheltersLayer); window.sheltersLayer=null; info.textContent='Toplanma alanları kapalı'; setStatus('Toplanma alanları kapalı'); return; }
-      info.textContent = 'Toplanma alanları yükleniyor...'; setStatus('Toplanma alanları yükleniyor...');
-      
-      // Shelters filtreleme fonksiyonu
-      const filterShelters = (gj) => {
-        if (!gj || !gj.features) return gj;
-        const filtered = gj.features.filter(f => {
-          const coords = f.geometry?.coordinates;
-          if (!coords || coords.length < 2) return false;
-          const [lon, lat] = coords;
-          return isInIzmir(lat, lon);
-        });
-        return { type: 'FeatureCollection', features: filtered };
-      };
-      
-      try{
-        // İlk olarak Excel dosyalarından yükle
-        const res = await fetch('/api/shelters_from_excel');
-        let gj = await res.json();
-        
-        if (!gj || !gj.features || gj.features.length === 0) {
-          throw new Error('Excel dosyalarından veri yüklenemedi');
-        }
-        
-        console.log('Shelters before filter:', gj.features.length);
-        gj = filterShelters(gj);
-        console.log('Shelters after filter:', gj.features.length);
-        window.sheltersLayer = L.geoJSON(gj, {
-          pointToLayer:(f,latlng)=>L.circleMarker(latlng, {radius:6, color:'#00695c', fillColor:'#26a69a', fillOpacity:0.85, weight:2}),
-          onEachFeature:(f,l)=>{ const p=f.properties||{}; const ilce = p.ilçe ? ` (${p.ilçe})` : ''; l.bindPopup(`<b>Toplanma Alanı</b><br>${p.name||p.ad||'-'}${ilce}`); }
-        }).addTo(map);
-        const cnt = (gj.features||[]).length; info.textContent=`Toplanma alanları açık (${cnt})`; setStatus(`Toplanma alanları açık (${cnt})`);
-      }catch(e1){
-        try{
-          // Fallback: Eski yöntemler
-          let manifest = await loadSheltersManifest();
-          let gj = null;
-          if (manifest && (manifest.files||[]).length){
-            gj = await loadSheltersFromFiles(manifest.files);
-          } else {
-            gj = await loadSheltersGeoJSON();
-          }
-          if (!gj || !gj.type){ throw new Error('bad_geojson'); }
-          gj = filterShelters(gj);
-          window.sheltersLayer = L.geoJSON(gj, {
-            pointToLayer:(f,latlng)=>L.circleMarker(latlng, {radius:6, color:'#00695c', fillColor:'#26a69a', fillOpacity:0.85, weight:2}),
-            onEachFeature:(f,l)=>{ const p=f.properties||{}; l.bindPopup(`<b>Toplanma Alanı</b><br>${p.name||p.ad||'-'}`); }
-          }).addTo(map);
-          const cnt = (gj.features||[]).length; info.textContent=`Toplanma alanları açık (${cnt})`; setStatus(`Toplanma alanları açık (${cnt})`);
-        }catch(e2){
-          try{
-            let gj = await loadSheltersXLSX();
-            if (!gj || !gj.type || !(gj.features||[]).length) throw new Error('bad_xlsx');
-            gj = filterShelters(gj);
-            window.sheltersLayer = L.geoJSON(gj, {
-              pointToLayer:(f,latlng)=>L.circleMarker(latlng, {radius:6, color:'#00695c', fillColor:'#26a69a', fillOpacity:0.85, weight:2}),
-              onEachFeature:(f,l)=>{ const p=f.properties||{}; l.bindPopup(`<b>Toplanma Alanı</b><br>${p.name||p.ad||'-'}`); }
-            }).addTo(map);
-            const cnt = (gj.features||[]).length; info.textContent=`Toplanma alanları (XLSX) açık (${cnt})`; setStatus(`Toplanma alanları (XLSX) açık (${cnt})`);
-          }catch(e3){
-            try{
-              const gj = await loadSheltersCSV();
-              const filtered = filterShelters(gj);
-              window.sheltersLayer = L.geoJSON(filtered, {
-                pointToLayer:(f,latlng)=>L.circleMarker(latlng, {radius:6, color:'#00695c', fillColor:'#26a69a', fillOpacity:0.85, weight:2}),
-                onEachFeature:(f,l)=>{ const p=f.properties||{}; l.bindPopup(`<b>Toplanma Alanı</b><br>${p.name||p.ad||'-'}`); }
-              }).addTo(map);
-              const cnt = (filtered.features||[]).length; info.textContent=`Toplanma alanları (CSV) açık (${cnt})`; setStatus(`Toplanma alanları (CSV) açık (${cnt})`);
-            }catch(e4){ info.textContent='Toplanma alanları yüklenemedi'; setStatus('Toplanma alanları hata'); console.error(e1, e2, e3, e4); }
-          }
-        }
-      }
-    });
     document.getElementById('autoRef').addEventListener('change', (e)=> setAutoRefresh(e.target.checked));
     document.getElementById('cellKm').addEventListener('change', ()=>{ if (riskActive) loadRiskForView(); });
     document.getElementById('btnReset').addEventListener('click', resetMap);
