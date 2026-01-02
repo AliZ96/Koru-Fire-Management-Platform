@@ -276,6 +276,58 @@ Tüm testler Postman kullanılarak başarıyla gerçekleştirilmiştir.
 
 ---
 
+
+
+## Demo Scenarios – Risk Visualization (SCRUM-45)
+
+This section describes the prepared demo scenarios used to demonstrate and validate the wildfire risk visualization capabilities of the KORU platform.
+
+### Scenario 1: High-Risk Zone Visualization
+
+**Objective:**  
+Demonstrate how the system identifies and visualizes wildfire high-risk zones using machine learning outputs.
+
+**Description:**  
+Historical fire data and environmental factors are processed by the ML model to generate risk scores. These scores are visualized on the map as a grid-based risk layer.
+
+**Outcome:**  
+High-risk areas are clearly distinguishable, enabling authorities to quickly identify critical regions.
+
+---
+
+### Scenario 2: Fire Detection with Risk Context
+
+**Objective:**  
+Visualize detected fire locations together with surrounding risk levels and nearby response resources.
+
+**Description:**  
+Active fire points retrieved from NASA FIRMS are displayed on the map. Water sources and fire stations are visualized alongside the risk layer.
+
+**Outcome:**  
+Decision-makers can assess detected fires within their full spatial and risk context.
+
+---
+
+### Scenario 3: Strategic Planning Visualization Preview
+
+**Objective:**  
+Provide a visual foundation for strategic intervention planning.
+
+**Description:**  
+Users select a fire location and observe surrounding risk zones, accessibility information, and preliminary route visualizations.
+
+**Outcome:**  
+The system supports faster and more informed planning decisions through intuitive visual insights.
+
+---
+
+### Demo Validation
+
+All demo scenarios were tested using real-time and historical data through the web-based dashboard.  
+The results validate the effectiveness of KORU’s risk visualization pipeline and its role as a decision-support system.
+
+---
+
 ## Lisans
 
 Bu proje eğitim amaçlı geliştirilmiştir.
