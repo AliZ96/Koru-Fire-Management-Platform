@@ -427,6 +427,85 @@
       }catch(e){ console.warn('İzmir sınır GeoJSON yüklenemedi:', e); }
     })();
     let firesLayer, spreadLayer, riskLayer, reservoirLayer=null, autoTimer=null, legendCtl=null, riskActive=false;
+
+    /* Validation helpers for fire-risk responses */
+    async function validateAndParseResponse(response, info, notFoundMessage){
+      if (!response || !response.ok) {
+        throw new Error('API hatası: ' + (response ? response.status : 'no_response'));
+      }
+      const geoJson = await response.json();
+      if (!geoJson || !geoJson.features || geoJson.features.length === 0) {
+        if (info) info.textContent = notFoundMessage || 'Veri bulunamadı';
+        return null;
+      }
+      console.log('Yangın risk noktaları toplam:', geoJson.features.length);
+      return geoJson;
+    }
+
+    function filterFeaturesInIzmir(features){
+      if (!features || !features.length) return [];
+      return features.filter(f => {
+        const coords = f.geometry?.coordinates;
+        if (!coords || coords.length < 2) return false;
+        const [lon, lat] = coords;
+        return isInIzmir(lat, lon);
+      });
+    }
+
+    function orderFeaturesByRisk(features){
+      const lowRiskFeatures = features.filter(f => f.properties?.risk_class !== 'HIGH_RISK' && f.properties?.risk_class !== 'MEDIUM_RISK');
+      const mediumRiskFeatures = features.filter(f => f.properties?.risk_class === 'MEDIUM_RISK');
+      const highRiskFeatures = features.filter(f => f.properties?.risk_class === 'HIGH_RISK');
+      return { ordered: [...lowRiskFeatures, ...mediumRiskFeatures, ...highRiskFeatures], lowRiskFeatures, mediumRiskFeatures, highRiskFeatures };
+    }
+
+    function getCircleStyleForRisk(riskClass){
+      let radius = 3; let opacity = 0.5; let fillOpacity = 0.4;
+      if (riskClass === 'HIGH_RISK') { radius = 8; opacity = 1; fillOpacity = 0.85; }
+      else if (riskClass === 'MEDIUM_RISK') { radius = 6; opacity = 0.9; fillOpacity = 0.75; }
+      else if (riskClass === 'LOW_RISK') { radius = 4; opacity = 0.7; fillOpacity = 0.6; }
+      return { radius, opacity, fillOpacity };
+    }
+
+    function buildRiskPopup(feature){
+      const props = feature.properties || {};
+      const riskClass = props.risk_class || 'N/A';
+      const fireProb = (props.fire_probability !== undefined && props.fire_probability !== null) ? (props.fire_probability * 100).toFixed(1) : 'N/A';
+      const riskScoreNum = Number(props.combined_risk_score) || 0;
+      const riskScore = riskScoreNum.toFixed(3);
+      const lat = parseFloat(feature.geometry.coordinates[1]).toFixed(4);
+      const lon = parseFloat(feature.geometry.coordinates[0]).toFixed(4);
+      return `<b>Yangın Risk Analizi</b><br><strong>${riskClass}</strong><br>Yangın Olasılığı: ${fireProb}%<br>Risk Skoru: ${riskScore}<br>Konum: (${lat}, ${lon})`;
+    }
+
+    function buildLegendCounts(div, lowRiskFeatures, mediumRiskFeatures, highRiskFeatures){
+      if (!div) return;
+      const lowCount = (lowRiskFeatures||[]).filter(f => f.properties?.risk_class === 'LOW_RISK').length;
+      const safeCount = (lowRiskFeatures||[]).filter(f => f.properties?.risk_class !== 'LOW_RISK').length;
+      div.innerHTML = '<b>Yangın Risk Sınıfları</b><br>' +
+        'Yüksek Risk (' + (highRiskFeatures||[]).length + ')<br>' +
+        'Orta Risk (' + (mediumRiskFeatures||[]).length + ')<br>' +
+        'Düşük Risk (' + lowCount + ')<br>' +
+        'Güvenli (' + safeCount + ')';
+    }
+
+    function mapHeatmapColorAndOpacity(riskScore){
+      let color='#ffff00', opacity=0.65;
+      if (riskScore >= 0.8) { color = '#8b0000'; opacity = 0.85; }
+      else if (riskScore >= 0.6) { color = '#d70000'; opacity = 0.80; }
+      else if (riskScore >= 0.4) { color = '#ff4500'; opacity = 0.75; }
+      else if (riskScore >= 0.2) { color = '#ffa500'; opacity = 0.70; }
+      return { color, opacity };
+    }
+
+    async function safeExecute(fn, info){
+      try{
+        await fn();
+      }catch(e){
+        if (info) info.textContent = 'Yangın risk yükleme hatası: ' + (e && e.message ? e.message : e);
+        console.error('Yangın risk yükleme hatası:', e);
+      }
+    }
     let lastWind = null;
 
     function markerStyle(p){
@@ -944,7 +1023,9 @@
       try{
         const url = `/api/risk_grid?cell_km=${cellKm}&use_default_wind=true&${currentBboxParam()}`;
         const r = await fetch(url);
+        if (!r.ok) { info.textContent = 'Risk API hatası: ' + r.status; console.error('Risk API hata', r.status); return; }
         const grid = await r.json();
+        if (!grid || !grid.values || !grid.values.length) { info.textContent = 'Risk verisi bulunamadı'; return; }
         if (grid.error){ info.textContent = 'Risk hata: '+grid.error; return; }
         const {bbox, nrows, ncols, values} = grid;
         const minx=bbox[0], miny=bbox[1], maxx=bbox[2], maxy=bbox[3];
@@ -995,7 +1076,49 @@
         };
         legendCtl.addTo(map);
         info.textContent = 'Risk izohips çizgileri açık'; setStatus('Risk katmanı açık');
+        // Ayrıca risk noktalarını da yükle (validation ile)
+        safeExecute(async ()=>{ await loadFireRiskPoints(); }, info);
       }catch(e){ info.textContent = 'Risk hatası'; console.error(e); }
+    }
+
+    async function loadFireRiskPoints(){
+      const info = document.getElementById('info');
+      info.textContent = 'Yangın risk noktaları yükleniyor...';
+      try{
+        const url = '/api/fire-risk/points';
+        const resp = await fetch(url);
+        const featuresGc = await validateAndParseResponse(resp, info, 'Risk noktası bulunamadı');
+        if (!featuresGc || !featuresGc.features || !featuresGc.features.length) return;
+        const features = featuresGc.features;
+        const filtered = filterFeaturesInIzmir(features);
+        const orderedObj = orderFeaturesByRisk(filtered);
+        const ordered = orderedObj.ordered || filtered;
+
+        // remove existing layer if present
+        if (window.fireRiskPointsLayer){ map.removeLayer(window.fireRiskPointsLayer); }
+
+        const layer = L.geoJSON({type:'FeatureCollection', features: ordered}, {
+          pointToLayer: (f, latlng)=>{
+            const cls = f.properties && f.properties.risk_class;
+            const style = getCircleStyleForRisk(cls) || {radius:4, opacity:0.8, fillOpacity:0.8};
+            return L.circleMarker(latlng, { radius: style.radius, color:'#000', weight:0.6, opacity:style.opacity, fillColor: (cls==='HIGH_RISK'? '#d32f2f' : cls==='MEDIUM_RISK'? '#ff9800' : '#4caf50'), fillOpacity: style.fillOpacity });
+          },
+          onEachFeature: (f, l)=>{ l.bindPopup(buildRiskPopup(f)); }
+        });
+        layer.addTo(map);
+        window.fireRiskPointsLayer = layer;
+
+        // legend / counts
+        const counts = {};
+        ordered.forEach(f=>{ const k = (f.properties && f.properties.risk_class) || 'unknown'; counts[k] = (counts[k]||0)+1; });
+        if (window.fireRiskCountsCtl){ map.removeControl(window.fireRiskCountsCtl); }
+        const countsCtl = L.control({position:'bottomright'});
+        countsCtl.onAdd = ()=>{ const d = L.DomUtil.create('div','risk-counts'); buildLegendCounts(d, orderedObj.lowRiskFeatures||[], orderedObj.mediumRiskFeatures||[], orderedObj.highRiskFeatures||[]); return d; };
+        countsCtl.addTo(map);
+        window.fireRiskCountsCtl = countsCtl;
+
+        info.textContent = 'Yangın risk noktaları yüklendi.'; setStatus('Risk noktaları açık');
+      }catch(e){ info.textContent = 'Risk noktaları yüklenemedi'; console.error(e); }
     }
 
     async function toggleRisk(){
