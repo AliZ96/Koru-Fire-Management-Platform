@@ -83,6 +83,15 @@
   </style>
 </head>
 <body>
+  <script>
+    (function(){
+      const token = sessionStorage.getItem('token');
+      const isLoggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
+      if (!token || !isLoggedIn) {
+        window.location.href = '/login';
+      }
+    })();
+  </script>
   <div class="map-frame"><div id="map"></div><button id="panelToggle" class="panel-toggle" title="Kontrol Panelini Aç">⚙️</button></div>
   <div class="footer">
     <div class="contact">

@@ -107,7 +107,16 @@
     }
   </style>
 </head>
-<body>
+  <body>
+    <script>
+      (function(){
+        const token = sessionStorage.getItem('token');
+        const isLoggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
+        if (!token || !isLoggedIn) {
+          window.location.href = '/login';
+        }
+      })();
+    </script>
   <video muted loop autoplay playsinline preload="auto">
     <source src="/static/img/Paragraf%20metniniz.mp4" type="video/mp4">
   </video>

@@ -12,18 +12,28 @@ from sklearn.cluster import DBSCAN
 
 router = APIRouter(prefix="/api/fire-risk", tags=["fire-risk"])
 
-# Veri konumu (repo kökünden)
+# Veri konumu (repo kökünden) – birden fazla olası dosya için fallback listesi
 BASE_DIR = Path(__file__).resolve().parents[3]
-RISK_DATA_PATH = BASE_DIR / "data" / "ml-trained-data" / "izmir_risk_map.csv"
+RISK_DATA_PATHS = [
+    BASE_DIR / "database" / "ml-map" / "izmir_future_fire_risk_dataset.csv",
+    BASE_DIR / "data" / "ml-trained-data" / "izmir_risk_map.csv",
+]
+# İzmir kabaca bbox (lon_min, lat_min, lon_max, lat_max)
+IZMIR_BBOX = (26.0, 37.5, 28.8, 39.5)
 
 
 @lru_cache()
 def _load_risk_dataframe() -> pd.DataFrame:
     """
     Risk verisini tek seferlik yükle ve cache'le.
+    Birden fazla olası path varsa ilk bulunanı kullan.
     """
-    if RISK_DATA_PATH.exists():
-        return pd.read_csv(RISK_DATA_PATH)
+    for path in RISK_DATA_PATHS:
+        if path.exists():
+            try:
+                return pd.read_csv(path)
+            except Exception:
+                continue
     return pd.DataFrame()
 
 
@@ -125,11 +135,12 @@ async def get_fire_risk_points(
     limit: int = Query(50000, ge=1, le=100000),
 ):
     """
-    Yangın risk noktalarını basit listeler halinde döndür.
+    Yangın risk noktalarını GeoJSON FeatureCollection olarak döndür.
+    Frontend beklediği için geometry=Point, properties içinde risk_class ve skorlar sağlanır.
     """
     df = load_risk_data()
     if df.empty:
-        return {"points": [], "total": 0}
+        return {"type": "FeatureCollection", "features": [], "total": 0}
 
     if risk_class:
         class_col = "predicted_risk" if "predicted_risk" in df.columns else "predicted_risk_class"
@@ -137,7 +148,22 @@ async def get_fire_risk_points(
             df = df[df[class_col] == risk_class]
 
     points = _normalize_points(df, limit)
-    return {"points": points, "total": len(points)}
+    features = []
+    for p in points:
+        features.append(
+            {
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [p["lon"], p["lat"]]},
+                "properties": {
+                    "risk_class": p.get("risk_class", ""),
+                    "fire_probability": p.get("risk_score", 0.0),
+                    "high_fire_probability": p.get("risk_score", 0.0),
+                    "combined_risk_score": p.get("risk_score", 0.0),
+                },
+            }
+        )
+
+    return {"type": "FeatureCollection", "features": features, "total": len(features)}
 
 
 @router.get("/zones")
@@ -177,16 +203,54 @@ async def get_top_risk_zones(
 
 
 @router.get("/heatmap-data")
-async def get_heatmap_data(limit: int = Query(1000, ge=1, le=50000)):
+async def get_heatmap_data(
+    limit: int = Query(50000, ge=1, le=50000),
+    cell_size: float = Query(0.05, gt=0),
+):
     """
-    Heatmap için basit [lat, lon, risk_score] listesi döndür.
+    Heatmap için küçük kare poligonlardan oluşan FeatureCollection döndür.
+    Frontend polygon beklediği için her nokta etrafında küçük kare üretiyoruz.
     """
     df = load_risk_data()
     if df.empty:
-        return []
+        return {"type": "FeatureCollection", "features": [], "total_cells": 0, "cell_size": cell_size}
 
-    points = _normalize_points(df, limit)
-    return [[p["lat"], p["lon"], p["risk_score"]] for p in points]
+    # Normalize ve bbox filtresi
+    points = _normalize_points(df, limit=limit)
+    lon_min, lat_min, lon_max, lat_max = IZMIR_BBOX
+    points = [
+        p for p in points
+        if lon_min <= p["lon"] <= lon_max and lat_min <= p["lat"] <= lat_max
+    ]
+    points = points[:limit]
+    half = cell_size / 2.0
+    features = []
+    for p in points:
+        lat = p["lat"]
+        lon = p["lon"]
+        score = p.get("risk_score", 0.0)
+        coords = [
+            [
+                [lon - half, lat - half],
+                [lon + half, lat - half],
+                [lon + half, lat + half],
+                [lon - half, lat + half],
+                [lon - half, lat - half],
+            ]
+        ]
+        features.append(
+            {
+                "type": "Feature",
+                "geometry": {"type": "Polygon", "coordinates": coords},
+                "properties": {
+                    "combined_risk_score": float(score),
+                    "fire_probability": float(score),
+                    "risk_class": p.get("risk_class", ""),
+                },
+            }
+        )
+
+    return {"type": "FeatureCollection", "features": features, "total_cells": len(features), "cell_size": cell_size}
 
 
 @router.get("/statistics")

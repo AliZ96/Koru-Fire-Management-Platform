@@ -621,6 +621,23 @@
       document.getElementById('btnUser').classList.remove('active');
     });
 
+    // Helpers
+    const API_BASE = '';
+    async function postJson(url, body) {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body || {})
+      });
+      let data = null;
+      try { data = await res.json(); } catch (_) {}
+      if (!res.ok) {
+        const detail = data?.detail || data?.error || res.statusText || 'Hata';
+        throw new Error(detail);
+      }
+      return data;
+    }
+
     // Login form submission
     document.getElementById('loginForm').addEventListener('submit', function(e) {
       e.preventDefault();
@@ -635,12 +652,26 @@
         showError('Lütfen tüm alanları doldurunuz');
         return;
       }
-      
-      sessionStorage.setItem('userType', currentUserType);
-      sessionStorage.setItem('username', username);
-      sessionStorage.setItem('isLoggedIn', 'true');
-      
-      window.location.href = '/welcome';
+
+      const role = currentUserType === 'admin' ? 'user' : currentUserType; // backend'de admin yok
+      const endpoint = role === 'firefighter'
+        ? `${API_BASE}/auth/firefighter/login`
+        : `${API_BASE}/auth/user/login`;
+
+      postJson(endpoint, { username, password })
+        .then(data => {
+          const token = data?.access_token;
+          if (!token) throw new Error('Token alınamadı');
+          sessionStorage.setItem('userType', role);
+          sessionStorage.setItem('username', username);
+          sessionStorage.setItem('isLoggedIn', 'true');
+          sessionStorage.setItem('token', token);
+          sessionStorage.setItem('tokenType', data?.token_type || 'bearer');
+          window.location.href = '/welcome';
+        })
+        .catch(err => {
+          showError(err.message || 'Giriş yapılamadı');
+        });
     });
 
     // Signup form submission
@@ -676,14 +707,23 @@
         showError('Lütfen şartları ve koşulları kabul ediniz');
         return;
       }
-      
-      sessionStorage.setItem('userType', 'user');
-      sessionStorage.setItem('username', username);
-      sessionStorage.setItem('fullname', fullname);
-      sessionStorage.setItem('email', email);
-      sessionStorage.setItem('isLoggedIn', 'true');
-      
-      window.location.href = '/welcome';
+
+      postJson(`${API_BASE}/auth/user/register`, { username, password })
+        .then(data => {
+          const token = data?.access_token;
+          if (!token) throw new Error('Token alınamadı');
+          sessionStorage.setItem('userType', 'user');
+          sessionStorage.setItem('username', username);
+          sessionStorage.setItem('fullname', fullname);
+          sessionStorage.setItem('email', email);
+          sessionStorage.setItem('isLoggedIn', 'true');
+          sessionStorage.setItem('token', token);
+          sessionStorage.setItem('tokenType', data?.token_type || 'bearer');
+          window.location.href = '/welcome';
+        })
+        .catch(err => {
+          showError(err.message || 'Kayıt işlemi başarısız');
+        });
     });
 
     function showError(message) {
