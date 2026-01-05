@@ -1,4 +1,7 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pathlib import Path
 
 # Router imports
 from app.api.routers.core import router as core_router
@@ -29,6 +32,24 @@ def create_app() -> FastAPI:
 
     # Fire risk endpointleri
     app.include_router(fire_risk_router)
+
+    # Statik dosyaları sunma
+    static_path = Path(__file__).parent.parent / "static"
+    if static_path.exists():
+        app.mount("/static", StaticFiles(directory=str(static_path), html=False), name="static")
+
+        # Root "/" için index.html'i sun
+        @app.get("/", response_class=FileResponse)
+        async def root():
+            return FileResponse(str(static_path / "index.html"))
+
+        # HTML dosyaları için catch-all: /login, /welcome vb.
+        @app.get("/{path:path}", response_class=FileResponse)
+        async def serve_html(path: str):
+            file_path = static_path / f"{path}.html"
+            if file_path.exists():
+                return FileResponse(str(file_path))
+            return FileResponse(str(static_path / "index.html"))
 
     return app
 
