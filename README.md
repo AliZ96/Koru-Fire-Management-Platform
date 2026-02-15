@@ -14,6 +14,7 @@ The KORU platform consists of five primary integrated modules:
 
 1.  **Machine Learning-Based Risk Zone Modelling (HLF-1):** A validated ML model utilizes 10-year historical data to predict and classify potential wildfire risk zones.
 2.  **Accessibility & Geospatial Analysis (HLF-2):** A module that assesses the accessibility (ground/air) of risk zones and maps their proximity to critical resources (water sources, fire stations).
+    - **LLF-2.3: Air Accessibility Classification** - Advanced aircraft accessibility evaluation system for fire-prone areas without ground access (see [AIR_ACCESSIBILITY_README.md](AIR_ACCESSIBILITY_README.md))
 3.  **Scenario-Based Route Optimization Engine (HLF-3):** Uses sophisticated algorithms (Simulated Annealing and Genetic Algorithm) to compute the fastest and safest intervention routes for user-defined fire scenarios. This aims for a ≥20% reduction in estimated response travel time compared to baseline routing.
 4.  **Strategic Planning Dashboard (HLF-4):** A web-based, map-centric interface for visualizing multi-layer data (risk zones, accessibility, optimized routes) and building/saving strategic response scenarios.
 5.  **Backend API, Security & Cloud Integration (HLF-5):** A secure, scalable cloud infrastructure (Azure-based) providing REST APIs, role-based access control (RBAC), and persistent data storage for all modules.
