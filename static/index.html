@@ -83,15 +83,6 @@
   </style>
 </head>
 <body>
-  <script>
-    (function(){
-      const token = sessionStorage.getItem('token');
-      const isLoggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
-      if (!token || !isLoggedIn) {
-        window.location.href = '/login';
-      }
-    })();
-  </script>
   <div class="map-frame"><div id="map"></div><button id="panelToggle" class="panel-toggle" title="Kontrol Panelini Aç">⚙️</button></div>
   <div class="footer">
     <div class="contact">
@@ -126,6 +117,7 @@
       <div class="row">
         <button id="btnFireRisk" class="btn btn-outline">Riskli Bölgeler</button>
         <button id="btnHeatmap" class="btn btn-outline">Isıl Harita</button>
+        <button id="btnAirAccess" class="btn btn-outline">🚁 Hava Erişimi</button>
         <button id="btnReservoirs" class="btn btn-outline">Su Rezervuarları</button>
         <button id="btnWaterSources" class="btn btn-outline">Su Kaynakları</button>
         <button id="btnWaterTanks" class="btn btn-outline">Su Tankları</button>
@@ -1180,6 +1172,7 @@
 
     let heatmapLayer = null;
     let heatmapLegendCtl = null;
+    let airAccessLayer = null;  // Hava erişilebilirliği katmanı
 
     async function loadHeatmapGrid() {
       const info = document.getElementById('info');
@@ -1499,6 +1492,7 @@
     document.getElementById('btnLiveTracking').addEventListener('click', ()=>loadLiveTracking(true));
     document.getElementById('btnFireRisk').addEventListener('click', toggleFireRisk);
     document.getElementById('btnHeatmap').addEventListener('click', toggleHeatmap);
+    document.getElementById('btnAirAccess').addEventListener('click', toggleAirAccessibility);
     document.getElementById('btnReservoirs').addEventListener('click', loadReservoirs);
     document.getElementById('btnWaterSources').addEventListener('click', loadWaterSources);
     document.getElementById('btnWaterTanks').addEventListener('click', loadWaterTanks);
@@ -1512,6 +1506,138 @@
     map.on('moveend zoomend', ()=>{ if (riskActive) loadRiskForView(); });
     document.getElementById('btnWind').addEventListener('click', loadWindAtCenter);
     document.getElementById('btnSpread').addEventListener('click', drawSpread);
+
+    // Hava Erişilebilirlik Sistemi (LLF-2.3)
+    function getAccessibilityColor(level) {
+      const colors = {
+        'EXCELLENT': '#2ecc71',  // Yeşil
+        'GOOD': '#3498db',       // Mavi
+        'MODERATE': '#f39c12',   // Turuncu
+        'DIFFICULT': '#e74c3c',  // Kırmızı
+        'RESTRICTED': '#8b0000'  // Koyu kırmızı
+      };
+      return colors[level] || '#999';
+    }
+
+    function getAccessibilityIcon(level) {
+      const icons = {
+        'EXCELLENT': '✅',
+        'GOOD': '👍',
+        'MODERATE': '⚠️',
+        'DIFFICULT': '⛔',
+        'RESTRICTED': '🚫'
+      };
+      return icons[level] || '❓';
+    }
+
+    async function loadAirAccessibility() {
+      const info = document.getElementById('info');
+      info.textContent = 'Hava erişilebilirliği yükleniyor...';
+      setStatus('Hava erişilebilirliği yükleniyor...');
+      
+      try {
+        const bounds = map.getBounds();
+        const request = {
+          min_lon: bounds.getWest(),
+          min_lat: bounds.getSouth(),
+          max_lon: bounds.getEast(),
+          max_lat: bounds.getNorth(),
+          grid_size: 0.02,  // ~2km çözünürlük
+          aircraft_type: 'HELICOPTER'
+        };
+
+        const response = await fetch('/api/air-accessibility/grid-map', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(request)
+        });
+
+        if (!response.ok) throw new Error('API hatası: ' + response.status);
+        
+        const geoJson = await response.json();
+        
+        if (airAccessLayer) map.removeLayer(airAccessLayer);
+        
+        airAccessLayer = L.geoJSON(geoJson, {
+          pointToLayer: (feature, latlng) => {
+            const props = feature.properties;
+            const color = getAccessibilityColor(props.accessibility_level);
+            
+            return L.circleMarker(latlng, {
+              radius: 6,
+              fillColor: color,
+              color: '#fff',
+              weight: 1,
+              opacity: 0.9,
+              fillOpacity: 0.7
+            });
+          },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties;
+            const icon = getAccessibilityIcon(props.accessibility_level);
+            
+            const popupContent = `
+              <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 12px; min-width: 200px;">
+                <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px; color: ${getAccessibilityColor(props.accessibility_level)};">
+                  ${icon} ${props.accessibility_level}
+                </div>
+                <div style="display: grid; gap: 6px;">
+                  <div><strong>Skor:</strong> ${props.score}/100</div>
+                  <div><strong>Mesafe:</strong> ${props.distance_to_base_km} km</div>
+                  <div><strong>Varış:</strong> ~${props.eta_minutes} dakika</div>
+                  <div><strong>Araç:</strong> ${props.aircraft_type === 'HELICOPTER' ? '🚁 Helikopter' : props.aircraft_type}</div>
+                </div>
+              </div>
+            `;
+            
+            layer.bindPopup(popupContent);
+          }
+        }).addTo(map);
+        
+        // Legend ekle
+        if (legendCtl) { try { legendCtl.remove(); } catch(e) {} }
+        legendCtl = L.control({position: 'bottomright'});
+        legendCtl.onAdd = function() {
+          const div = L.DomUtil.create('div', 'legend');
+          div.innerHTML = `
+            <b>🚁 Hava Erişilebilirliği</b>
+            <div class="row"><span class="sw" style="background:#2ecc71"></span>✅ Mükemmel</div>
+            <div class="row"><span class="sw" style="background:#3498db"></span>👍 İyi</div>
+            <div class="row"><span class="sw" style="background:#f39c12"></span>⚠️ Orta</div>
+            <div class="row"><span class="sw" style="background:#e74c3c"></span>⛔ Zor</div>
+            <div class="row"><span class="sw" style="background:#8b0000"></span>🚫 Kısıtlı</div>
+          `;
+          return div;
+        };
+        legendCtl.addTo(map);
+        
+        allActiveLayers.push(airAccessLayer);
+        info.textContent = `Hava erişilebilirliği gösteriliyor (${geoJson.features.length} nokta)`;
+        setStatus('Hava erişilebilirliği aktif');
+        
+      } catch(e) {
+        info.textContent = 'Hava erişilebilirliği hatası';
+        console.error('Hava erişilebilirliği yükleme hatası:', e);
+      }
+    }
+
+    async function toggleAirAccessibility() {
+      const info = document.getElementById('info');
+      
+      if (airAccessLayer) {
+        map.removeLayer(airAccessLayer);
+        airAccessLayer = null;
+        if (legendCtl) { try { legendCtl.remove(); } catch(e) {} }
+        legendCtl = null;
+        info.textContent = 'Hava erişilebilirliği kapatıldı';
+        setStatus('Hava erişilebilirliği kapatıldı');
+        const idx = allActiveLayers.indexOf(airAccessLayer);
+        if (idx > -1) allActiveLayers.splice(idx, 1);
+        return;
+      }
+      
+      await loadAirAccessibility();
+    }
 
     // Harita açılırken otomatik veri yükleme yapma - kullanıcı Canlı Takip tuşuna tıklayınca yüklenecek
   </script>

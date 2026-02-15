@@ -14,6 +14,7 @@ The KORU platform consists of five primary integrated modules:
 
 1.  **Machine Learning-Based Risk Zone Modelling (HLF-1):** A validated ML model utilizes 10-year historical data to predict and classify potential wildfire risk zones.
 2.  **Accessibility & Geospatial Analysis (HLF-2):** A module that assesses the accessibility (ground/air) of risk zones and maps their proximity to critical resources (water sources, fire stations).
+    - **LLF-2.3: Air Accessibility Classification** - Advanced aircraft accessibility evaluation system for fire-prone areas without ground access (see [AIR_ACCESSIBILITY_README.md](AIR_ACCESSIBILITY_README.md))
 3.  **Scenario-Based Route Optimization Engine (HLF-3):** Uses sophisticated algorithms (Simulated Annealing and Genetic Algorithm) to compute the fastest and safest intervention routes for user-defined fire scenarios. This aims for a ≥20% reduction in estimated response travel time compared to baseline routing.
 4.  **Strategic Planning Dashboard (HLF-4):** A web-based, map-centric interface for visualizing multi-layer data (risk zones, accessibility, optimized routes) and building/saving strategic response scenarios.
 5.  **Backend API, Security & Cloud Integration (HLF-5):** A secure, scalable cloud infrastructure (Azure-based) providing REST APIs, role-based access control (RBAC), and persistent data storage for all modules.
@@ -273,58 +274,6 @@ Tüm testler Postman kullanılarak başarıyla gerçekleştirilmiştir.
 - OpenStreetMap – Coğrafi veriler
 - Open-Meteo – Rüzgâr ve hava durumu
 - İzmir Büyükşehir Belediyesi – Toplanma alanları
-
----
-
-
-
-## Demo Scenarios – Risk Visualization (SCRUM-45)
-
-This section describes the prepared demo scenarios used to demonstrate and validate the wildfire risk visualization capabilities of the KORU platform.
-
-### Scenario 1: High-Risk Zone Visualization
-
-**Objective:**  
-Demonstrate how the system identifies and visualizes wildfire high-risk zones using machine learning outputs.
-
-**Description:**  
-Historical fire data and environmental factors are processed by the ML model to generate risk scores. These scores are visualized on the map as a grid-based risk layer.
-
-**Outcome:**  
-High-risk areas are clearly distinguishable, enabling authorities to quickly identify critical regions.
-
----
-
-### Scenario 2: Fire Detection with Risk Context
-
-**Objective:**  
-Visualize detected fire locations together with surrounding risk levels and nearby response resources.
-
-**Description:**  
-Active fire points retrieved from NASA FIRMS are displayed on the map. Water sources and fire stations are visualized alongside the risk layer.
-
-**Outcome:**  
-Decision-makers can assess detected fires within their full spatial and risk context.
-
----
-
-### Scenario 3: Strategic Planning Visualization Preview
-
-**Objective:**  
-Provide a visual foundation for strategic intervention planning.
-
-**Description:**  
-Users select a fire location and observe surrounding risk zones, accessibility information, and preliminary route visualizations.
-
-**Outcome:**  
-The system supports faster and more informed planning decisions through intuitive visual insights.
-
----
-
-### Demo Validation
-
-All demo scenarios were tested using real-time and historical data through the web-based dashboard.  
-The results validate the effectiveness of KORU’s risk visualization pipeline and its role as a decision-support system.
 
 ---
 

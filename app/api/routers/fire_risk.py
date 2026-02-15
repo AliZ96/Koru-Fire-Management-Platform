@@ -1,267 +1,171 @@
 """
-Yangın risk verileri için API router ve kümeleme yardımcıları.
+Yangın risk verileri için API router
 """
-from functools import lru_cache
-from pathlib import Path
+from fastapi import APIRouter
 from typing import List, Optional
-
-import numpy as np
 import pandas as pd
-from fastapi import APIRouter, Query
-from sklearn.cluster import DBSCAN
+from pathlib import Path
 
 router = APIRouter(prefix="/api/fire-risk", tags=["fire-risk"])
 
-# Veri konumu (repo kökünden) – birden fazla olası dosya için fallback listesi
-BASE_DIR = Path(__file__).resolve().parents[3]
-RISK_DATA_PATHS = [
-    BASE_DIR / "database" / "ml-map" / "izmir_future_fire_risk_dataset.csv",
-    BASE_DIR / "data" / "ml-trained-data" / "izmir_risk_map.csv",
-]
-# İzmir kabaca bbox (lon_min, lat_min, lon_max, lat_max)
-IZMIR_BBOX = (26.0, 37.5, 28.8, 39.5)
+# CSV dosyasını yükle
+RISK_DATA_PATH = Path(__file__).parent.parent.parent.parent / "database" / "ml-map" / "izmir_future_fire_risk_dataset.csv"
 
+# Risk sınıflarına göre renkler
+RISK_COLORS = {
+    "SAFE_UNBURNABLE": "#2ecc71",      # Yeşil - Güvenli
+    "LOW_RISK": "#f39c12",              # Turuncu - Düşük Risk
+    "MEDIUM_RISK": "#e74c3c",           # Kırmızı - Orta Risk
+    "HIGH_RISK": "#8b0000",             # Koyu Kırmızı - Yüksek Risk
+}
 
-@lru_cache()
-def _load_risk_dataframe() -> pd.DataFrame:
-    """
-    Risk verisini tek seferlik yükle ve cache'le.
-    Birden fazla olası path varsa ilk bulunanı kullan.
-    """
-    for path in RISK_DATA_PATHS:
-        if path.exists():
-            try:
-                return pd.read_csv(path)
-            except Exception:
-                continue
-    return pd.DataFrame()
-
-
-def load_risk_data() -> pd.DataFrame:
-    """
-    Cache'lenmiş risk verisinin bir kopyasını döndür.
-    """
-    return _load_risk_dataframe().copy()
-
-
-def _normalize_points(df: pd.DataFrame, limit: int) -> List[dict]:
-    """
-    Farklı kolon adlarını tek bir nokta yapısına dönüştür.
-    """
-    if df.empty:
-        return []
-
-    cols = {
-        "lat": "center_lat" if "center_lat" in df.columns else "latitude",
-        "lon": "center_lon" if "center_lon" in df.columns else "longitude",
-    }
-
-    score_cols = [c for c in ["high_risk_score", "combined_risk_score", "fire_prob"] if c in df.columns]
-    class_col = "predicted_risk" if "predicted_risk" in df.columns else "predicted_risk_class"
-
-    points: List[dict] = []
-    for row in df.head(limit).itertuples():
-        lat = getattr(row, cols["lat"], None)
-        lon = getattr(row, cols["lon"], None)
-        if lat is None or lon is None:
-            continue
-
-        score = 0.0
-        for col in score_cols:
-            value = getattr(row, col, None)
-            if value is not None:
-                score = float(value)
-                break
-
-        points.append(
-            {
-                "lat": float(lat),
-                "lon": float(lon),
-                "risk_score": float(score),
-                "risk_class": getattr(row, class_col, "") if class_col in df.columns else "",
-            }
-        )
-    return points
-
-
-def _cluster_to_zones(
-    points: List[dict],
-    eps_km: float = 5.0,
-    min_samples: int = 3,
-    min_cluster_size: int = 5,
-) -> List[dict]:
-    """
-    Noktaları DBSCAN ile kümelere ayırıp bölge özetleri çıkar.
-    """
-    if not points:
-        return []
-
-    coords = np.array([[p["lat"], p["lon"]] for p in points], dtype=float)
-    coords_rad = np.radians(coords)
-    eps_rad = eps_km / 6371.0  # Dünya yarıçapı ~6371 km
-
-    model = DBSCAN(eps=eps_rad, min_samples=min_samples, metric="haversine")
-    labels = model.fit_predict(coords_rad)
-
-    zones: List[dict] = []
-    for label in set(labels):
-        if label == -1:
-            continue
-
-        idx = np.where(labels == label)[0]
-        if len(idx) < min_cluster_size:
-            continue
-
-        cluster_pts = [points[i] for i in idx]
-        lats = [p["lat"] for p in cluster_pts]
-        lons = [p["lon"] for p in cluster_pts]
-        risks = [p.get("risk_score", 0.0) or 0.0 for p in cluster_pts]
-
-        zones.append(
-            {
-                "zone_id": int(label),
-                "bbox": [float(min(lons)), float(min(lats)), float(max(lons)), float(max(lats))],
-                "avg_risk": float(np.mean(risks)),
-                "count": int(len(cluster_pts)),
-            }
-        )
-
-    return zones
-
+def load_risk_data():
+    """CSV'den yangın risk verilerini yükle"""
+    if RISK_DATA_PATH.exists():
+        return pd.read_csv(RISK_DATA_PATH)
+    return None
 
 @router.get("/points")
 async def get_fire_risk_points(
-    risk_class: Optional[str] = Query(None),
-    limit: int = Query(50000, ge=1, le=100000),
+    risk_class: Optional[str] = None,
+    limit: int = 50000
 ):
     """
-    Yangın risk noktalarını GeoJSON FeatureCollection olarak döndür.
-    Frontend beklediği için geometry=Point, properties içinde risk_class ve skorlar sağlanır.
+    Yangın risk noktalarını döndür
+    
+    Parameters:
+    - risk_class: Risk sınıfı (SAFE_UNBURNABLE, LOW_RISK, MEDIUM_RISK, HIGH_RISK)
+    - limit: Döndürülecek maksimum nokta sayısı (default: 50000)
     """
     df = load_risk_data()
-    if df.empty:
-        return {"type": "FeatureCollection", "features": [], "total": 0}
-
+    
+    if df is None:
+        return {"error": "Veri bulunamadı", "points": []}
+    
+    # Risk sınıfına göre filtrele
     if risk_class:
-        class_col = "predicted_risk" if "predicted_risk" in df.columns else "predicted_risk_class"
-        if class_col in df.columns:
-            df = df[df[class_col] == risk_class]
-
-    points = _normalize_points(df, limit)
-    features = []
-    for p in points:
-        features.append(
-            {
-                "type": "Feature",
-                "geometry": {"type": "Point", "coordinates": [p["lon"], p["lat"]]},
-                "properties": {
-                    "risk_class": p.get("risk_class", ""),
-                    "fire_probability": p.get("risk_score", 0.0),
-                    "high_fire_probability": p.get("risk_score", 0.0),
-                    "combined_risk_score": p.get("risk_score", 0.0),
-                },
+        df = df[df["predicted_risk_class"] == risk_class]
+    
+    # Veriyi sınırla
+    df = df.head(limit)
+    
+    # GeoJSON formatına çevir
+    points = []
+    for _, row in df.iterrows():
+        points.append({
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [row["longitude"], row["latitude"]]
+            },
+            "properties": {
+                "risk_class": row["predicted_risk_class"],
+                "fire_probability": round(row["fire_probability"], 4),
+                "high_fire_probability": round(row["high_fire_probability"], 4),
+                "combined_risk_score": round(row["combined_risk_score"], 4),
+                "color": RISK_COLORS.get(row["predicted_risk_class"], "#95a5a6")
             }
-        )
-
-    return {"type": "FeatureCollection", "features": features, "total": len(features)}
-
-
-@router.get("/zones")
-async def get_fire_risk_zones(
-    eps_km: float = Query(5.0, gt=0),
-    min_samples: int = Query(3, ge=1),
-    min_cluster_size: int = Query(5, ge=1),
-    limit: int = Query(5000, ge=1, le=50000),
-):
-    """
-    Noktaları kümelere ayırarak risk bölgelerini döndür.
-    """
-    df = load_risk_data()
-    if df.empty:
-        return {"zones": [], "total": 0}
-
-    points = _normalize_points(df, limit)
-    zones = _cluster_to_zones(points, eps_km=eps_km, min_samples=min_samples, min_cluster_size=min_cluster_size)
-    return {"zones": zones, "total": len(zones)}
-
-
-@router.get("/zones/top")
-async def get_top_risk_zones(
-    n: int = Query(5, ge=1, le=50),
-    eps_km: float = Query(5.0, gt=0),
-    min_samples: int = Query(3, ge=1),
-    min_cluster_size: int = Query(5, ge=1),
-    limit: int = Query(5000, ge=1, le=50000),
-):
-    """
-    Ortalama riskine göre en yüksek n bölgeyi döndür.
-    """
-    zone_payload = await get_fire_risk_zones(eps_km, min_samples, min_cluster_size, limit)  # type: ignore[arg-type]
-    zones = zone_payload["zones"]
-    sorted_zones = sorted(zones, key=lambda z: z["avg_risk"], reverse=True)
-    return {"zones": sorted_zones[:n], "total": len(sorted_zones)}
-
-
-@router.get("/heatmap-data")
-async def get_heatmap_data(
-    limit: int = Query(50000, ge=1, le=50000),
-    cell_size: float = Query(0.05, gt=0),
-):
-    """
-    Heatmap için küçük kare poligonlardan oluşan FeatureCollection döndür.
-    Frontend polygon beklediği için her nokta etrafında küçük kare üretiyoruz.
-    """
-    df = load_risk_data()
-    if df.empty:
-        return {"type": "FeatureCollection", "features": [], "total_cells": 0, "cell_size": cell_size}
-
-    # Normalize ve bbox filtresi
-    points = _normalize_points(df, limit=limit)
-    lon_min, lat_min, lon_max, lat_max = IZMIR_BBOX
-    points = [
-        p for p in points
-        if lon_min <= p["lon"] <= lon_max and lat_min <= p["lat"] <= lat_max
-    ]
-    points = points[:limit]
-    half = cell_size / 2.0
-    features = []
-    for p in points:
-        lat = p["lat"]
-        lon = p["lon"]
-        score = p.get("risk_score", 0.0)
-        coords = [
-            [
-                [lon - half, lat - half],
-                [lon + half, lat - half],
-                [lon + half, lat + half],
-                [lon - half, lat + half],
-                [lon - half, lat - half],
-            ]
-        ]
-        features.append(
-            {
-                "type": "Feature",
-                "geometry": {"type": "Polygon", "coordinates": coords},
-                "properties": {
-                    "combined_risk_score": float(score),
-                    "fire_probability": float(score),
-                    "risk_class": p.get("risk_class", ""),
-                },
-            }
-        )
-
-    return {"type": "FeatureCollection", "features": features, "total_cells": len(features), "cell_size": cell_size}
-
+        })
+    
+    return {
+        "type": "FeatureCollection",
+        "features": points,
+        "total": len(points)
+    }
 
 @router.get("/statistics")
 async def get_risk_statistics():
     """
-    Risk verisi için temel istatistikler.
+    Yangın risk istatistiklerini döndür
     """
     df = load_risk_data()
-    if df.empty:
-        return {"total_points": 0}
+    
+    if df is None:
+        return {"error": "Veri bulunamadı"}
+    
+    stats = {
+        "total_points": len(df),
+        "risk_distribution": df["predicted_risk_class"].value_counts().to_dict(),
+        "average_fire_probability": round(df["fire_probability"].mean(), 4),
+        "average_combined_risk_score": round(df["combined_risk_score"].mean(), 4),
+        "high_risk_count": len(df[df["predicted_risk_class"] == "HIGH_RISK"]),
+        "medium_risk_count": len(df[df["predicted_risk_class"] == "MEDIUM_RISK"]),
+        "low_risk_count": len(df[df["predicted_risk_class"] == "LOW_RISK"]),
+        "safe_count": len(df[df["predicted_risk_class"] == "SAFE_UNBURNABLE"]),
+    }
+    
+    return stats
 
+@router.get("/heatmap-data")
+async def get_heatmap_data(cell_size: float = 0.05):
+    """
+    Gridlendirilmiş heatmap verisi döndür - Poligon olarak
+    
+    - cell_size: Grid hücresi boyutu (derece cinsinden, default: 0.05)
+    """
+    df = load_risk_data()
+    
+    if df is None:
+        return {"error": "Veri bulunamadı"}
+    
+    # Grid oluştur - latitude ve longitude'u cell_size'a göre grupla
+    df_copy = df.copy()
+    df_copy['lat_grid'] = (df_copy['latitude'] / cell_size).astype(int) * cell_size
+    df_copy['lon_grid'] = (df_copy['longitude'] / cell_size).astype(int) * cell_size
+    
+    # Grid hücrelerine göre ortalamaları hesapla
+    grid_data = df_copy.groupby(['lat_grid', 'lon_grid']).agg({
+        'combined_risk_score': 'mean',
+        'fire_probability': 'mean',
+        'predicted_risk_class': lambda x: x.mode()[0] if len(x.mode()) > 0 else 'SAFE_UNBURNABLE'
+    }).reset_index()
+    
+    # GeoJSON FeatureCollection formatında döndür - poligonlar olarak
+    features = []
+    for _, row in grid_data.iterrows():
+        lat = row['lat_grid']
+        lon = row['lon_grid']
+        risk_score = row['combined_risk_score']
+        
+        # Kare poligon oluştur
+        half_size = cell_size / 2
+        coordinates = [[
+            [lon - half_size, lat - half_size],
+            [lon + half_size, lat - half_size],
+            [lon + half_size, lat + half_size],
+            [lon - half_size, lat + half_size],
+            [lon - half_size, lat - half_size]
+        ]]
+        
+        # Risk skoruna göre renk (sarı -> turuncı -> kırmızı)
+        if risk_score >= 0.8:
+            color = "#8b0000"  # Koyu kırmızı
+        elif risk_score >= 0.6:
+            color = "#d70000"  # Kırmızı
+        elif risk_score >= 0.4:
+            color = "#ff4500"  # Turuncu-kırmızı
+        elif risk_score >= 0.2:
+            color = "#ffa500"  # Turuncu
+        else:
+            color = "#ffff00"  # Sarı
+        
+        features.append({
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": coordinates
+            },
+            "properties": {
+                "combined_risk_score": round(risk_score, 4),
+                "fire_probability": round(row['fire_probability'], 4),
+                "risk_class": row['predicted_risk_class'],
+                "color": color
+            }
+        })
+    
     return {
-        "total_points": int(len(df)),
+        "type": "FeatureCollection",
+        "features": features,
+        "total_cells": len(features),
+        "cell_size": cell_size
     }
