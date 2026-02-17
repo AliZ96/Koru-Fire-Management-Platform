@@ -1,1 +1,2 @@
-# package marker for app.models
+from app.models.user import User
+from app.models.resource import Resource
