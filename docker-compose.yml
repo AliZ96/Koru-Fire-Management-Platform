@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgis/postgis:15-3.3
+    container_name: koru_db
+    environment:
+      POSTGRES_USER: koru
+      POSTGRES_PASSWORD: koru123
+      POSTGRES_DB: koru_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - koru_data:/var/lib/postgresql/data
+
+volumes:
+  koru_data:
