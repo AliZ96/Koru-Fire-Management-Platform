@@ -63,9 +63,3 @@ def get_water_sources():
 def get_water_tanks():
     """İzmir bölgesindeki su tankları - water-tank.geojson'dan yüklendi"""
     return load_geojson("water-tank.geojson")
-
-
-@router.get("/fire_stations", response_class=JSONResponse)
-def get_fire_stations():
-    """İzmir bölgesindeki itfaiye istasyonları - fire-stations.geojson'dan yüklendi"""
-    return load_geojson("fire-stations.geojson")
