@@ -24,6 +24,12 @@ class RiskGridCell:
     nearest_water_distance_km: Optional[float] = None
     nearest_fire_station_name: Optional[str] = None
     nearest_fire_station_distance_km: Optional[float] = None
+    # Entegre katman için hava erişilebilirlik alanları
+    air_access_level: Optional[str] = None
+    air_access_score: Optional[float] = None
+    air_distance_to_base_km: Optional[float] = None
+    air_eta_minutes: Optional[float] = None
+    air_nearest_base: Optional[str] = None
 
 
 class ResourceProximityService:
@@ -309,6 +315,20 @@ class ResourceProximityService:
                         )
                         if cell.nearest_fire_station_distance_km is not None
                         else None,
+                        # Hava erişilebilirlik özet alanları (opsiyonel)
+                        "air_access_level": cell.air_access_level,
+                        "air_access_score": round(cell.air_access_score, 1)
+                        if cell.air_access_score is not None
+                        else None,
+                        "air_distance_to_base_km": round(
+                            cell.air_distance_to_base_km, 2
+                        )
+                        if cell.air_distance_to_base_km is not None
+                        else None,
+                        "air_eta_minutes": round(cell.air_eta_minutes, 1)
+                        if cell.air_eta_minutes is not None
+                        else None,
+                        "air_nearest_base": cell.air_nearest_base,
                     },
                 }
             )
