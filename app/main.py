@@ -32,7 +32,10 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     def on_startup():
         print("METADATA TABLES:", Base.metadata.tables.keys())
-        Base.metadata.create_all(bind=engine)
+        try:
+            Base.metadata.create_all(bind=engine)
+        except Exception as e:
+            print(f"DB table creation skipped: {e}")
 
     app.include_router(core_router)
     app.include_router(auth_router)
@@ -47,6 +50,8 @@ def create_app() -> FastAPI:
 
     if static_path.exists():
 
+        # Mount MUST come before the catch-all GET route.
+        # Otherwise /{path:path} intercepts /static/... requests and the files are never served.
         app.mount(
             "/static",
             StaticFiles(directory=str(static_path), html=False),
