@@ -17,6 +17,8 @@ from app.api.routers.health_router import router as health_router
 from app.api.routers.fire_risk import router as fire_risk_router
 from app.api.routers.air_accessibility import router as air_accessibility_router
 from app.api.routers.resource_proximity import router as resource_proximity_router
+from app.api.routers.accessibility import router as accessibility_router
+
 
 
 def create_app() -> FastAPI:
@@ -38,6 +40,8 @@ def create_app() -> FastAPI:
     app.include_router(fire_risk_router)
     app.include_router(air_accessibility_router)
     app.include_router(resource_proximity_router)
+    app.include_router(accessibility_router)
+
 
     static_path = Path(__file__).parent.parent / "static"
 
