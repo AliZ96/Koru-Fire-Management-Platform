@@ -17,6 +17,8 @@ from app.api.routers.health_router import router as health_router
 from app.api.routers.fire_risk import router as fire_risk_router
 from app.api.routers.air_accessibility import router as air_accessibility_router
 from app.api.routers.resource_proximity import router as resource_proximity_router
+from app.api.routers.accessibility import router as accessibility_router
+
 
 
 def create_app() -> FastAPI:
@@ -30,7 +32,10 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     def on_startup():
         print("METADATA TABLES:", Base.metadata.tables.keys())
-        Base.metadata.create_all(bind=engine)
+        try:
+            Base.metadata.create_all(bind=engine)
+        except Exception as e:
+            print(f"DB table creation skipped: {e}")
 
     app.include_router(core_router)
     app.include_router(auth_router)
@@ -38,11 +43,15 @@ def create_app() -> FastAPI:
     app.include_router(fire_risk_router)
     app.include_router(air_accessibility_router)
     app.include_router(resource_proximity_router)
+    app.include_router(accessibility_router)
+
 
     static_path = Path(__file__).parent.parent / "static"
 
     if static_path.exists():
 
+        # Mount MUST come before the catch-all GET route.
+        # Otherwise /{path:path} intercepts /static/... requests and the files are never served.
         app.mount(
             "/static",
             StaticFiles(directory=str(static_path), html=False),
