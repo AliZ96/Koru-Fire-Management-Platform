@@ -1,0 +1,519 @@
+{
+  "type": "FeatureCollection",
+  "generator": "overpass-turbo",
+  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.",
+  "timestamp": "2025-12-03T05:53:54Z",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/877586006",
+        "amenity": "water_point",
+        "name": "Ali Paşa Şadırvanı",
+        "wikidata": "Q5995441",
+        "wikimedia_commons": "Category:Şadırvan of Ali Paşa",
+        "wikipedia": "tr:Ali Paşa Şadırvanı"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              27.1328433,
+              38.4193535
+            ],
+            [
+              27.1328252,
+              38.4193255
+            ],
+            [
+              27.1328414,
+              38.4193052
+            ],
+            [
+              27.1328706,
+              38.4192951
+            ],
+            [
+              27.1329108,
+              38.4193081
+            ],
+            [
+              27.1329187,
+              38.4193242
+            ],
+            [
+              27.1329158,
+              38.4193402
+            ],
+            [
+              27.1329003,
+              38.4193511
+            ],
+            [
+              27.1328771,
+              38.4193608
+            ],
+            [
+              27.1328597,
+              38.4193623
+            ],
+            [
+              27.1328433,
+              38.4193535
+            ]
+          ]
+        ]
+      },
+      "id": "way/877586006"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/1064733342",
+        "amenity": "water_point",
+        "covered": "no",
+        "drinking_water": "yes",
+        "fee": "no",
+        "lit": "no",
+        "name": "Hayrat Çeşmesi",
+        "opening_hours": "24/7"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              27.0806207,
+              38.6529592
+            ],
+            [
+              27.0806188,
+              38.6529472
+            ],
+            [
+              27.0806268,
+              38.6529461
+            ],
+            [
+              27.0806285,
+              38.6529587
+            ],
+            [
+              27.0806207,
+              38.6529592
+            ]
+          ]
+        ]
+      },
+      "id": "way/1064733342"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/1442121189",
+        "access": "yes",
+        "amenity": "water_point",
+        "drinking_water": "yes",
+        "fee": "no",
+        "name": "Çeşme",
+        "operator": "TCDD"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              27.7800271,
+              38.9628678
+            ],
+            [
+              27.7800215,
+              38.9628571
+            ],
+            [
+              27.7800282,
+              38.9628548
+            ],
+            [
+              27.780033,
+              38.9628658
+            ],
+            [
+              27.7800271,
+              38.9628678
+            ]
+          ]
+        ]
+      },
+      "id": "way/1442121189"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/7079059878",
+        "access": "yes",
+        "amenity": "water_point",
+        "covered": "no",
+        "fee": "no",
+        "lit": "no",
+        "name": "Çeşme",
+        "name:en": "Wellspring",
+        "name:ru": "Источник",
+        "name:tr": "Çeşme",
+        "opening_hours": "24/7"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.8785667,
+          38.9302254
+        ]
+      },
+      "id": "node/7079059878"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/7703067478",
+        "amenity": "water_point"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.0404457,
+          39.3604933
+        ]
+      },
+      "id": "node/7703067478"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/7703076820",
+        "amenity": "water_point"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.0450008,
+          39.362996
+        ]
+      },
+      "id": "node/7703076820"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/7703076847",
+        "amenity": "water_point"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.0425392,
+          39.3652581
+        ]
+      },
+      "id": "node/7703076847"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/7868217985",
+        "access": "yes",
+        "amenity": "water_point",
+        "opening_hours": "24/7",
+        "operator": "Anonim"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.023939,
+          39.3578834
+        ]
+      },
+      "id": "node/7868217985"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/7973411142",
+        "access": "yes",
+        "amenity": "water_point",
+        "fee": "no",
+        "operator": "Anonim"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.9900965,
+          39.3455684
+        ]
+      },
+      "id": "node/7973411142"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/7973435169",
+        "access": "yes",
+        "amenity": "water_point",
+        "fee": "no",
+        "operator": "Anonim"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.0086628,
+          39.3556008
+        ]
+      },
+      "id": "node/7973435169"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/7973494411",
+        "access": "yes",
+        "amenity": "water_point",
+        "fee": "no",
+        "operator": "Anonim"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.0059662,
+          39.3487387
+        ]
+      },
+      "id": "node/7973494411"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/8000170397",
+        "amenity": "water_point",
+        "drinking_water": "yes",
+        "fee": "no",
+        "operator": "Anonim"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.0480169,
+          39.374343
+        ]
+      },
+      "id": "node/8000170397"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/8013431233",
+        "access": "yes",
+        "amenity": "water_point",
+        "fee": "no",
+        "operator": "Anonim"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.0537295,
+          39.3495498
+        ]
+      },
+      "id": "node/8013431233"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/8225677581",
+        "amenity": "water_point",
+        "operator": "Sodalı Su"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.1686428,
+          37.9208109
+        ]
+      },
+      "id": "node/8225677581"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/8663776862",
+        "amenity": "water_point"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.2092001,
+          38.4724094
+        ]
+      },
+      "id": "node/8663776862"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/8987946339",
+        "access": "yes",
+        "amenity": "water_point",
+        "fee": "no",
+        "operator": "Anonim"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.0880286,
+          39.3857643
+        ]
+      },
+      "id": "node/8987946339"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/9126919591",
+        "access": "yes",
+        "amenity": "water_point",
+        "fee": "no",
+        "opening_hours": "7/24",
+        "operator": "Anonim"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.0060997,
+          39.3280293
+        ]
+      },
+      "id": "node/9126919591"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/9993490004",
+        "amenity": "water_point"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.9444504,
+          39.3455009
+        ]
+      },
+      "id": "node/9993490004"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/9993490015",
+        "amenity": "water_point"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.9430664,
+          39.3460091
+        ]
+      },
+      "id": "node/9993490015"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11265023247",
+        "amenity": "water_point"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.0285102,
+          38.4811668
+        ]
+      },
+      "id": "node/11265023247"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11377786340",
+        "amenity": "water_point"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.1335229,
+          38.4186807
+        ]
+      },
+      "id": "node/11377786340"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11552821104",
+        "amenity": "water_point"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.4987305,
+          38.3704247
+        ]
+      },
+      "id": "node/11552821104"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/12285222882",
+        "amenity": "water_point",
+        "name": "Çeşme"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.6963821,
+          38.2394261
+        ]
+      },
+      "id": "node/12285222882"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/12285222883",
+        "amenity": "water_point",
+        "name": "Şadırvan"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.6967407,
+          38.2398346
+        ]
+      },
+      "id": "node/12285222883"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/13088969115",
+        "amenity": "water_point"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.0728855,
+          38.9692618
+        ]
+      },
+      "id": "node/13088969115"
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [27.1287, 38.4192]
+      },
+      "properties": {
+        "id": 1,
+        "name": "Konak İtfaiye Grubu",
+        "type": "fire_station",
+        "district": "Konak",
+        "capacity_level": "HIGH",
+        "notes": "Merkezi konum, şehir içi müdahale"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [27.0100, 38.5130]
+      },
+      "properties": {
+        "id": 2,
+        "name": "Çiğli İtfaiye Grubu",
+        "type": "fire_station",
+        "district": "Çiğli",
+        "capacity_level": "HIGH",
+        "notes": "Körfez kuzey hattı"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [27.1570, 38.2924]
+      },
+      "properties": {
+        "id": 3,
+        "name": "Gaziemir İtfaiye Grubu",
+        "type": "fire_station",
+        "district": "Gaziemir",
+        "capacity_level": "MEDIUM",
+        "notes": "Güney aksı ve havaalanı çevresi"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [26.9770, 38.4070]
+      },
+      "properties": {
+        "id": 4,
+        "name": "Karşıyaka İtfaiye Grubu",
+        "type": "fire_station",
+        "district": "Karşıyaka",
+        "capacity_level": "MEDIUM",
+        "notes": "Körfez kuzeyi ve sahil hattı"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [26.9775, 38.3280]
+      },
+      "properties": {
+        "id": 5,
+        "name": "Balçova İtfaiye Grubu",
+        "type": "fire_station",
+        "district": "Balçova",
+        "capacity_level": "MEDIUM",
+        "notes": "Balçova ve Narlıdere çevresi"
+      }
+    }
+  ]
+}
