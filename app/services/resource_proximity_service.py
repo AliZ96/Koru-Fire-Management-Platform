@@ -32,9 +32,12 @@ class RiskGridCell:
     nearest_water_lon: Optional[float] = None
     nearest_fire_station_name: Optional[str] = None
     nearest_fire_station_distance_km: Optional[float] = None
-    nearest_fire_station_lat: Optional[float] = None
-    nearest_fire_station_lon: Optional[float] = None
-    validation_notes: Optional[str] = None
+    # Entegre katman için hava erişilebilirlik alanları
+    air_access_level: Optional[str] = None
+    air_access_score: Optional[float] = None
+    air_distance_to_base_km: Optional[float] = None
+    air_eta_minutes: Optional[float] = None
+    air_nearest_base: Optional[str] = None
 
 
 class ResourceProximityService:
@@ -362,18 +365,30 @@ class ResourceProximityService:
                         "risk_class": cell.risk_class,
                         "combined_risk_score": round(cell.combined_risk_score, 4),
                         "point_count": cell.count,
-                        # SCRUM-58: Su kaynağı eşlemesi
-                        "nearest_water_id": cell.nearest_water_name,
-                        "nearest_water_distance": cell.nearest_water_distance_km,
-                        "nearest_water_lat": cell.nearest_water_lat,
-                        "nearest_water_lon": cell.nearest_water_lon,
-                        # SCRUM-58: İtfaiye istasyonu eşlemesi
-                        "nearest_station_id": cell.nearest_fire_station_name,
-                        "nearest_station_distance": cell.nearest_fire_station_distance_km,
-                        "nearest_station_lat": cell.nearest_fire_station_lat,
-                        "nearest_station_lon": cell.nearest_fire_station_lon,
-                        # Validation notes (if any)
-                        "validation_notes": cell.validation_notes,
+                        "nearest_water_name": cell.nearest_water_name,
+                        "nearest_water_distance_km": round(cell.nearest_water_distance_km, 3)
+                        if cell.nearest_water_distance_km is not None
+                        else None,
+                        "nearest_fire_station_name": cell.nearest_fire_station_name,
+                        "nearest_fire_station_distance_km": round(
+                            cell.nearest_fire_station_distance_km, 3
+                        )
+                        if cell.nearest_fire_station_distance_km is not None
+                        else None,
+                        # Hava erişilebilirlik özet alanları (opsiyonel)
+                        "air_access_level": cell.air_access_level,
+                        "air_access_score": round(cell.air_access_score, 1)
+                        if cell.air_access_score is not None
+                        else None,
+                        "air_distance_to_base_km": round(
+                            cell.air_distance_to_base_km, 2
+                        )
+                        if cell.air_distance_to_base_km is not None
+                        else None,
+                        "air_eta_minutes": round(cell.air_eta_minutes, 1)
+                        if cell.air_eta_minutes is not None
+                        else None,
+                        "air_nearest_base": cell.air_nearest_base,
                     },
                 }
             )
