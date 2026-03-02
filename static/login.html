@@ -16,8 +16,8 @@
     html, body { height: 100%; width: 100%; }
     
     body {
+      background-color: #0d1f07;
       background-image: url('/static/img/login-bg.svg');
-      background-attachment: fixed;
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
@@ -140,8 +140,8 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(4px);
+      background: rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(2px);
       z-index: 100;
       animation: fadeIn 0.3s ease;
     }
@@ -493,12 +493,13 @@
         
         <button type="submit" class="submit-btn">Giriş Yap</button>
 
-        <p class="demo-note">Demo: Herhangi bir kullanıcı adı ve şifre ile giriş yapabilirsiniz</p>
+        <p class="demo-note">Demo hesaplarla giriş yapabilirsiniz</p>
         
         <div style="background: rgba(255, 255, 255, 0.08); border-left: 4px solid var(--light-green); padding: 12px; border-radius: 4px; margin-top: 12px; font-size: 11px;">
           <p style="margin-bottom: 4px; font-weight: 700; color: #fff;">📋 Test Hesapları:</p>
           <p style="margin: 2px 0; color: rgba(255, 255, 255, 0.7);"><strong>Kullanıcı:</strong> user1 / password123</p>
-          <p style="margin: 2px 0; color: rgba(255, 255, 255, 0.7);"><strong>Admin:</strong> admin / admin123</p>
+                    <p style="margin: 2px 0; color: rgba(255, 255, 255, 0.7);"><strong>Admin:</strong> admin / admin123</p>
+          <p style="margin: 2px 0; color: rgba(255, 255, 255, 0.7);"><strong>İtfaiye:</strong> firefighter1 / password123</p>
         </div>
       </form>
 

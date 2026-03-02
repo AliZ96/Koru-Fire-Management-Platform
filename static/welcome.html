@@ -9,7 +9,7 @@
     * { margin:0; padding:0; box-sizing:border-box; }
     html, body { width:100%; height:100%; }
     body {
-      background:#000;
+      background: linear-gradient(160deg, #0a1a05 0%, #1a3a0a 50%, #0d1f07 100%);
       display:flex;
       align-items:center;
       justify-content:center;
@@ -117,9 +117,33 @@
         }
       })();
     </script>
-  <video muted loop autoplay playsinline preload="auto">
-    <source src="/static/img/Paragraf%20metniniz.mp4" type="video/mp4">
+  <video id="bgVideo"
+    src="/static/img/Paragraf%20metniniz.mp4"
+    muted loop autoplay playsinline preload="auto"
+    oncanplay="this.muted=true;this.play();"
+    onloadeddata="this.muted=true;this.play();">
   </video>
+  <script>
+    (function(){
+      var v = document.getElementById('bgVideo');
+      if(!v) return;
+      v.muted = true;
+      v.volume = 0;
+      // Hemen dene
+      v.play().catch(function(){});
+      // Her 200ms'de bir, 3 saniye boyunca dene
+      var tries = 0;
+      var interval = setInterval(function(){
+        if(v.paused && tries < 15){
+          v.muted = true;
+          v.play().catch(function(){});
+          tries++;
+        } else {
+          clearInterval(interval);
+        }
+      }, 200);
+    })();
+  </script>
   
   <div class="welcome-container">
     <h1>KORU</h1>
@@ -135,32 +159,7 @@
     if (!isLoggedIn) {
       window.location.href = '/login';
     }
-    
-    // Video'yu oynat - aggressive approach
-    const video = document.querySelector('video');
-    if (video) {
-      // Video hazır olduğunda oynat
-      video.onloadedmetadata = () => {
-        const playPromise = video.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(err => {
-            console.log('Autoplay prevented:', err);
-          });
-        }
-      };
-      
-      // Muted'ı zorla
-      video.muted = true;
-      
-      // User interaction üzerine de oynat
-      const startPlay = () => {
-        video.play().catch(e => console.log('Play error:', e));
-        document.removeEventListener('click', startPlay);
-        document.removeEventListener('touchstart', startPlay);
-      };
-      document.addEventListener('click', startPlay);
-      document.addEventListener('touchstart', startPlay);
-    }
+
   </script>
 </body>
 </html>

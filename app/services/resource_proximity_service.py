@@ -12,6 +12,12 @@ from app.services.air_accessibility_service import haversine_distance
 
 @dataclass
 class RiskGridCell:
+    """
+    Yangın risk grid hücresi ile yakınlık bilgileri.
+    
+    SCRUM-58: Mesafe ölçütü = Haversine (Air distance in km)
+    Koordinatlar 4 ondalık basamakta tutulur.
+    """
     lat_grid: float
     lon_grid: float
     center_lat: float
@@ -22,6 +28,8 @@ class RiskGridCell:
     polygon: List[List[List[float]]]
     nearest_water_name: Optional[str] = None
     nearest_water_distance_km: Optional[float] = None
+    nearest_water_lat: Optional[float] = None
+    nearest_water_lon: Optional[float] = None
     nearest_fire_station_name: Optional[str] = None
     nearest_fire_station_distance_km: Optional[float] = None
     # Entegre katman için hava erişilebilirlik alanları
@@ -189,10 +197,20 @@ class ResourceProximityService:
     # Proximity hesapları
     # ------------------------------------------------------------------
     @staticmethod
+    def _is_valid_coordinate(lon: float, lat: float) -> bool:
+        """
+        Koordinatın geçerli aralıkta olup olmadığını kontrol et.
+        SCRUM-58: İzmir bölgesi ~ İzmir (37.5° - 39.5°N, 26.5° - 27.5°E)
+        """
+        return (26.5 <= lon <= 27.5) and (37.5 <= lat <= 39.5)
+
+    @staticmethod
     def _extract_feature_coords(feature: Dict[str, Any]) -> Optional[Tuple[float, float]]:
         """
         GeoJSON Feature içinden temsili (lon, lat) koordinatı çıkarır.
         Point için doğrudan, Polygon/MultiPolygon için ilk köşeyi alır.
+        
+        SCRUM-58: Koordinat validasyonu + hata yönetimi
         """
         try:
             geom = feature.get("geometry") or {}
@@ -211,7 +229,14 @@ class ResourceProximityService:
             else:
                 return None
 
-            return float(lon), float(lat)
+            lon = float(lon)
+            lat = float(lat)
+            
+            # Koordinat doğrulaması
+            if not ResourceProximityService._is_valid_coordinate(lon, lat):
+                return None
+                
+            return lon, lat
         except Exception:
             return None
 
@@ -222,6 +247,13 @@ class ResourceProximityService:
         features: List[Dict[str, Any]],
         default_type: str,
     ) -> Optional[Dict[str, Any]]:
+        """
+        SCRUM-58: En yakın kaynağı haversine distances ile bul.
+        
+        Mesafe ölçütü: Haversine (koordinatlar arasında doğrudan air distance)
+        Birim: Kilometre
+        Koordinat Doğrulaması: İzmir sınırları içinde
+        """
         best: Optional[Dict[str, Any]] = None
 
         for feature in features:
@@ -230,6 +262,8 @@ class ResourceProximityService:
                 continue
 
             flon, flat = coords
+            
+            # Mesafe hesabı (haversine)
             distance_km = haversine_distance(lat, lon, flat, flon)
 
             props = feature.get("properties", {}) or {}
@@ -238,9 +272,9 @@ class ResourceProximityService:
             if best is None or distance_km < best["distance_km"]:
                 best = {
                     "name": str(name),
-                    "distance_km": float(distance_km),
-                    "lat": float(flat),
-                    "lon": float(flon),
+                    "distance_km": float(round(distance_km, 3)),
+                    "lat": float(round(flat, 4)),
+                    "lon": float(round(flon, 4)),
                 }
 
         return best
@@ -253,6 +287,8 @@ class ResourceProximityService:
         """
         Grid hücrelerini oluşturur ve her hücre için en yakın
         su kaynağı ve itfaiye istasyonunu hesaplar.
+        
+        SCRUM-58: Koordinat doğrulaması + tutarlılık kontrolleri
         """
         cells = self.build_high_medium_grid(cell_size=cell_size, bbox=bbox)
         if not cells:
@@ -261,7 +297,10 @@ class ResourceProximityService:
         water_sources = self._load_water_sources()
         fire_stations = self._load_fire_stations()
 
-        for cell in cells:
+        validation_issues = []
+
+        for i, cell in enumerate(cells):
+            # Su kaynağı yakınlığı
             nearest_water = self._find_nearest(
                 lat=cell.center_lat,
                 lon=cell.center_lon,
@@ -271,7 +310,14 @@ class ResourceProximityService:
             if nearest_water is not None:
                 cell.nearest_water_name = nearest_water["name"]
                 cell.nearest_water_distance_km = nearest_water["distance_km"]
+                cell.nearest_water_lat = nearest_water["lat"]
+                cell.nearest_water_lon = nearest_water["lon"]
+            else:
+                validation_issues.append(
+                    f"Cell[{i}]: Su kaynağı bulunamadı (lat={cell.center_lat}, lon={cell.center_lon})"
+                )
 
+            # İtfaiye istasyonu yakınlığı
             nearest_fs = self._find_nearest(
                 lat=cell.center_lat,
                 lon=cell.center_lon,
@@ -281,6 +327,12 @@ class ResourceProximityService:
             if nearest_fs is not None:
                 cell.nearest_fire_station_name = nearest_fs["name"]
                 cell.nearest_fire_station_distance_km = nearest_fs["distance_km"]
+                cell.nearest_fire_station_lat = nearest_fs["lat"]
+                cell.nearest_fire_station_lon = nearest_fs["lon"]
+            else:
+                validation_issues.append(
+                    f"Cell[{i}]: İtfaiye istasyonu bulunamadı (lat={cell.center_lat}, lon={cell.center_lon})"
+                )
 
         return cells
 
@@ -288,6 +340,14 @@ class ResourceProximityService:
     def to_geojson(cells: List[RiskGridCell], cell_size: float) -> Dict[str, Any]:
         """
         RiskGridCell listesini GeoJSON FeatureCollection formatına çevirir.
+        
+        SCRUM-58: Tam eşleme şeması:
+        - nearest_water_id: Su kaynağının adı
+        - nearest_water_distance: Haversine mesafesi (km)
+        - nearest_water_lat/lon: Kaynak koordinatları
+        - nearest_station_id: İtfaiye istasyonunun adı
+        - nearest_station_distance: Haversine mesafesi (km)
+        - nearest_station_lat/lon: İstasyon koordinatları
         """
         features: List[Dict[str, Any]] = []
 
@@ -300,8 +360,8 @@ class ResourceProximityService:
                         "coordinates": cell.polygon,
                     },
                     "properties": {
-                        "center_lat": cell.center_lat,
-                        "center_lon": cell.center_lon,
+                        "center_lat": round(cell.center_lat, 4),
+                        "center_lon": round(cell.center_lon, 4),
                         "risk_class": cell.risk_class,
                         "combined_risk_score": round(cell.combined_risk_score, 4),
                         "point_count": cell.count,
@@ -338,5 +398,7 @@ class ResourceProximityService:
             "features": features,
             "total_cells": len(features),
             "cell_size": cell_size,
+            "distance_metric": "haversine_km",
+            "schema_version": "scrum58_finalized",
         }
 
