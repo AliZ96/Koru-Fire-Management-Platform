@@ -18,6 +18,7 @@ from app.api.routers.fire_risk import router as fire_risk_router
 from app.api.routers.air_accessibility import router as air_accessibility_router
 from app.api.routers.resource_proximity import router as resource_proximity_router
 from app.api.routers.integrated_layer import router as integrated_layer_router
+from app.api.routers.routing import router as routing_router
 
 
 def create_app() -> FastAPI:
@@ -43,6 +44,7 @@ def create_app() -> FastAPI:
     app.include_router(air_accessibility_router)
     app.include_router(resource_proximity_router)
     app.include_router(integrated_layer_router)
+    app.include_router(routing_router)
 
     static_path = Path(__file__).parent.parent / "static"
 
