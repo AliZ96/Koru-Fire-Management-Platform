@@ -69,3 +69,18 @@ def get_water_tanks():
 def get_fire_stations():
     """İzmir bölgesindeki itfaiye istasyonları - fire-stations.geojson'dan yüklendi"""
     return load_geojson("fire-stations.geojson")
+
+
+@router.get("/fire_station_risk_matching", response_class=JSONResponse)
+def get_fire_station_risk_matching():
+    """
+    S8-4: Her risk noktasının en yakın itfaiye ile eşleşmesi.
+    GeoJSON FeatureCollection: her feature = risk noktası, properties'ta station bilgisi.
+    """
+    from ...services.fire_station_risk_matching_service import (
+        build_matching,
+        matching_to_geojson,
+    )
+    root = Path(__file__).resolve().parent.parent.parent.parent
+    matching = build_matching(root)
+    return matching_to_geojson(matching)
