@@ -1,8 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
+import 'config/app_theme.dart';
+import 'services/api_service.dart';
+import 'services/auth_service.dart';
+import 'screens/login_screen.dart';
+import 'screens/welcome_screen.dart';
 
 void main() {
-  runApp(const KoruApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  final apiService = ApiService();
+  final authService = AuthService(apiService);
+
+  runApp(
+    MultiProvider(
+      providers: [
+        Provider<ApiService>.value(value: apiService),
+        ChangeNotifierProvider<AuthService>.value(value: authService),
+      ],
+      child: const KoruApp(),
+    ),
+  );
 }
 
 class KoruApp extends StatelessWidget {
@@ -13,188 +30,65 @@ class KoruApp extends StatelessWidget {
     return MaterialApp(
       title: 'KORU',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark(),
-      home: const LoginPage(),
+      theme: AppTheme.lightTheme,
+      home: const _SplashGate(),
     );
   }
 }
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+/// Checks if user has a saved session and routes accordingly.
+class _SplashGate extends StatefulWidget {
+  const _SplashGate();
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<_SplashGate> createState() => _SplashGateState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _SplashGateState extends State<_SplashGate> {
+  bool _ready = false;
 
-  final usernameController = TextEditingController();
-  final passwordController = TextEditingController();
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
 
-  String userType = "user";
+  Future<void> _init() async {
+    final auth = context.read<AuthService>();
+    await auth.tryRestoreSession();
+    if (mounted) setState(() => _ready = true);
+  }
 
-  void login() {
-
-    String username = usernameController.text;
-    String password = passwordController.text;
-
-    if(username.isEmpty || password.isEmpty){
-      showError("Tüm alanları doldurun");
-      return;
+  @override
+  Widget build(BuildContext context) {
+    if (!_ready) {
+      return const Scaffold(
+        backgroundColor: AppTheme.darkGreen,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'KORU',
+                style: TextStyle(
+                  fontSize: 48,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  letterSpacing: 3,
+                ),
+              ),
+              SizedBox(height: 24),
+              CircularProgressIndicator(color: Colors.white),
+            ],
+          ),
+        ),
+      );
     }
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => WelcomePage(username: username),
-      ),
-    );
-  }
-
-  void showError(String msg){
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Hata"),
-        content: Text(msg),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-
-    return Scaffold(
-      body: Stack(
-        children: [
-
-          /// SVG ARKA PLAN
-          SizedBox.expand(
-            child: SvgPicture.asset(
-              "assets/login-bg.svg",
-              fit: BoxFit.cover,
-            ),
-          ),
-
-          /// LOGIN FORM
-          Center(
-            child: Container(
-              width: 350,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.green[900],
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-
-                  const Text(
-                    "KORU",
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  Row(
-                    children: [
-
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                            userType=="user"?Colors.green:Colors.grey,
-                          ),
-                          onPressed: (){
-                            setState(() {
-                              userType="user";
-                            });
-                          },
-                          child: const Text("Kullanıcı"),
-                        ),
-                      ),
-
-                      const SizedBox(width: 10),
-
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                            userType=="admin"?Colors.green:Colors.grey,
-                          ),
-                          onPressed: (){
-                            setState(() {
-                              userType="admin";
-                            });
-                          },
-                          child: const Text("Admin"),
-                        ),
-                      ),
-
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  TextField(
-                    controller: usernameController,
-                    decoration: const InputDecoration(
-                      labelText: "Kullanıcı Adı",
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  TextField(
-                    controller: passwordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: "Şifre",
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: login,
-                      child: const Text("Giriş Yap"),
-                    ),
-                  ),
-
-                ],
-              ),
-            ),
-          ),
-
-        ],
-      ),
-    );
-  }
-}
-
-class WelcomePage extends StatelessWidget {
-
-  final String username;
-
-  const WelcomePage({super.key, required this.username});
-
-  @override
-  Widget build(BuildContext context) {
-
-    return Scaffold(
-      appBar: AppBar(title: const Text("KORU")),
-
-      body: Center(
-        child: Text(
-          "Hoşgeldin $username",
-          style: const TextStyle(fontSize: 24),
-        ),
-      ),
-    );
+    final auth = context.watch<AuthService>();
+    if (auth.isLoggedIn) {
+      return const WelcomeScreen();
+    }
+    return const LoginScreen();
   }
 }
