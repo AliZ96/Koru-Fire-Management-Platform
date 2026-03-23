@@ -62,6 +62,15 @@ def create_app() -> FastAPI:
 
         @app.get("/", response_class=FileResponse)
         async def root():
+            """Ana sayfa: mümkünse karşılama ekranını, yoksa harita sayfasını döner."""
+            welcome_file = static_path / "welcome.html"
+            if welcome_file.exists():
+                return FileResponse(str(welcome_file))
+            return FileResponse(str(static_path / "index.html"))
+
+        @app.get("/app", response_class=FileResponse)
+        async def app_entry():
+            """Uygulama harita ekranı."""
             return FileResponse(str(static_path / "index.html"))
 
         @app.get("/{path:path}", response_class=FileResponse)

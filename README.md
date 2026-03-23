@@ -14,7 +14,7 @@ The KORU platform consists of five primary integrated modules:
 
 1.  **Machine Learning-Based Risk Zone Modelling (HLF-1):** A validated ML model utilizes 10-year historical data to predict and classify potential wildfire risk zones.
 2.  **Accessibility & Geospatial Analysis (HLF-2):** A module that assesses the accessibility (ground/air) of risk zones and maps their proximity to critical resources (water sources, fire stations).
-    - **LLF-2.3: Air Accessibility Classification** - Advanced aircraft accessibility evaluation system for fire-prone areas without ground access (see [AIR_ACCESSIBILITY_README.md](AIR_ACCESSIBILITY_README.md))
+    - **LLF-2.3: Air Accessibility Classification** - Advanced aircraft accessibility evaluation system for fire-prone areas without ground access (see [AIR_ACCESSIBILITY_README.md](docs/llf-2.3/AIR_ACCESSIBILITY_README.md))
 3.  **Scenario-Based Route Optimization Engine (HLF-3):** Uses sophisticated algorithms (Simulated Annealing and Genetic Algorithm) to compute the fastest and safest intervention routes for user-defined fire scenarios. This aims for a ≥20% reduction in estimated response travel time compared to baseline routing.
 4.  **Strategic Planning Dashboard (HLF-4):** A web-based, map-centric interface for visualizing multi-layer data (risk zones, accessibility, optimized routes) and building/saving strategic response scenarios.
 5.  **Backend API, Security & Cloud Integration (HLF-5):** A secure, scalable cloud infrastructure (Azure-based) providing REST APIs, role-based access control (RBAC), and persistent data storage for all modules.
@@ -184,24 +184,36 @@ http://localhost:8000
 
 ## Proje Yapısı
 
-KORU_BITIRME/
-├── app/
-│   ├── main.py
-│   ├── auth/
-│   ├── models/
-│   ├── repositories/
-│   ├── services/
-│   └── db/                (SQLAlchemy bağlantı ve session kodları)
-├── static/
+KORU/
+├── app/                        # FastAPI backend, servisler, modeller, DB erişimi
+│   ├── main.py                 # Uygulama girişi
+│   ├── api/                    # API router'ları
+│   ├── core/                   # Config, security vb.
+│   ├── db/                     # SQLAlchemy bağlantı ve session
+│   ├── models/                 # ORM modelleri
+│   ├── repositories/           # Repository katmanı
+│   ├── schemas/                # Pydantic şemaları
+│   └── services/               # İş mantığı servisleri
+├── static/                     # Web arayüzü (HTML, JS, harita asset'leri)
 │   ├── index.html
 │   ├── login.html
 │   └── data/
-├── data/
-│   └── firms.json
+├── mobile/                     # Flutter mobil istemci
+├── data/                       # Girdi verileri, ML datasetleri
 ├── database/
-│   └── schema.sql         (manuel veritabanı kurulum dosyası)
-├── .env.example
+│   ├── schema.sql              # Manuel veritabanı kurulum dosyası
+│   └── test.db                 # SQLite test veritabanı (e2e)
+├── docs/                       # Tüm teknik dokümantasyon
+│   ├── llf-2.3/                # LLF-2.3 air accessibility dokümanları
+│   ├── scrum-58/               # SCRUM-58 dokümanları
+│   └── presentations/          # Sunum metinleri
+├── scripts/                    # Yardımcı scriptler ve offline doğrulama araçları
+│   └── test_scrum58_validation.py
+├── tests/                      # Pytest testleri (unit + e2e)
+├── logs/                       # Çalışma zamanı logları (git-ignore)
+├── docker-compose.yml          # Geliştirme ortamı için servis tanımları
 ├── requirements.txt
+├── requirements-dev.txt
 └── README.md
 
 ---
@@ -265,6 +277,70 @@ Test edilen senaryolar:
 - GET /auth/me (Authorization: Bearer token)
 
 Tüm testler Postman kullanılarak başarıyla gerçekleştirilmiştir.
+
+---
+
+## Çalıştırma ve Test
+
+### Backend'i Lokal Çalıştırma
+
+1. Sanal ortam oluşturun ve aktifleştirin:
+
+    ```bash
+    python -m venv .venv
+    source .venv/bin/activate  # Windows için: .venv\\Scripts\\activate
+    ```
+
+2. Bağımlılıkları yükleyin:
+
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+3. Gerekli ortam değişkenlerini `.env` dosyasında tanımlayın (örnek):
+
+    ```env
+    DATABASE_URL=postgresql+psycopg2://postgres:<SIFRE>@localhost:5432/koru_db
+    SECRET_KEY=degistirilecek_secret
+    ALGORITHM=HS256
+    ACCESS_TOKEN_EXPIRE_MINUTES=60
+    ```
+
+4. Uygulamayı çalıştırın:
+
+    ```bash
+    uvicorn app.main:app --reload
+    ```
+
+5. Tarayıcıdan erişim:
+
+    - API: http://localhost:8000
+    - Swagger UI: http://localhost:8000/docs
+
+### Testleri Çalıştırma
+
+1. Sanal ortam aktifken tüm testleri çalıştırmak için:
+
+    ```bash
+    pytest -q
+    ```
+
+    Varsayılan koşuda:
+    - Unit ve e2e testler çalışır.
+    - Ağ üzerinden canlı sunucuya bağlanan entegrasyon testleri **skip** edilir.
+
+2. Entegrasyon testlerini de çalıştırmak isterseniz ortam değişkeni ile etkinleştirin:
+
+    ```bash
+    export RUN_INTEGRATION_TESTS=1
+    pytest -q
+    ```
+
+3. Sadece e2e auth testini çalıştırmak için:
+
+    ```bash
+    pytest tests/test_e2e.py::test_auth_register_login_me -q
+    ```
 
 ---
 

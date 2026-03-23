@@ -8,7 +8,10 @@ from passlib.context import CryptContext
 
 from app.core.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# pbkdf2_sha256, standart kitaplıklar üzerinde çalışan, taşınabilir ve güçlü
+# bir hash algoritmasıdır; macOS ortamındaki bcrypt backend problemlerini
+# tamamen ortadan kaldırır.
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 # FastAPI OAuth2 - tokenUrl Swagger için önemli, Postman için değil
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/user/login")

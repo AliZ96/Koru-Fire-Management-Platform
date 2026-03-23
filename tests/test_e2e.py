@@ -18,11 +18,11 @@ from app.db.base import Base
 from app.db.session import get_db
 
 # Tablo tanımlarının yüklenmesi için modelleri import et
-from app.models import user as _user  # noqa: F401
+from app.models.user import User  # noqa: F401
 
 
-# SQLite test veritabanı
-TEST_DB_URL = "sqlite:///./test.db"
+# SQLite test veritabanı (database/test.db)
+TEST_DB_URL = "sqlite:///./database/test.db"
 engine = create_engine(
     TEST_DB_URL,
     connect_args={"check_same_thread": False},
@@ -47,10 +47,10 @@ app.dependency_overrides[get_db] = override_get_db
 @pytest.fixture(scope="session", autouse=True)
 def setup_db():
     # Temiz DB oluştur
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.drop_all(bind=engine, tables=[User.__table__])
+    Base.metadata.create_all(bind=engine, tables=[User.__table__])
     yield
-    Base.metadata.drop_all(bind=engine)
+    Base.metadata.drop_all(bind=engine, tables=[User.__table__])
 
 
 @pytest.fixture()
