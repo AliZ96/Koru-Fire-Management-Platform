@@ -6,82 +6,80 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"/>
   <link rel="icon" type="image/png" href="/static/img/favicon.png"/>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
   <style>
-    :root{ --brand-blue:#8B0000; --brand-blue-rgb:139,0,0; }
+    :root{ --bg: #050E07; --accent: #F59E0B; --green: #4A7C3A; --green-hi: #6AAD58; --text: #E2F0DA; --text2: #7BA368; --danger: #EF4444; --border: rgba(74,124,58,.18); }
     html,body{height:100%;margin:0}
-    body{ box-sizing:border-box; border:6px solid rgba(var(--brand-blue-rgb),0.35); background: var(--brand-blue); }
-    .map-frame{ position:absolute; top:76px; left:12px; right:12px; bottom:68px; background:#fff; border:6px solid rgba(var(--brand-blue-rgb),0.22); border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,.18); overflow:hidden; transition:right 0.3s ease }
+    body{ box-sizing:border-box; background: var(--bg); }
+    .map-frame{ position:absolute; top:76px; left:12px; right:12px; bottom:68px; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,.25); overflow:hidden; transition:right 0.3s ease }
     #map{height:100%}
-    .panel{position:fixed;top:76px;right:0;width:360px;height:calc(100% - 76px - 60px);z-index:9999;background:#fff;padding:16px;border-radius:0;box-shadow:-2px 0 16px rgba(0,0,0,.15);font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;display:flex;flex-direction:column;gap:12px;overflow-y:auto;transform:translateX(100%);transition:transform 0.3s ease}
+    .panel{position:fixed;top:76px;right:0;width:360px;height:calc(100% - 76px - 60px);z-index:9999;background:rgba(8,21,16,.95);padding:16px;border-radius:0;box-shadow:-2px 0 16px rgba(0,0,0,.25);font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;display:flex;flex-direction:column;gap:12px;overflow-y:auto;transform:translateX(100%);transition:transform 0.3s ease;backdrop-filter:blur(20px);border-left:1px solid var(--border);color:var(--text)}
     .panel.open{transform:translateX(0)}
-    .panel-close-btn{position:absolute;top:2px;left:2px;width:24px;height:24px;background:none;border:none;color:#999;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all 0.2s ease;padding:0;margin:0;z-index:10001;font-weight:bold}
-    .panel-close-btn:hover{color:#666;transform:scale(1.1)}
+    .panel-close-btn{position:absolute;top:2px;left:2px;width:24px;height:24px;background:none;border:none;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all 0.2s ease;padding:0;margin:0;z-index:10001;font-weight:bold}
+    .panel-close-btn:hover{color:var(--text);transform:scale(1.1)}
     .panel input{width:56px}
-    .panel .section{margin:0;padding:12px 0;display:flex;flex-direction:column;gap:8px;border:none;border-bottom:1px dashed rgba(0,0,0,0.12);padding-right:0}
+    .panel .section{margin:0;padding:12px 0;display:flex;flex-direction:column;gap:8px;border:none;border-bottom:1px dashed rgba(74,124,58,0.15);padding-right:0}
     .panel .section:last-child{border-bottom:none}
-    .panel .section-title{display:block;font-weight:700;font-size:13px;color:var(--brand-blue);margin-bottom:4px}
+    .panel .section-title{display:block;font-weight:700;font-size:13px;color:var(--accent);margin-bottom:4px}
     .panel .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-    .panel label{font-size:11px;color:#344;opacity:.85}
-    .panel input[type=number]{height:28px;padding:3px 8px;border:1px solid #d3d7e3;border-radius:8px;font-family:inherit}
-    .panel input[type=number]:focus{outline:none;border-color:rgba(var(--brand-blue-rgb),0.6);box-shadow:0 0 0 3px rgba(var(--brand-blue-rgb),0.18)}
-    .panel select{height:28px;padding:3px 8px;border:1px solid #d3d7e3;border-radius:8px;font-family:inherit;font-size:12px;background:#fff;color:#333;cursor:pointer}
-    .panel select:focus{outline:none;border-color:rgba(var(--brand-blue-rgb),0.6);box-shadow:0 0 0 3px rgba(var(--brand-blue-rgb),0.18)}
-    .panel-toggle{position:absolute;top:12px;right:12px;width:40px;height:40px;background:#fff;color:var(--brand-blue);border:none;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;transition:all 0.2s ease;padding:0;margin:0;z-index:9998;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
-    .btn{cursor:pointer; border:1px solid rgba(0,0,0,0.1); border-radius:10px; padding:6px 10px; background:#fff; transition:all .15s ease; font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size:12px; height:30px }
-    .btn:hover{ box-shadow:0 3px 8px rgba(0,0,0,0.12) }
+    .panel label{font-size:11px;color:var(--text2);opacity:.85}
+    .panel input[type=number]{height:28px;padding:3px 8px;border:1px solid rgba(74,124,58,.25);border-radius:8px;font-family:inherit;background:rgba(14,30,12,.8);color:var(--text)}
+    .panel input[type=number]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(245,158,11,.15)}
+    .panel select{height:28px;padding:3px 8px;border:1px solid rgba(74,124,58,.25);border-radius:8px;font-family:inherit;font-size:12px;background:rgba(14,30,12,.8);color:var(--text);cursor:pointer}
+    .panel select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(245,158,11,.15)}
+    .panel-toggle{position:absolute;top:12px;right:12px;width:40px;height:40px;background:rgba(8,21,16,.85);color:var(--accent);border:1px solid rgba(74,124,58,.25);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;transition:all 0.2s ease;padding:0;margin:0;z-index:9998;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+    .btn{cursor:pointer; border:1px solid rgba(74,124,58,.2); border-radius:10px; padding:6px 10px; background:rgba(14,30,12,.6); transition:all .15s ease; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size:12px; height:30px; color:var(--text) }
+    .btn:hover{ box-shadow:0 3px 8px rgba(0,0,0,.2) }
     .btn:active{ transform:translateY(1px) }
-    .btn:focus-visible{ outline:none; box-shadow:0 0 0 3px rgba(var(--brand-blue-rgb),0.25) }
-    .btn-primary{ background: var(--brand-blue); color:#fff; border-color: rgba(255,255,255,0.2); }
-    .btn-primary:hover{ filter: brightness(1.05); box-shadow:0 5px 12px rgba(0,0,0,0.18) }
-    .btn-outline{ background:#fff; color: var(--brand-blue); border-color: rgba(var(--brand-blue-rgb),0.5); }
-    .btn-outline:hover{ background: rgba(var(--brand-blue-rgb),0.06); border-color: var(--brand-blue) }
-    #info{ font-size:11px; color:#6b7280; margin-left:6px }
-    .legend{background:#fff;padding:6px 8px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.15);font:12px/1.2 sans-serif}
+    .btn:focus-visible{ outline:none; box-shadow:0 0 0 3px rgba(245,158,11,.25) }
+    .btn-primary{ background: linear-gradient(135deg, #D97706, #F59E0B); color:#0A0A0A; border-color: transparent; font-weight:600 }
+    .btn-primary:hover{ filter: brightness(1.08); box-shadow:0 5px 12px rgba(245,158,11,.3) }
+    .btn-outline{ background:rgba(14,30,12,.6); color: var(--text2); border-color: rgba(74,124,58,.3); }
+    .btn-outline:hover{ background: rgba(74,124,58,.15); border-color: var(--accent) }
+    #info{ font-size:11px; color:var(--text2); margin-left:6px }
+    .legend{background:rgba(8,21,16,.9);padding:6px 8px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.25);font:12px/1.2 sans-serif;border:1px solid var(--border);color:var(--text)}
     .legend .row{display:flex;align-items:center;margin:2px 0}
-    .legend .sw{width:14px;height:14px;margin-right:6px;border:1px solid #999}
-    .header{position:absolute;top:0;left:0;right:0;z-index:10000;background:var(--brand-blue);padding:10px 16px;display:flex;align-items:center;gap:10px;justify-content:space-between;border-bottom:2px solid rgba(255,255,255,0.15); color:#fff; flex-wrap:nowrap}
-    .header .title{color:#fff; font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-weight:700; font-size:18px; letter-spacing:.1px; white-space:nowrap; flex:1}
-    .header .user-info{ color:#fff; font-size:12px; font-weight:600; display:flex; align-items:center; gap:10px; white-space:nowrap; }
-    .header .back-btn{ background:none; color:#fff; border:none; padding:0; margin:0; cursor:pointer; font-size:18px; font-weight:600; font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; transition:all 0.2s ease; text-decoration:none; display:inline-block; white-space:nowrap; }
-    .header .back-btn:hover{ opacity:0.8; }
+    .legend .sw{width:14px;height:14px;margin-right:6px;border:1px solid rgba(74,124,58,.4)}
+    .header{position:absolute;top:0;left:0;right:0;z-index:10000;background:rgba(5,14,7,.92);padding:10px 16px;display:flex;align-items:center;gap:10px;justify-content:flex-start;border-bottom:1px solid var(--border); color:var(--text); flex-wrap:nowrap;backdrop-filter:blur(20px);height:64px}
+    .nav-brand{display:flex;align-items:center;gap:8px;flex:0}
+    .nav-icon{font-size:24px;display:flex;align-items:center}
+    .header .title{color:var(--text); font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-weight:800; font-size:18px; letter-spacing:3px; white-space:nowrap; }
+    .header .user-info{ color:var(--text); font-size:12px; font-weight:600; display:flex; align-items:center; gap:10px; white-space:nowrap; margin-left:auto; }
+    .header .back-btn{ background:none; color:var(--text); border:none; padding:0; margin:0; cursor:pointer; font-size:18px; font-weight:600; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; transition:all 0.2s ease; text-decoration:none; display:inline-block; white-space:nowrap; }
+    .header .back-btn:hover{ opacity:0.7; }
     .user-dropdown{ position:relative; display:inline-block }
-    .user-dropdown-toggle{ cursor:pointer; padding:4px 0; border:none; background:none; color:#fff; font-size:12px; font-weight:600; font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; display:flex; align-items:center; gap:4px }
+    .user-dropdown-toggle{ cursor:pointer; padding:4px 0; border:none; background:none; color:var(--text); font-size:12px; font-weight:600; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; display:flex; align-items:center; gap:4px }
     .user-dropdown-toggle:hover{ opacity:0.8 }
-    .user-dropdown-menu{ position:absolute; top:100%; right:0; background:#fff; border:1px solid rgba(0,0,0,0.1); border-radius:6px; min-width:160px; box-shadow:0 4px 12px rgba(0,0,0,0.15); opacity:0; pointer-events:none; transform:translateY(-4px); transition:all 0.2s ease; z-index:10001; margin-top:6px }
+    .user-dropdown-menu{ position:absolute; top:100%; right:0; background:rgba(8,21,16,.95); border:1px solid var(--border); border-radius:6px; min-width:160px; box-shadow:0 4px 12px rgba(0,0,0,.25); opacity:0; pointer-events:none; transform:translateY(-4px); transition:all 0.2s ease; z-index:10001; margin-top:6px; backdrop-filter:blur(20px) }
     .user-dropdown-menu.show{ opacity:1; pointer-events:auto; transform:translateY(0) }
-    .user-dropdown-menu a{ display:block; padding:10px 14px; color:var(--brand-blue); text-decoration:none; border-bottom:1px solid rgba(0,0,0,0.08); font-size:12px; font-weight:600; font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; white-space:nowrap; cursor:pointer }
+    .user-dropdown-menu a{ display:block; padding:10px 14px; color:var(--text2); text-decoration:none; border-bottom:1px solid var(--border); font-size:12px; font-weight:600; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; white-space:nowrap; cursor:pointer }
     .user-dropdown-menu a:last-child{ border-bottom:none }
-    .user-dropdown-menu a:hover{ background:rgba(0,0,0,0.04) }
-    .logo{height:42px;width:auto; background: var(--brand-blue); display:block}
+    .user-dropdown-menu a:hover{ background:rgba(74,124,58,.12) }
+    .logo{height:42px;width:auto; background: transparent; display:block}
+    .brand-link{ text-decoration:none; color:inherit; display:flex; align-items:center; }
     .hamburger{width:32px;height:24px;display:inline-flex;flex-direction:column;justify-content:space-between;cursor:pointer;background:transparent;border:none;padding:0;margin:0}
-    .hamburger span{display:block;height:3px;background:#fff;border-radius:2px;opacity:0.9}
-    .sidebar{position:fixed;top:0;right:0;bottom:0;width:300px;background:var(--brand-blue);color:#fff;box-shadow:-2px 0 16px rgba(0,0,0,.25);transform:translateX(100%);transition:transform .25s ease;z-index:10050;display:flex;flex-direction:column}
+    .hamburger span{display:block;height:3px;background:var(--text);border-radius:2px;opacity:0.9}
+    .sidebar{position:fixed;top:0;right:0;bottom:0;width:300px;background:rgba(5,14,7,.97);color:var(--text);box-shadow:-2px 0 16px rgba(0,0,0,.25);transform:translateX(100%);transition:transform .25s ease;z-index:10050;display:flex;flex-direction:column}
     .sidebar.open{transform:translateX(0)}
-    .sidebar a{padding:14px 18px;color:#fff;text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.12);display:block}
-    .sidebar, .sidebar a{ font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif }
+    .sidebar a{padding:14px 18px;color:var(--text);text-decoration:none;border-bottom:1px solid var(--border);display:block}
+    .sidebar, .sidebar a{ font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif }
     .sidebar a{ font-weight:600; letter-spacing:.2px }
-    .sidebar a:hover{background:rgba(255,255,255,0.08)}
-    .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:10040;opacity:0;pointer-events:none;transition:opacity .2s}
+    .sidebar a:hover{background:rgba(74,124,58,.12)}
+    .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:10040;opacity:0;pointer-events:none;transition:opacity .2s}
     .backdrop.show{opacity:1;pointer-events:auto}
-    .btn{cursor:pointer; border:1px solid rgba(0,0,0,0.1); border-radius:8px; padding:6px 10px; background:#fff}
-    .btn-primary{ background: var(--brand-blue); color:#fff; border-color: rgba(255,255,255,0.2); }
-    .btn-primary:hover{ filter: brightness(1.08); }
-    .btn-outline{ background:#fff; color: var(--brand-blue); border-color: rgba(var(--brand-blue-rgb),0.5); }
-    .btn-outline:hover{ background: rgba(var(--brand-blue-rgb),0.06); }
-    .status{ margin-left:auto; font:600 12px/1.2 sans-serif; color:#123 }
-    .footer{ position:absolute; left:0; right:0; bottom:0; height:60px; background:#fff; display:flex; align-items:center; justify-content:space-between; padding:0 16px; border-top:1px solid rgba(0,0,0,0.08) }
+    .status{ margin-left:auto; font:600 12px/1.2 sans-serif; color:var(--text2) }
+    .footer{ position:absolute; left:0; right:0; bottom:0; height:60px; background:rgba(5,14,7,.92); display:flex; align-items:center; justify-content:space-between; padding:0 16px; border-top:1px solid var(--border) }
     .footer img{ height:52px; width:auto; display:block; max-width:50vw; object-fit:contain }
-    .footer .contact{ font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-weight:600; font-size:12px; line-height:1; color: var(--brand-blue); display:flex; align-items:center; gap:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; justify-content:flex-end }
-    .footer .contact a{ color: var(--brand-blue); text-decoration:none }
+    .footer .contact{ font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-weight:600; font-size:12px; line-height:1; color: var(--text2); display:flex; align-items:center; gap:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; justify-content:flex-end }
+    .footer .contact a{ color: var(--text2); text-decoration:none }
     .footer .contact a:hover{ text-decoration:underline }
     .footer .contact strong{ font-weight:800 }
-    .copyable{ position:relative; display:inline-flex; align-items:center; gap:6px; color: var(--brand-blue); padding:0 2px }
-    .copy-btn{ display:none; font-family:'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-weight:700; font-size:11px; color:#fff; background: var(--brand-blue); border:none; border-radius:10px; padding:2px 8px; cursor:pointer; line-height:1 }
+    .copyable{ position:relative; display:inline-flex; align-items:center; gap:6px; color: var(--text2); padding:0 2px }
+    .copy-btn{ display:none; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-weight:700; font-size:11px; color:#0A0A0A; background: var(--accent); border:none; border-radius:10px; padding:2px 8px; cursor:pointer; line-height:1 }
     .copyable:hover .copy-btn{ display:inline-block }
     .proximity-popup{ z-index: 2000 !important; }
     .leaflet-popup-pane{ z-index: 2000 !important; }
-    @media (max-width:480px){ .panel{width:100%;top:76px;right:0;height:calc(100% - 76px - 60px);transform:translateX(100%)} .panel-toggle{right:12px} .panel-toggle.open{right:12px} .map-frame{top:88px; left:8px; right:8px; bottom:68px; border-width:4px} .header{padding:10px 12px} .logo{height:34px} .header .title{font-size:14px; letter-spacing:.05px; white-space:nowrap} .footer{height:64px} .footer img{height:44px; max-width:45vw} .footer .contact{font-size:11px} }
+    @media (max-width:480px){ .panel{width:100%;top:76px;right:0;height:calc(100% - 76px - 60px);transform:translateX(100%)} .panel-toggle{right:12px} .panel-toggle.open{right:12px} .map-frame{top:88px; left:8px; right:8px; bottom:68px; border-width:1px} .header{padding:10px 12px} .logo{height:34px} .header .title{font-size:14px; letter-spacing:.05px; white-space:nowrap} .footer{height:64px} .footer img{height:44px; max-width:45vw} .footer .contact{font-size:11px} }
   </style>
 </head>
 <body>
@@ -93,7 +91,7 @@
       <span><strong>E-Posta:</strong> <span class="copyable" data-copy="him@izmir.bel.tr"><a href="mailto:him@izmir.bel.tr">him@izmir.bel.tr</a><button type="button" class="copy-btn" aria-label="Kopyala">Kopyala</button></span></span>
     </div>
   </div>
-  <div class="header"><a href="/welcome" class="back-btn" title="Geri">←</a><span class="title">KORU Yangın Önleme Platformu</span><div class="user-info"><div class="user-dropdown"><span id="userDisplay" class="user-dropdown-toggle"></span><div id="userDropdownMenu" class="user-dropdown-menu"><a href="#" id="profileLink">👤 Profil</a><a href="#" id="logoutLink">🚪 Oturum Kapat</a></div></div></div><button id="menuBtn" class="hamburger" aria-label="Menü"><span></span><span></span><span></span></button></div>
+  <div class="header"><a href="/welcome" class="back-btn" title="Geri">←</a><a href="/" class="brand-link"><div class="nav-brand"><div class="nav-icon">🌲</div><span class="title">KORU</span></div></a><div class="user-info"><div class="user-dropdown"><span id="userDisplay" class="user-dropdown-toggle"></span><div id="userDropdownMenu" class="user-dropdown-menu"><a href="#" id="profileLink">👤 Profil</a><a href="#" id="logoutLink">🚪 Oturum Kapat</a></div></div></div><button id="menuBtn" class="hamburger" aria-label="Menü"><span></span><span></span><span></span></button></div>
   <div id="sidebar" class="sidebar" aria-hidden="true">
     <a href="#" id="mFires">İzmir Yangınları</a>
     <a href="#" id="mVolunteer">AFAD Gönüllüsü olun</a>
@@ -128,6 +126,7 @@
         <button id="btnProximity" class="btn btn-outline">📍 Kaynak Yakınlık</button>
         <button id="btnIntegrated" class="btn btn-outline">🗺️ Entegre Katman</button>
         <button id="btnFirePoints" class="btn btn-outline">🔥 High / Low Noktalar</button>
+        <button id="btnPipeline" class="btn btn-outline">📦 Pipeline Sonucu</button>
       </div>
     </div>
     <div class="section">
@@ -369,7 +368,7 @@
 
         izmirBoundaryLayer = L.geoJSON(gj, {
           pane:'izmirBoundary',
-          style: { color:'#8B0000', weight:5, fillOpacity:0, opacity:1, dashArray:'' },
+          style: { color:'#F59E0B', weight:5, fillOpacity:0, opacity:1, dashArray:'' },
           pointToLayer: () => null
         }).addTo(map);
       }catch(e){ console.warn('İzmir sınır GeoJSON yüklenemedi:', e); }
@@ -614,7 +613,7 @@
           },
           pointToLayer: (feature, latlng) => {
             const div = L.divIcon({
-              html: '<div style="width: 14px; height: 14px; background-color: #C41E3A; border: 2px solid #8B0000; border-radius: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+              html: '<div style="width: 14px; height: 14px; background-color: #C41E3A; border: 2px solid #F59E0B; border-radius: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
               iconSize: [14, 14],
               className: 'dam-marker'
             });
@@ -1346,6 +1345,153 @@
     let proximityLinesLayer = null;
     let integratedLayer = null;
     let integratedLegendCtl = null;
+    let pipelineLayer = null;
+    let pipelineLegendCtl = null;
+
+    async function loadPipelineLayer() {
+      const info = document.getElementById('info');
+      info.textContent = 'Pipeline sonucu yükleniyor...';
+      setStatus('Pipeline sonucu yükleniyor...');
+
+      try {
+        const response = await fetch('/api/fire_station_risk_matching');
+        if (!response.ok) throw new Error('API hatası: ' + response.status);
+
+        const geoJson = await response.json();
+
+        if (!geoJson.features || geoJson.features.length === 0) {
+          info.textContent = 'Pipeline sonucu verisi bulunamadı';
+          return;
+        }
+
+        console.log('Pipeline risk noktaları:', geoJson.features.length);
+
+        if (pipelineLayer) {
+          try { map.removeLayer(pipelineLayer); } catch (e) {}
+        }
+
+        if (!map.getPane('pipelinePane')) {
+          map.createPane('pipelinePane');
+          map.getPane('pipelinePane').style.zIndex = 760;
+        }
+
+        const palette = [
+          '#e41a1c', '#377eb8', '#4daf4a', '#984ea3',
+          '#ff7f00', '#ffff33', '#a65628', '#f781bf', '#999999'
+        ];
+        const clusterColors = {};
+        let colorIndex = 0;
+
+        pipelineLayer = L.geoJSON(geoJson, {
+          pane: 'pipelinePane',
+          pointToLayer: (feature, latlng) => {
+            const props = feature.properties || {};
+            const clusterId = props.cluster_id || 'default_cluster';
+            if (!clusterColors[clusterId]) {
+              clusterColors[clusterId] = palette[colorIndex % palette.length];
+              colorIndex += 1;
+            }
+            const color = clusterColors[clusterId];
+            return L.circleMarker(latlng, {
+              radius: 4,
+              color: color,
+              weight: 1,
+              fillColor: color,
+              fillOpacity: 0.85,
+              opacity: 0.9
+            });
+          },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties || {};
+            const riskClass = props.risk_class || 'N/A';
+            const demand = props.demand != null ? props.demand : 1;
+            const clusterId = props.cluster_id || 'N/A';
+            const stationName = props.station_name || 'Bilinmiyor';
+            const distanceKm = (props.distance_km != null)
+              ? Number(props.distance_km).toFixed(2) + ' km'
+              : 'N/A';
+
+            const popupContent = `
+              <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 12px; min-width: 220px;">
+                <div style="font-weight: 700; font-size: 14px; margin-bottom: 6px;">
+                  🔗 Pipeline Sonucu
+                </div>
+                <div style="margin-bottom: 6px;">
+                  <div><strong>Risk Sınıfı:</strong> ${riskClass}</div>
+                  <div><strong>Talep (demand):</strong> ${demand}</div>
+                  <div><strong>Küme (cluster_id):</strong> ${clusterId}</div>
+                </div>
+                <div style="border-top:1px solid #ddd; padding-top:6px; margin-top:4px;">
+                  <div style="font-weight:600; margin-bottom:4px; color:#C41E3A;">🚒 Atanan İtfaiye İstasyonu</div>
+                  <div style="margin-left:10px;">
+                    <div><strong>${stationName}</strong></div>
+                    <div style="font-size:11px; color:#666;">Mesafe: ${distanceKm}</div>
+                  </div>
+                </div>
+              </div>
+            `;
+
+            layer.bindPopup(popupContent);
+          }
+        }).addTo(map);
+
+        if (pipelineLegendCtl) {
+          try { pipelineLegendCtl.remove(); } catch (e) {}
+        }
+
+        pipelineLegendCtl = L.control({ position: 'bottomleft' });
+        pipelineLegendCtl.onAdd = function () {
+          const div = L.DomUtil.create('div', 'legend');
+          div.style.backgroundColor = 'white';
+          div.style.padding = '8px';
+          div.style.borderRadius = '5px';
+          div.style.boxShadow = '0 0 15px rgba(0,0,0,0.2)';
+          div.style.fontSize = '11px';
+
+          const clusterEntries = Object.keys(clusterColors);
+          let html = '<b>📦 Pipeline Kümeleri</b><br/>';
+          clusterEntries.slice(0, 8).forEach(cid => {
+            const c = clusterColors[cid];
+            html += `<div class="row"><span class="sw" style="background:${c}; width:12px; height:12px; display:inline-block; margin-right:5px; border-radius:50%; border:1px solid #333;"></span>${cid}</div>`;
+          });
+          if (clusterEntries.length > 8) {
+            html += `<div style="margin-top:4px; color:#666;">+ ${clusterEntries.length - 8} daha...</div>`;
+          }
+
+          div.innerHTML = html;
+          return div;
+        };
+        pipelineLegendCtl.addTo(map);
+
+        allActiveLayers.push(pipelineLayer);
+        info.textContent = `Pipeline sonucu açık (${geoJson.features.length} nokta)`;
+        setStatus(`Pipeline sonucu açık (${geoJson.features.length} nokta)`);
+      } catch (e) {
+        info.textContent = 'Pipeline sonucu yükleme hatası: ' + e.message;
+        console.error('Pipeline layer hatası:', e);
+      }
+    }
+
+    async function togglePipelineLayer() {
+      const info = document.getElementById('info');
+
+      if (pipelineLayer) {
+        const layerToRemove = pipelineLayer;
+        try { map.removeLayer(pipelineLayer); } catch (e) {}
+        pipelineLayer = null;
+        if (pipelineLegendCtl) {
+          try { pipelineLegendCtl.remove(); } catch (e) {}
+          pipelineLegendCtl = null;
+        }
+        const idx = allActiveLayers.indexOf(layerToRemove);
+        if (idx > -1) allActiveLayers.splice(idx, 1);
+        info.textContent = 'Pipeline sonucu kapatıldı';
+        setStatus('Pipeline sonucu kapatıldı');
+        return;
+      }
+
+      await loadPipelineLayer();
+    }
 
     async function loadHeatmapGrid() {
       const info = document.getElementById('info');
@@ -2188,6 +2334,7 @@
     safeBind('btnProximity', 'click', toggleProximityGrid);
     safeBind('btnIntegrated', 'click', toggleIntegratedLayer);
     safeBind('btnFirePoints', 'click', toggleFirePoints);
+    safeBind('btnPipeline', 'click', togglePipelineLayer);
     safeBind('btnBoundaryPoints', 'click', ()=>loadBoundaryPoints());
     safeBind('autoRef', 'change', (e)=> setAutoRefresh(e.target.checked));
     safeBind('cellKm', 'change', ()=>{ if (riskActive) loadRiskForView(); });

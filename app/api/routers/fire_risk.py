@@ -1,10 +1,11 @@
-"""
-Yangın risk verileri için API router
-"""
-from fastapi import APIRouter
-from typing import List, Optional
-import pandas as pd
+"""Yangın risk verileri için API router ve yardımcı fonksiyonlar."""
+
 from pathlib import Path
+from typing import List, Optional
+
+from fastapi import APIRouter
+import pandas as pd
+from math import radians, sin, cos, sqrt, atan2
 
 router = APIRouter(prefix="/api/fire-risk", tags=["fire-risk"])
 
@@ -18,6 +19,99 @@ RISK_COLORS = {
     "MEDIUM_RISK": "#e74c3c",           # Kırmızı - Orta Risk
     "HIGH_RISK": "#8b0000",             # Koyu Kırmızı - Yüksek Risk
 }
+
+
+def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Iki koordinat arasindaki yaklasik mesafeyi (km) hesapla."""
+
+    R = 6371.0
+    phi1, phi2 = radians(lat1), radians(lat2)
+    dphi = radians(lat2 - lat1)
+    dlambda = radians(lon2 - lon1)
+
+    a = sin(dphi / 2) ** 2 + cos(phi1) * cos(phi2) * sin(dlambda / 2) ** 2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return R * c
+
+
+def _cluster_to_zones(
+    points: List[dict],
+    eps_km: float = 1.0,
+    min_samples: int = 2,
+    min_cluster_size: int = 2,
+) -> List[dict]:
+    """Basit DBSCAN-benzeri clustering ile risk zonlari üret.
+
+    Bu fonksiyon test_fire_risk_zones icin gereklidir ve sadece
+    gelen noktalara göre bbox, ortalama risk ve sayi döndürür.
+    """
+
+    if not points:
+        return []
+
+    # DBSCAN benzeri etiketleme
+    labels: List[int] = [-1] * len(points)
+    cluster_id = 0
+
+    for i, p in enumerate(points):
+        if labels[i] != -1:
+            continue
+
+        # Komşuları bul
+        neighbors = []
+        for j, q in enumerate(points):
+            dist = _haversine_km(p["lat"], p["lon"], q["lat"], q["lon"])
+            if dist <= eps_km:
+                neighbors.append(j)
+
+        if len(neighbors) < min_samples:
+            # Gürültü
+            continue
+
+        # Yeni cluster
+        labels[i] = cluster_id
+        queue = neighbors[:]
+
+        while queue:
+            j = queue.pop()
+            if labels[j] == -1:
+                labels[j] = cluster_id
+            if labels[j] != cluster_id:
+                continue
+
+            # j noktasinin komsularini da ekle
+            j_neighbors = []
+            for k, r in enumerate(points):
+                dist = _haversine_km(points[j]["lat"], points[j]["lon"], r["lat"], r["lon"])
+                if dist <= eps_km:
+                    j_neighbors.append(k)
+
+            if len(j_neighbors) >= min_samples:
+                for k in j_neighbors:
+                    if labels[k] == -1:
+                        labels[k] = cluster_id
+                        queue.append(k)
+
+        cluster_id += 1
+
+    zones: List[dict] = []
+    for cid in range(cluster_id):
+        idxs = [i for i, lbl in enumerate(labels) if lbl == cid]
+        if len(idxs) < min_cluster_size:
+            continue
+
+        lats = [points[i]["lat"] for i in idxs]
+        lons = [points[i]["lon"] for i in idxs]
+        risks = [points[i].get("risk_score", 0.0) for i in idxs]
+
+        zone = {
+            "bbox": [min(lons), min(lats), max(lons), max(lats)],
+            "avg_risk": sum(risks) / len(risks) if risks else 0.0,
+            "count": len(idxs),
+        }
+        zones.append(zone)
+
+    return zones
 
 def load_risk_data():
     """CSV'den yangın risk verilerini yükle"""

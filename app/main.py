@@ -62,6 +62,12 @@ def create_app() -> FastAPI:
 
         @app.get("/", response_class=FileResponse)
         async def root():
+            """Landing page — new KORU home design"""
+            return FileResponse(str(static_path / "home.html"))
+
+        @app.get("/app", response_class=FileResponse)
+        async def app_entry():
+            """Uygulama harita ekranı."""
             return FileResponse(str(static_path / "index.html"))
 
         @app.get("/{path:path}", response_class=FileResponse)
@@ -69,7 +75,8 @@ def create_app() -> FastAPI:
             file_path = static_path / f"{path}.html"
             if file_path.exists():
                 return FileResponse(str(file_path))
-            return FileResponse(str(static_path / "index.html"))
+            # Fallback to home page (landing)
+            return FileResponse(str(static_path / "home.html"))
 
     return app
 
