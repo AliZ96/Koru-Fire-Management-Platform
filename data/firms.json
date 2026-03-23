@@ -1,0 +1,20 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {"type": "Point", "coordinates": [27.10, 38.45]},
+      "properties": {"acq_date": "2025-07-10", "acq_time": "1230", "confidence": 80, "bright_ti4": 310}
+    },
+    {
+      "type": "Feature",
+      "geometry": {"type": "Point", "coordinates": [27.25, 38.55]},
+      "properties": {"acq_date": "2025-08-02", "acq_time": "0930", "confidence": 65, "bright_ti4": 295}
+    },
+    {
+      "type": "Feature",
+      "geometry": {"type": "Point", "coordinates": [27.35, 38.30]},
+      "properties": {"acq_date": "2025-06-18", "acq_time": "1515", "confidence": 72, "bright_ti4": 305}
+    }
+  ]
+}

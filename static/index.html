@@ -1,0 +1,2348 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8"/>
+  <title>KORU Yangın Önleme Platformu</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"/>
+  <link rel="icon" type="image/png" href="/static/img/favicon.png"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <style>
+    :root{ --bg: #050E07; --accent: #F59E0B; --green: #4A7C3A; --green-hi: #6AAD58; --text: #E2F0DA; --text2: #7BA368; --danger: #EF4444; --border: rgba(74,124,58,.18); }
+    html,body{height:100%;margin:0}
+    body{ box-sizing:border-box; background: var(--bg); }
+    .map-frame{ position:absolute; top:76px; left:12px; right:12px; bottom:68px; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,.25); overflow:hidden; transition:right 0.3s ease }
+    #map{height:100%}
+    .panel{position:fixed;top:76px;right:0;width:360px;height:calc(100% - 76px - 60px);z-index:9999;background:rgba(8,21,16,.95);padding:16px;border-radius:0;box-shadow:-2px 0 16px rgba(0,0,0,.25);font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;display:flex;flex-direction:column;gap:12px;overflow-y:auto;transform:translateX(100%);transition:transform 0.3s ease;backdrop-filter:blur(20px);border-left:1px solid var(--border);color:var(--text)}
+    .panel.open{transform:translateX(0)}
+    .panel-close-btn{position:absolute;top:2px;left:2px;width:24px;height:24px;background:none;border:none;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all 0.2s ease;padding:0;margin:0;z-index:10001;font-weight:bold}
+    .panel-close-btn:hover{color:var(--text);transform:scale(1.1)}
+    .panel input{width:56px}
+    .panel .section{margin:0;padding:12px 0;display:flex;flex-direction:column;gap:8px;border:none;border-bottom:1px dashed rgba(74,124,58,0.15);padding-right:0}
+    .panel .section:last-child{border-bottom:none}
+    .panel .section-title{display:block;font-weight:700;font-size:13px;color:var(--accent);margin-bottom:4px}
+    .panel .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+    .panel label{font-size:11px;color:var(--text2);opacity:.85}
+    .panel input[type=number]{height:28px;padding:3px 8px;border:1px solid rgba(74,124,58,.25);border-radius:8px;font-family:inherit;background:rgba(14,30,12,.8);color:var(--text)}
+    .panel input[type=number]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(245,158,11,.15)}
+    .panel select{height:28px;padding:3px 8px;border:1px solid rgba(74,124,58,.25);border-radius:8px;font-family:inherit;font-size:12px;background:rgba(14,30,12,.8);color:var(--text);cursor:pointer}
+    .panel select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(245,158,11,.15)}
+    .panel-toggle{position:absolute;top:12px;right:12px;width:40px;height:40px;background:rgba(8,21,16,.85);color:var(--accent);border:1px solid rgba(74,124,58,.25);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;transition:all 0.2s ease;padding:0;margin:0;z-index:9998;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+    .btn{cursor:pointer; border:1px solid rgba(74,124,58,.2); border-radius:10px; padding:6px 10px; background:rgba(14,30,12,.6); transition:all .15s ease; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size:12px; height:30px; color:var(--text) }
+    .btn:hover{ box-shadow:0 3px 8px rgba(0,0,0,.2) }
+    .btn:active{ transform:translateY(1px) }
+    .btn:focus-visible{ outline:none; box-shadow:0 0 0 3px rgba(245,158,11,.25) }
+    .btn-primary{ background: linear-gradient(135deg, #D97706, #F59E0B); color:#0A0A0A; border-color: transparent; font-weight:600 }
+    .btn-primary:hover{ filter: brightness(1.08); box-shadow:0 5px 12px rgba(245,158,11,.3) }
+    .btn-outline{ background:rgba(14,30,12,.6); color: var(--text2); border-color: rgba(74,124,58,.3); }
+    .btn-outline:hover{ background: rgba(74,124,58,.15); border-color: var(--accent) }
+    #info{ font-size:11px; color:var(--text2); margin-left:6px }
+    .legend{background:rgba(8,21,16,.9);padding:6px 8px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.25);font:12px/1.2 sans-serif;border:1px solid var(--border);color:var(--text)}
+    .legend .row{display:flex;align-items:center;margin:2px 0}
+    .legend .sw{width:14px;height:14px;margin-right:6px;border:1px solid rgba(74,124,58,.4)}
+    .header{position:absolute;top:0;left:0;right:0;z-index:10000;background:rgba(5,14,7,.92);padding:10px 16px;display:flex;align-items:center;gap:10px;justify-content:flex-start;border-bottom:1px solid var(--border); color:var(--text); flex-wrap:nowrap;backdrop-filter:blur(20px);height:64px}
+    .nav-brand{display:flex;align-items:center;gap:8px;flex:0}
+    .nav-icon{font-size:24px;display:flex;align-items:center}
+    .header .title{color:var(--text); font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-weight:800; font-size:18px; letter-spacing:3px; white-space:nowrap; }
+    .header .user-info{ color:var(--text); font-size:12px; font-weight:600; display:flex; align-items:center; gap:10px; white-space:nowrap; margin-left:auto; }
+    .header .back-btn{ background:none; color:var(--text); border:none; padding:0; margin:0; cursor:pointer; font-size:18px; font-weight:600; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; transition:all 0.2s ease; text-decoration:none; display:inline-block; white-space:nowrap; }
+    .header .back-btn:hover{ opacity:0.7; }
+    .user-dropdown{ position:relative; display:inline-block }
+    .user-dropdown-toggle{ cursor:pointer; padding:4px 0; border:none; background:none; color:var(--text); font-size:12px; font-weight:600; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; display:flex; align-items:center; gap:4px }
+    .user-dropdown-toggle:hover{ opacity:0.8 }
+    .user-dropdown-menu{ position:absolute; top:100%; right:0; background:rgba(8,21,16,.95); border:1px solid var(--border); border-radius:6px; min-width:160px; box-shadow:0 4px 12px rgba(0,0,0,.25); opacity:0; pointer-events:none; transform:translateY(-4px); transition:all 0.2s ease; z-index:10001; margin-top:6px; backdrop-filter:blur(20px) }
+    .user-dropdown-menu.show{ opacity:1; pointer-events:auto; transform:translateY(0) }
+    .user-dropdown-menu a{ display:block; padding:10px 14px; color:var(--text2); text-decoration:none; border-bottom:1px solid var(--border); font-size:12px; font-weight:600; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; white-space:nowrap; cursor:pointer }
+    .user-dropdown-menu a:last-child{ border-bottom:none }
+    .user-dropdown-menu a:hover{ background:rgba(74,124,58,.12) }
+    .logo{height:42px;width:auto; background: transparent; display:block}
+    .brand-link{ text-decoration:none; color:inherit; display:flex; align-items:center; }
+    .hamburger{width:32px;height:24px;display:inline-flex;flex-direction:column;justify-content:space-between;cursor:pointer;background:transparent;border:none;padding:0;margin:0}
+    .hamburger span{display:block;height:3px;background:var(--text);border-radius:2px;opacity:0.9}
+    .sidebar{position:fixed;top:0;right:0;bottom:0;width:300px;background:rgba(5,14,7,.97);color:var(--text);box-shadow:-2px 0 16px rgba(0,0,0,.25);transform:translateX(100%);transition:transform .25s ease;z-index:10050;display:flex;flex-direction:column}
+    .sidebar.open{transform:translateX(0)}
+    .sidebar a{padding:14px 18px;color:var(--text);text-decoration:none;border-bottom:1px solid var(--border);display:block}
+    .sidebar, .sidebar a{ font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif }
+    .sidebar a{ font-weight:600; letter-spacing:.2px }
+    .sidebar a:hover{background:rgba(74,124,58,.12)}
+    .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:10040;opacity:0;pointer-events:none;transition:opacity .2s}
+    .backdrop.show{opacity:1;pointer-events:auto}
+    .status{ margin-left:auto; font:600 12px/1.2 sans-serif; color:var(--text2) }
+    .footer{ position:absolute; left:0; right:0; bottom:0; height:60px; background:rgba(5,14,7,.92); display:flex; align-items:center; justify-content:space-between; padding:0 16px; border-top:1px solid var(--border) }
+    .footer img{ height:52px; width:auto; display:block; max-width:50vw; object-fit:contain }
+    .footer .contact{ font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-weight:600; font-size:12px; line-height:1; color: var(--text2); display:flex; align-items:center; gap:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; justify-content:flex-end }
+    .footer .contact a{ color: var(--text2); text-decoration:none }
+    .footer .contact a:hover{ text-decoration:underline }
+    .footer .contact strong{ font-weight:800 }
+    .copyable{ position:relative; display:inline-flex; align-items:center; gap:6px; color: var(--text2); padding:0 2px }
+    .copy-btn{ display:none; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-weight:700; font-size:11px; color:#0A0A0A; background: var(--accent); border:none; border-radius:10px; padding:2px 8px; cursor:pointer; line-height:1 }
+    .copyable:hover .copy-btn{ display:inline-block }
+    .proximity-popup{ z-index: 2000 !important; }
+    .leaflet-popup-pane{ z-index: 2000 !important; }
+    @media (max-width:480px){ .panel{width:100%;top:76px;right:0;height:calc(100% - 76px - 60px);transform:translateX(100%)} .panel-toggle{right:12px} .panel-toggle.open{right:12px} .map-frame{top:88px; left:8px; right:8px; bottom:68px; border-width:1px} .header{padding:10px 12px} .logo{height:34px} .header .title{font-size:14px; letter-spacing:.05px; white-space:nowrap} .footer{height:64px} .footer img{height:44px; max-width:45vw} .footer .contact{font-size:11px} }
+  </style>
+</head>
+<body>
+  <div class="map-frame"><div id="map"></div><button id="panelToggle" class="panel-toggle" title="Kontrol Panelini Aç">⚙️</button></div>
+  <div class="footer">
+    <div class="contact">
+      <span><strong>Telefon:</strong> <span class="copyable" data-copy="153"><span class="copy-val">153</span><button type="button" class="copy-btn" aria-label="Kopyala">Kopyala</button></span></span>
+      <span><strong>Faks:</strong> <span class="copyable" data-copy="(0232) 293 39 95"><span class="copy-val">(0232) 293 39 95</span><button type="button" class="copy-btn" aria-label="Kopyala">Kopyala</button></span></span>
+      <span><strong>E-Posta:</strong> <span class="copyable" data-copy="him@izmir.bel.tr"><a href="mailto:him@izmir.bel.tr">him@izmir.bel.tr</a><button type="button" class="copy-btn" aria-label="Kopyala">Kopyala</button></span></span>
+    </div>
+  </div>
+  <div class="header"><a href="/welcome" class="back-btn" title="Geri">←</a><a href="/" class="brand-link"><div class="nav-brand"><div class="nav-icon">🌲</div><span class="title">KORU</span></div></a><div class="user-info"><div class="user-dropdown"><span id="userDisplay" class="user-dropdown-toggle"></span><div id="userDropdownMenu" class="user-dropdown-menu"><a href="#" id="profileLink">👤 Profil</a><a href="#" id="logoutLink">🚪 Oturum Kapat</a></div></div></div><button id="menuBtn" class="hamburger" aria-label="Menü"><span></span><span></span><span></span></button></div>
+  <div id="sidebar" class="sidebar" aria-hidden="true">
+    <a href="#" id="mFires">İzmir Yangınları</a>
+    <a href="#" id="mVolunteer">AFAD Gönüllüsü olun</a>
+    <a href="#" id="mContact">Bize Ulaşın</a>
+  </div>
+  <div id="backdrop" class="backdrop"></div>
+  <div class="panel">
+    <button class="panel-close-btn" id="panelCloseBtn" title="Paneli Kapat">×</button>
+    <div class="section">
+      <div class="section-title">İzmir Yangınları</div>
+      <div class="row">
+        <label for="dr">Yangın Aralığı</label>
+        <select id="dr" style="height:28px;padding:3px 8px;border:1px solid #d3d7e3;border-radius:8px;font-family:inherit;font-size:12px">
+          <option value="1">Son 24 saat</option>
+          <option value="7">Son 1 hafta</option>
+        </select>
+        <button id="btnFires" class="btn btn-outline">Göster</button>
+        <button id="btnLiveTracking" class="btn btn-primary">🔴 Canlı Takip</button>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Risk ve Katmanlar</div>
+      <div class="row">
+        <button id="btnFireRisk" class="btn btn-outline">Riskli Bölgeler</button>
+        <button id="btnHeatmap" class="btn btn-outline">Isıl Harita</button>
+        <button id="btnAirAccess" class="btn btn-outline">🚁 Hava Erişimi</button>
+        <button id="btnReservoirs" class="btn btn-outline">Su Rezervuarları</button>
+        <button id="btnWaterSources" class="btn btn-outline">Su Kaynakları</button>
+        <button id="btnWaterTanks" class="btn btn-outline">Su Tankları</button>
+        <button id="btnLakes" class="btn btn-outline">Göl ve Göletler</button>
+        <button id="btnFireStations" class="btn btn-outline">🚒 İtfaiye İstasyonları</button>
+        <button id="btnProximity" class="btn btn-outline">📍 Kaynak Yakınlık</button>
+        <button id="btnIntegrated" class="btn btn-outline">🗺️ Entegre Katman</button>
+        <button id="btnFirePoints" class="btn btn-outline">🔥 High / Low Noktalar</button>
+        <button id="btnPipeline" class="btn btn-outline">📦 Pipeline Sonucu</button>
+      </div>
+    </div>
+    <div class="section">
+      <div class="row">
+        <button id="btnReset" class="btn">Sıfırla</button>
+        <span id="info" style="margin-left:6px;color:#555"></span>
+      </div>
+      <div id="firePointInfo" style="display:none; margin-top:10px; padding:10px; border:1px solid #d3d7e3; border-radius:8px; background:#fafafa; font-size:12px; color:#333;"></div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+  <script src="https://d3js.org/d3-contour.v2.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script>
+    // TEST ICIN LOGIN KONTROLU GECICI OLARAK KAPATILDI
+    (function checkLogin(){
+      const username = 'Test Kullanıcı';
+      const userType = 'admin';
+      const userDisplay = document.getElementById('userDisplay');
+      const userDropdownMenu = document.getElementById('userDropdownMenu');
+      const logoutLink = document.getElementById('logoutLink');
+      const profileLink = document.getElementById('profileLink');
+
+      if (userDisplay) {
+        const typeLabel = userType === 'admin' ? 'Kullanıcı - Admin' : 'Kullanıcı';
+        userDisplay.textContent = `${typeLabel} - ${username}`;
+        userDisplay.innerHTML += ' ▼';
+
+        userDisplay.addEventListener('click', function(e) {
+          e.stopPropagation();
+          if (userDropdownMenu) userDropdownMenu.classList.toggle('show');
+        });
+      }
+
+      document.addEventListener('click', function() {
+        if (userDropdownMenu) {
+          userDropdownMenu.classList.remove('show');
+        }
+      });
+
+      if (logoutLink) {
+        logoutLink.addEventListener('click', function(e) {
+          e.preventDefault();
+          alert('Test modunda logout kapalı.');
+        });
+      }
+
+      if (profileLink) {
+        profileLink.addEventListener('click', function(e) {
+          e.preventDefault();
+          alert(`Profil: ${username} (${userType === 'admin' ? 'Admin' : 'Kullanıcı'})`);
+          if (userDropdownMenu) userDropdownMenu.classList.remove('show');
+        });
+      }
+    })();
+
+    (function ensureLogo(){
+      const img = document.getElementById('logoImg');
+      if(!img) return;
+      const cand = ['/static/img/izmir-logo.png','/static/img/izmir-logo.jpg','/static/img/izmir-logo.jpeg','/static/img/izmir-logo.svg','/static/img/izmir.png'];
+      let i = 0;
+      function tryNext(){
+        if(i >= cand.length){ img.style.display='none'; return; }
+        img.src = cand[i] + '?v=3';
+        i++;
+      }
+      img.onerror = tryNext;
+      tryNext();
+    })();
+
+    (function ensureFooterLogo(){
+      const img = document.getElementById('footerLogo');
+      if(!img) return;
+      const cand = ['/static/img/izmir-wordmark.png','/static/img/izmir-wordmark.svg','/static/img/izmir-logo.png','/static/img/izmir.png'];
+      let i = 0;
+      function tryNext(){ if(i>=cand.length){ img.style.display='none'; return; } img.src=cand[i]+'?v=3'; i++; }
+      img.onerror = tryNext; tryNext();
+    })();
+
+    (function setupCopyables(){
+      function copy(txt){
+        if (navigator.clipboard && navigator.clipboard.writeText){
+          return navigator.clipboard.writeText(txt);
+        }
+        return new Promise((resolve)=>{
+          const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select();
+          try{ document.execCommand('copy'); }catch(_e){} finally{ document.body.removeChild(ta); }
+          resolve();
+        });
+      }
+      document.querySelectorAll('.copyable .copy-btn').forEach(btn=>{
+        btn.addEventListener('click', (e)=>{
+          e.preventDefault(); e.stopPropagation();
+          const wrap = btn.closest('.copyable');
+          const txt = wrap.getAttribute('data-copy') || wrap.textContent.trim();
+          const prev = btn.textContent;
+          copy(txt).then(()=>{ btn.textContent='Kopyalandı'; setTimeout(()=>{ btn.textContent=prev; }, 1200); });
+        });
+      });
+    })();
+
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('backdrop');
+    const menuBtn = document.getElementById('menuBtn');
+    function openSidebar(){ sidebar.classList.add('open'); backdrop.classList.add('show'); sidebar.setAttribute('aria-hidden','false'); }
+    function closeSidebar(){ sidebar.classList.remove('open'); backdrop.classList.remove('show'); sidebar.setAttribute('aria-hidden','true'); }
+    function toggleSidebar(){ if (sidebar.classList.contains('open')) closeSidebar(); else openSidebar(); }
+    menuBtn.addEventListener('click', toggleSidebar);
+    backdrop.addEventListener('click', closeSidebar);
+    window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeSidebar(); });
+
+    document.getElementById('mFires').addEventListener('click', (e)=>{ e.preventDefault(); closeSidebar(); document.getElementById('btnLiveTracking').click(); });
+
+    const panel = document.querySelector('.panel');
+    const panelToggle = document.getElementById('panelToggle');
+    const panelCloseBtn = document.getElementById('panelCloseBtn');
+    const mapFrame = document.querySelector('.map-frame');
+    function openPanel(){ panel.classList.add('open'); panelToggle.classList.add('open'); mapFrame.classList.add('panel-open'); }
+    function closePanel(){ panel.classList.remove('open'); panelToggle.classList.remove('open'); mapFrame.classList.remove('panel-open'); }
+    function togglePanel(){ if (panel.classList.contains('open')) closePanel(); else openPanel(); }
+    panelToggle.addEventListener('click', togglePanel);
+    panelCloseBtn.addEventListener('click', closePanel);
+
+    async function getUserPosition(){
+      return new Promise((resolve)=>{
+        if (!navigator.geolocation){ return resolve(null); }
+        navigator.geolocation.getCurrentPosition(
+          pos => resolve({lat: pos.coords.latitude, lon: pos.coords.longitude}),
+          _err => resolve(null),
+          {enableHighAccuracy:true, timeout:5000, maximumAge:60000}
+        );
+      });
+    }
+
+    function haversineKm(aLat,aLon,bLat,bLon){
+      const R=6371; const toRad=x=>x*Math.PI/180;
+      const dLat=toRad(bLat-aLat), dLon=toRad(bLon-aLon);
+      const la1=toRad(aLat), la2=toRad(bLat);
+      const h = Math.sin(dLat/2)**2 + Math.cos(la1)*Math.cos(la2)*Math.sin(dLon/2)**2;
+      return 2*R*Math.asin(Math.sqrt(h));
+    }
+
+    document.getElementById('mVolunteer').addEventListener('click', (e)=>{ e.preventDefault(); closeSidebar(); window.open('https://gonullu.afad.gov.tr/', '_blank'); });
+    document.getElementById('mContact').addEventListener('click', (e)=>{ e.preventDefault(); closeSidebar(); window.open('https://www.izmir.bel.tr/', '_blank'); });
+
+    const map = L.map('map', {
+      zoomControl: false,
+      attributionControl: false
+    }).setView([38.42, 27.14], 8);
+
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {maxZoom:19, attribution:'&copy; OpenStreetMap'});
+
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      {maxZoom:19, attribution:'&copy; Esri'});
+
+    satelliteLayer.addTo(map);
+    L.Icon.Default.prototype.options.imagePath = '';
+
+    const baseMaps = {
+      'Standart': osmLayer,
+      'Uydu': satelliteLayer
+    };
+    L.control.layers(baseMaps, {}, {position: 'topleft', collapsed: true}).addTo(map);
+
+    map.createPane('izmirBoundary');
+    map.getPane('izmirBoundary').style.zIndex = 650;
+    const IZMIR_BBOX = { minLon:26.230389, minLat:37.818402, maxLon:28.495245, maxLat:39.392935 };
+    const izmirBounds = [[IZMIR_BBOX.minLat, IZMIR_BBOX.minLon],[IZMIR_BBOX.maxLat, IZMIR_BBOX.maxLon]];
+    let izmirBoundaryLayer = null;
+    let izmirPolygons = null;
+
+    function isPointInPolygon(lat, lon, polygon) {
+      const ring = polygon;
+      let inside = false;
+      const n = ring.length;
+      for (let i = 0; i < n; i++) {
+        const [x1, y1] = ring[i];
+        const [x2, y2] = ring[(i + 1) % n];
+        if ((y1 > lat) !== (y2 > lat)) {
+          const x_at_lat = (x2 - x1) * (lat - y1) / (y2 - y1) + x1;
+          if (lon < x_at_lat) {
+            inside = !inside;
+          }
+        }
+      }
+      return inside;
+    }
+
+    function isInIzmir(lat, lon) {
+      if (!izmirPolygons || izmirPolygons.length === 0) return true;
+      for (const polygonRings of izmirPolygons) {
+        const outerRing = polygonRings[0];
+        const holes = polygonRings.slice(1);
+        if (isPointInPolygon(lat, lon, outerRing)) {
+          let inHole = false;
+          for (const hole of holes) {
+            if (isPointInPolygon(lat, lon, hole)) {
+              inHole = true;
+              break;
+            }
+          }
+          if (!inHole) return true;
+        }
+      }
+      return false;
+    }
+
+    (async function loadIzmirBoundary(){
+      try{
+        const r = await fetch('/static/data/izmir.geojson');
+        if(!r.ok) throw new Error('not_found');
+        const gj = await r.json();
+
+        izmirPolygons = [];
+        function extractGeometry(geom) {
+          if (!geom) return;
+          if (geom.type === 'Polygon') {
+            const rings = geom.coordinates.map(ring => ring.map(([lon, lat]) => [lon, lat]));
+            izmirPolygons.push(rings);
+          } else if (geom.type === 'MultiPolygon') {
+            for (const poly of geom.coordinates) {
+              const rings = poly.map(ring => ring.map(([lon, lat]) => [lon, lat]));
+              izmirPolygons.push(rings);
+            }
+          }
+        }
+
+        if (gj.type === 'FeatureCollection') {
+          for (const feat of (gj.features || [])) {
+            extractGeometry(feat.geometry);
+          }
+        } else if (gj.type === 'Feature') {
+          extractGeometry(gj.geometry);
+        } else {
+          extractGeometry(gj);
+        }
+
+        izmirBoundaryLayer = L.geoJSON(gj, {
+          pane:'izmirBoundary',
+          style: { color:'#F59E0B', weight:5, fillOpacity:0, opacity:1, dashArray:'' },
+          pointToLayer: () => null
+        }).addTo(map);
+      }catch(e){ console.warn('İzmir sınır GeoJSON yüklenemedi:', e); }
+    })();
+
+    let firesLayer, spreadLayer, reservoirLayer=null, autoTimer=null;
+    let firePointLayer = null;
+    let lastWind = null;
+    let allActiveLayers = [];
+
+    let riskLayer = null;
+    let legendCtl = null;
+    let riskActive = false;
+
+    function markerStyle(p){
+      const c = (p.confidence||'').toLowerCase();
+      const color = c === 'h' ? '#d32f2f' : c === 'n' ? '#f57c00' : '#1976d2';
+      return { radius: 5, color, fillColor: color, fillOpacity: 0.8, weight: 1 };
+    }
+
+    function riskColor(r){
+      if (r>0.8) return '#bd0026';
+      if (r>0.6) return '#f03b20';
+      if (r>0.3) return '#fd8d3c';
+      if (r>0.1) return '#fecc5c';
+      return '#ffffb2';
+    }
+
+    function firePopupHtml(p){
+      const date = p.acq_date || '-';
+      const time = p.acq_time || '';
+      const when = (date||time) ? `${date} ${time} UTC` : '-';
+      const frp = (p.frp !== undefined && p.frp !== null) ? p.frp : '-';
+      const bright = p.brightness ?? p.bright_ti4 ?? p.bright_ti5 ?? '-';
+      const conf = p.confidence ?? '-';
+      return `<b>Yangın Algısı</b><br>
+        Başlangıç: ${when}<br>
+        Anlık büyüklük (FRP MW): ${frp}<br>
+        Şiddet: güven ${conf}, parlaklık ${bright}<br>
+        Uydu: ${p.satellite||'-'} ${p.instrument?('('+p.instrument+')'):''}`;
+    }
+
+    function createFiresLayer(geo){
+      const filteredFeatures = (geo.features || []).filter(f => {
+        const coords = f.geometry?.coordinates;
+        if (!coords || coords.length < 2) return false;
+        const [lon, lat] = coords;
+        return isInIzmir(lat, lon);
+      });
+
+      const filteredGeo = {
+        type: 'FeatureCollection',
+        features: filteredFeatures
+      };
+
+      return L.geoJSON(filteredGeo, {
+        pointToLayer:(f,latlng)=>L.circleMarker(latlng, markerStyle(f.properties||{})),
+        onEachFeature:(f,l)=>{ const p=f.properties||{}; l.bindPopup(firePopupHtml(p)); }
+      });
+    }
+
+    function setStatus(msg){
+      const s = document.getElementById('info');
+      if (s) s.textContent = msg || '';
+    }
+
+    function randomBetween(min, max){
+      return min + Math.random() * (max - min);
+    }
+
+    function createRandomFireList(highCount = 3, lowCount = 3){
+      const bounds = {
+        minLat: 38.10,
+        maxLat: 38.65,
+        minLon: 26.80,
+        maxLon: 27.70
+      };
+
+      function makePoint(type, index){
+        return {
+          id: `${type}-${index + 1}`,
+          type,
+          lat: Number(randomBetween(bounds.minLat, bounds.maxLat).toFixed(5)),
+          lon: Number(randomBetween(bounds.minLon, bounds.maxLon).toFixed(5))
+        };
+      }
+
+      return {
+        high: Array.from({ length: highCount }, (_, i) => makePoint('HIGH', i)),
+        low: Array.from({ length: lowCount }, (_, i) => makePoint('LOW', i))
+      };
+    }
+
+    function renderFirePointInfo(data){
+      const box = document.getElementById('firePointInfo');
+      if (!box) return;
+
+      const highHtml = data.high.map((p, i) => `
+        <div style="margin-bottom:8px;">
+          <strong style="color:#c62828;">High ${i + 1}</strong><br>
+          Lat: ${p.lat}<br>
+          Lon: ${p.lon}
+        </div>
+      `).join('');
+
+      const lowHtml = data.low.map((p, i) => `
+        <div style="margin-bottom:8px;">
+          <strong style="color:#1565c0;">Low ${i + 1}</strong><br>
+          Lat: ${p.lat}<br>
+          Lon: ${p.lon}
+        </div>
+      `).join('');
+
+      box.style.display = 'block';
+      box.innerHTML = `
+        <div style="font-weight:700; margin-bottom:8px;">Seçilen Fire Points</div>
+        <div style="margin-bottom:10px;">${highHtml}</div>
+        <div>${lowHtml}</div>
+      `;
+    }
+
+    function clearFirePointInfo(){
+      const box = document.getElementById('firePointInfo');
+      if (!box) return;
+      box.style.display = 'none';
+      box.innerHTML = '';
+    }
+
+    function toggleFirePoints(){
+      const info = document.getElementById('info');
+
+      if (firePointLayer){
+        try { map.removeLayer(firePointLayer); } catch(e) {}
+        firePointLayer = null;
+        clearFirePointInfo();
+        if (info) info.textContent = 'High / Low noktalar kapatıldı';
+        setStatus('High / Low noktalar kapatıldı');
+        return;
+      }
+
+      const randomList = createRandomFireList(3, 3);
+      const layers = [];
+
+      randomList.high.forEach((p) => {
+        const marker = L.circleMarker([p.lat, p.lon], {
+          radius: 8,
+          color: '#8b0000',
+          weight: 2,
+          fillColor: '#e53935',
+          fillOpacity: 0.9
+        }).bindPopup(`
+          <strong>HIGH POINT</strong><br>
+          Koordinat: ${p.lat}, ${p.lon}
+        `);
+        layers.push(marker);
+      });
+
+      randomList.low.forEach((p) => {
+        const marker = L.circleMarker([p.lat, p.lon], {
+          radius: 8,
+          color: '#0d47a1',
+          weight: 2,
+          fillColor: '#42a5f5',
+          fillOpacity: 0.9
+        }).bindPopup(`
+          <strong>LOW POINT</strong><br>
+          Koordinat: ${p.lat}, ${p.lon}
+        `);
+        layers.push(marker);
+      });
+
+      firePointLayer = L.featureGroup(layers).addTo(map);
+
+      try {
+        const bounds = firePointLayer.getBounds();
+        if (bounds.isValid()) {
+          map.fitBounds(bounds.pad(0.25));
+        }
+      } catch(e) {
+        console.error(e);
+      }
+
+      renderFirePointInfo(randomList);
+
+      if (info) info.textContent = `High: ${randomList.high.length} | Low: ${randomList.low.length}`;
+      setStatus(`High / Low noktalar gösterildi (${randomList.high.length + randomList.low.length})`);
+    }
+
+    async function loadReservoirs(){
+      const info = document.getElementById('info');
+      if (reservoirLayer){
+        map.removeLayer(reservoirLayer);
+        reservoirLayer = null;
+        info.textContent = 'Su Rezervuarları kapatıldı';
+        setStatus('Su Rezervuarları kapatıldı');
+        return;
+      }
+
+      info.textContent = 'Su Rezervuarları yükleniyor...';
+      setStatus('Su Rezervuarları yükleniyor...');
+      try {
+        const r = await fetch('/api/dams');
+        if (!r.ok) throw new Error('API hatası');
+        const gj = await r.json();
+
+        if (!gj.features || gj.features.length === 0) {
+          info.textContent = 'Su Rezervuarı verisi bulunamadı';
+          return;
+        }
+
+        console.log('Barajlar toplam:', gj.features.length);
+
+        const filteredFeatures = gj.features.filter(f => {
+          try {
+            let lat, lon;
+            if (f.geometry.type === 'Point') {
+              [lon, lat] = f.geometry.coordinates;
+            } else if (f.geometry.type === 'Polygon') {
+              [lon, lat] = f.geometry.coordinates[0][0];
+            } else if (f.geometry.type === 'MultiPolygon') {
+              [lon, lat] = f.geometry.coordinates[0][0][0];
+            } else {
+              return false;
+            }
+            return isInIzmir(lat, lon);
+          } catch (e) {
+            return false;
+          }
+        });
+
+        console.log('İzmir içinde:', filteredFeatures.length);
+
+        const filteredGj = { type: 'FeatureCollection', features: filteredFeatures };
+
+        reservoirLayer = L.geoJSON(filteredGj, {
+          style: {
+            color: '#C41E3A',
+            weight: 3,
+            opacity: 0.9,
+            fillColor: '#DC143C',
+            fillOpacity: 0.4
+          },
+          pointToLayer: (feature, latlng) => {
+            const div = L.divIcon({
+              html: '<div style="width: 14px; height: 14px; background-color: #C41E3A; border: 2px solid #F59E0B; border-radius: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+              iconSize: [14, 14],
+              className: 'dam-marker'
+            });
+            return L.marker(latlng, { icon: div });
+          },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties;
+            const popup = `<div style="font-weight: bold; color: #C41E3A;">${props.name || 'Baraj'}</div><div style="font-size: 12px; margin-top: 4px;">Baraj</div>`;
+            layer.bindPopup(popup);
+          }
+        }).addTo(map);
+
+        info.textContent = `Su Rezervuarları açık (${filteredFeatures.length} bulundu)`;
+        setStatus(`Su Rezervuarları açık (${filteredFeatures.length})`);
+      } catch (e) {
+        info.textContent = 'Su Rezervuarları yüklenemedi: ' + e.message;
+        console.error('Baraj yükleme hatası:', e);
+      }
+    }
+
+    let waterSourcesLayer = null;
+    async function loadWaterSources(){
+      const info = document.getElementById('info');
+      if (waterSourcesLayer){
+        map.removeLayer(waterSourcesLayer);
+        waterSourcesLayer = null;
+        info.textContent = 'Su Kaynakları kapatıldı';
+        setStatus('Su Kaynakları kapatıldı');
+        return;
+      }
+
+      info.textContent = 'Su Kaynakları yükleniyor...';
+      setStatus('Su Kaynakları yükleniyor...');
+      try {
+        const r = await fetch('/api/water_sources');
+        if (!r.ok) throw new Error('API hatası');
+        const gj = await r.json();
+
+        if (!gj.features || gj.features.length === 0) {
+          info.textContent = 'Su Kaynağı verisi bulunamadı';
+          return;
+        }
+
+        console.log('Su Kaynakları toplam:', gj.features.length);
+
+        const filteredFeatures = gj.features.filter(f => {
+          try {
+            let lat, lon;
+            if (f.geometry.type === 'Point') {
+              [lon, lat] = f.geometry.coordinates;
+            } else if (f.geometry.type === 'Polygon') {
+              [lon, lat] = f.geometry.coordinates[0][0];
+            } else if (f.geometry.type === 'MultiPolygon') {
+              [lon, lat] = f.geometry.coordinates[0][0][0];
+            } else {
+              return false;
+            }
+            return isInIzmir(lat, lon);
+          } catch (e) {
+            return false;
+          }
+        });
+
+        console.log('İzmir içinde su kaynakları:', filteredFeatures.length);
+
+        const filteredGj = { type: 'FeatureCollection', features: filteredFeatures };
+
+        waterSourcesLayer = L.geoJSON(filteredGj, {
+          style: {
+            color: '#0277BD',
+            weight: 2,
+            opacity: 0.7,
+            fillColor: '#4FC3F7',
+            fillOpacity: 0.3
+          },
+          pointToLayer: (feature, latlng) => {
+            return L.circleMarker(latlng, {
+              radius: 5,
+              fillColor: '#4FC3F7',
+              color: '#0277BD',
+              weight: 2,
+              opacity: 1,
+              fillOpacity: 0.7
+            });
+          },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties;
+            const popup = `<div style="font-weight: bold; color: #0277BD;">${props.name || 'Su Kaynağı'}</div><div style="font-size: 12px; margin-top: 4px;">Su Kaynağı</div>`;
+            layer.bindPopup(popup);
+          }
+        }).addTo(map);
+
+        info.textContent = `Su Kaynakları açık (${filteredFeatures.length} bulundu)`;
+        setStatus(`Su Kaynakları açık (${filteredFeatures.length})`);
+      } catch (e) {
+        info.textContent = 'Su Kaynakları yüklenemedi: ' + e.message;
+        console.error('Su kaynakları yükleme hatası:', e);
+      }
+    }
+
+    async function loadWaterTanks(){
+      const info = document.getElementById('info');
+      if (window.waterTanksLayer){
+        map.removeLayer(window.waterTanksLayer);
+        window.waterTanksLayer = null;
+        info.textContent = 'Su tankları kapatıldı';
+        setStatus('Su tankları kapatıldı');
+        return;
+      }
+
+      info.textContent = 'Su tankları yükleniyor...';
+      setStatus('Su tankları yükleniyor...');
+      try {
+        const r = await fetch('/api/water_tanks');
+        if (!r.ok) throw new Error('API hatası');
+        const gj = await r.json();
+
+        if (!gj.features || gj.features.length === 0) {
+          info.textContent = 'Su tankı verisi bulunamadı';
+          return;
+        }
+
+        console.log('Su tankları toplam:', gj.features.length);
+
+        const filteredFeatures = gj.features.map(f => {
+          const geom = f.geometry;
+          let lon, lat;
+
+          if (geom.type === 'Point') {
+            [lon, lat] = geom.coordinates;
+          } else if (geom.type === 'Polygon' && geom.coordinates[0]) {
+            const coords = geom.coordinates[0];
+            lon = coords.reduce((sum, c) => sum + c[0], 0) / coords.length;
+            lat = coords.reduce((sum, c) => sum + c[1], 0) / coords.length;
+          } else if (geom.type === 'LineString' && geom.coordinates) {
+            const coords = geom.coordinates;
+            lon = coords.reduce((sum, c) => sum + c[0], 0) / coords.length;
+            lat = coords.reduce((sum, c) => sum + c[1], 0) / coords.length;
+          } else {
+            return null;
+          }
+
+          return {
+            ...f,
+            geometry: {
+              type: 'Point',
+              coordinates: [lon, lat]
+            }
+          };
+        }).filter(f => f !== null);
+
+        console.log('Gösterilecek su tankları:', filteredFeatures.length);
+
+        const filteredGj = { type: 'FeatureCollection', features: filteredFeatures };
+
+        window.waterTanksLayer = L.geoJSON(filteredGj, {
+          pointToLayer: (feature, latlng) => {
+            const triangleIcon = L.divIcon({
+              html: '<div style="width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 15px solid #64B5F6; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></div>',
+              iconSize: [16, 15],
+              className: 'water-tank-marker'
+            });
+            return L.marker(latlng, { icon: triangleIcon });
+          },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties;
+            const name = props.name || 'Su Noktası';
+            const popup = `<div style="font-weight: bold; color: #64B5F6;">💧 ${name}</div><div style="font-size: 12px; margin-top: 4px;">Su Noktası</div>`;
+            layer.bindPopup(popup);
+          }
+        }).addTo(map);
+
+        info.textContent = `Su tankları açık (${filteredFeatures.length} bulundu)`;
+        setStatus(`Su tankları açık (${filteredFeatures.length})`);
+      } catch (e) {
+        info.textContent = 'Su tankları yüklenemedi: ' + e.message;
+        console.error('Su tankı yükleme hatası:', e);
+      }
+    }
+
+    let fireStationsLayer = null;
+    async function loadFireStations(){
+      const info = document.getElementById('info');
+      if (fireStationsLayer){
+        map.removeLayer(fireStationsLayer);
+        fireStationsLayer = null;
+        info.textContent = 'İtfaiye istasyonları kapatıldı';
+        setStatus('İtfaiye istasyonları kapatıldı');
+        return;
+      }
+
+      info.textContent = 'İtfaiye istasyonları yükleniyor...';
+      setStatus('İtfaiye istasyonları yükleniyor...');
+      try {
+        const r = await fetch('/api/fire_stations');
+        if (!r.ok) throw new Error('API hatası');
+        const gj = await r.json();
+
+        const features = gj.features || [];
+        if (features.length === 0){
+          info.textContent = 'İtfaiye istasyonu verisi bulunamadı';
+          setStatus('İtfaiye istasyonu verisi yok');
+          return;
+        }
+
+        const pointFeatures = features.map(f => {
+          const geom = f.geometry || {};
+          let lon, lat;
+
+          if (geom.type === 'Point') {
+            [lon, lat] = geom.coordinates;
+          } else if (geom.type === 'Polygon' && geom.coordinates?.[0]) {
+            const coords = geom.coordinates[0];
+            lon = coords.reduce((sum, c) => sum + c[0], 0) / coords.length;
+            lat = coords.reduce((sum, c) => sum + c[1], 0) / coords.length;
+          } else if (geom.type === 'LineString' && geom.coordinates) {
+            const coords = geom.coordinates;
+            lon = coords.reduce((sum, c) => sum + c[0], 0) / coords.length;
+            lat = coords.reduce((sum, c) => sum + c[1], 0) / coords.length;
+          } else {
+            return null;
+          }
+
+          return {
+            ...f,
+            geometry: {
+              type: 'Point',
+              coordinates: [lon, lat]
+            }
+          };
+        }).filter(f => f !== null);
+
+        const filteredGj = { type: 'FeatureCollection', features: pointFeatures };
+
+        const fireIcon = L.divIcon({
+          html: '<div style="width: 18px; height: 18px; border-radius: 50%; background: #e53935; display:flex; align-items:center; justify-content:center; color:white; font-size:12px; box-shadow:0 0 4px rgba(0,0,0,0.4);">🚒</div>',
+          iconSize: [18, 18],
+          className: 'fire-station-marker'
+        });
+
+        fireStationsLayer = L.geoJSON(filteredGj, {
+          pointToLayer: (feature, latlng) => {
+            return L.marker(latlng, { icon: fireIcon });
+          },
+          onEachFeature: (feature, layer) => {
+            const p = feature.properties || {};
+            const name = p.name || 'İtfaiye İstasyonu';
+            const district = p.district ? `<div><strong>İlçe:</strong> ${p.district}</div>` : '';
+            const capacity = p.capacity_level ? `<div><strong>Kapasite:</strong> ${p.capacity_level}</div>` : '';
+            const notes = p.notes ? `<div style="margin-top:4px;font-size:11px;color:#555;">${p.notes}</div>` : '';
+            const popup = `
+              <div style="font-weight:600;color:#e53935;margin-bottom:4px;">🚒 ${name}</div>
+              ${district}
+              ${capacity}
+              ${notes}
+            `;
+            layer.bindPopup(popup);
+          }
+        }).addTo(map);
+
+        info.textContent = `İtfaiye istasyonları açık (${pointFeatures.length} bulundu)`;
+        setStatus(`İtfaiye istasyonları açık (${pointFeatures.length})`);
+      } catch (e) {
+        info.textContent = 'İtfaiye istasyonları yüklenemedi: ' + e.message;
+        console.error('İtfaiye istasyonları yükleme hatası:', e);
+      }
+    }
+
+    let lakesLayer = null;
+    async function loadLakes(){
+      const info = document.getElementById('info');
+      if (lakesLayer){
+        map.removeLayer(lakesLayer);
+        lakesLayer = null;
+        info.textContent = 'Göl ve Göletler kapatıldı';
+        setStatus('Göl ve Göletler kapatıldı');
+        return;
+      }
+
+      info.textContent = 'Göl ve Göletler yükleniyor...';
+      setStatus('Göl ve Göletler yükleniyor...');
+      try {
+        const r = await fetch('/static/data/ponds-lakes.geojson');
+        if (!r.ok) throw new Error('Dosya yüklenemedi');
+        const gj = await r.json();
+
+        const filteredFeatures = (gj.features || []).filter(f => {
+          const coords = f.geometry?.coordinates;
+          if (!coords) return false;
+          let lat, lon;
+          if (f.geometry.type === 'Point') {
+            [lon, lat] = coords;
+          } else if (f.geometry.type === 'Polygon' && coords.length > 0) {
+            [lon, lat] = coords[0][0];
+          } else {
+            return false;
+          }
+          return isInIzmir(lat, lon);
+        });
+
+        const filteredGj = { type: 'FeatureCollection', features: filteredFeatures };
+
+        lakesLayer = L.geoJSON(filteredGj, {
+          style: {
+            color: '#001A2E',
+            fillColor: '#1565C0',
+            fillOpacity: 0.65,
+            weight: 3
+          },
+          pointToLayer: (feature, latlng) => {
+            const div = L.divIcon({
+              html: `<div style="width: 12px; height: 12px; background: linear-gradient(135deg, #0D1B3D 0%, #1565C0 50%, #42A5F5 100%); border: 2.5px solid #001A2E; border-radius: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.4);"></div>`,
+              iconSize: [12, 12],
+              className: 'lake-marker'
+            });
+            return L.marker(latlng, { icon: div });
+          },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties;
+            const name = props.name || props.ad || 'Göl/Gölet';
+            const popup = `<div style="font-weight: bold; color: #0D1B3D;">🌊 ${name}</div><div style="font-size: 12px; margin-top: 4px;">Göl/Gölet</div>`;
+            layer.bindPopup(popup);
+          }
+        }).addTo(map);
+
+        info.textContent = `Göl ve Göletler açık (${filteredFeatures.length} bulundu)`;
+        setStatus(`Göl ve Göletler açık (${filteredFeatures.length})`);
+      } catch (e) {
+        info.textContent = 'Göl ve Göletler yüklenemedi: ' + e.message;
+        console.error('Göl yükleme hatası:', e);
+      }
+    }
+
+    async function loadSheltersGeoJSON(){
+      const r = await fetch('/static/data/assembly_points.geojson', {cache:'no-cache'});
+      if(!r.ok) throw new Error('geojson_not_found');
+      return await r.json();
+    }
+    async function loadSheltersXLSX(){
+      const r = await fetch('/static/data/assembly_points.xlsx', {cache:'no-cache'});
+      if(!r.ok) throw new Error('xlsx_not_found');
+      const buf = await r.arrayBuffer();
+      const wb = XLSX.read(buf, {type:'array'});
+      const wsname = wb.SheetNames[0];
+      const ws = wb.Sheets[wsname];
+      const rows = XLSX.utils.sheet_to_json(ws, {defval:'', raw:false});
+      const feats = [];
+      for (const row of rows){
+        const obj = {}; Object.keys(row).forEach(k=>obj[normalizeKey(k)] = row[k]);
+        const name = obj.name || obj.ad || obj.isim || obj.title || '';
+        let lat = obj.lat || obj.latitude || obj.enlem || obj.y;
+        let lon = obj.lon || obj.lng || obj.long || obj.longitude || obj.boylam || obj.x;
+        if ((lat===undefined || lon===undefined) && (obj.koordinat || obj.konum || obj.location || obj.point || obj.geom || obj.geometry)){
+          const pr = parseCoordString(obj.koordinat || obj.konum || obj.location || obj.point || obj.geom || obj.geometry);
+          lat = pr.lat; lon = pr.lon;
+        }
+        const toNum = (v)=>{
+          if (typeof v === 'number') return v;
+          if (!v) return NaN;
+          let s = String(v).trim();
+          if (s.includes(',') && !s.includes('.')) s = s.replace(',', '.');
+          s = s.replace(/\s/g,'');
+          const n = parseFloat(s); return isNaN(n)?NaN:n;
+        };
+        lat = toNum(lat); lon = toNum(lon);
+        if (!isNaN(lat) && !isNaN(lon)){
+          feats.push({ type:'Feature', geometry:{ type:'Point', coordinates:[lon,lat] }, properties:{ name, ...obj } });
+        }
+      }
+      return { type:'FeatureCollection', features: feats };
+    }
+    function detectDelimiter(text){
+      if (text.indexOf('\t')>=0) return '\t';
+      const semi = (text.match(/;/g)||[]).length;
+      const comma = (text.match(/,/g)||[]).length;
+      return semi>comma ? ';' : ',';
+    }
+    function normalizeKey(k){
+      if (!k) return '';
+      let s = String(k).toLowerCase().trim();
+      s = s.replace(/ı/g,'i').replace(/ş/g,'s').replace(/ğ/g,'g').replace(/ç/g,'c').replace(/ö/g,'o').replace(/ü/g,'u');
+      s = s.replace(/\([^)]*\)/g,'');
+      s = s.replace(/[^a-z0-9_]+/g,'_').replace(/_+/g,'_');
+      return s;
+    }
+    function toNumber(val){
+      if (typeof val === 'number') return val;
+      if (!val) return NaN;
+      let s = String(val).trim();
+      if (s.includes(',') && !s.includes('.')) s = s.replace(',', '.');
+      s = s.replace(/\s/g,'');
+      const n = parseFloat(s);
+      return isNaN(n) ? NaN : n;
+    }
+    function parseCoordString(val){
+      if (!val) return {lat:NaN, lon:NaN};
+      let s = String(val).trim();
+      const m = s.match(/POINT\s*\(\s*([\-0-9\.,\s]+)\)/i);
+      if (m) s = m[1];
+      s = s.replace(/;/g,',').replace(/\s+/g,' ');
+      const parts = s.split(',');
+      if (parts.length>=2){
+        const a = toNumber(parts[0]);
+        const b = toNumber(parts[1]);
+        if (a>=25 && a<=35 && b>=35 && b<=45) return {lat:b, lon:a};
+        if (a>=35 && a<=45 && b>=25 && b<=35) return {lat:a, lon:b};
+        return {lat:a, lon:b};
+      }
+      const sp = s.split(/\s+/);
+      if (sp.length>=2){
+        const a = toNumber(sp[0]); const b = toNumber(sp[1]);
+        if (a>=25 && a<=35 && b>=35 && b<=45) return {lat:b, lon:a};
+        if (a>=35 && a<=45 && b>=25 && b<=35) return {lat:a, lon:b};
+        return {lat:a, lon:b};
+      }
+      return {lat:NaN, lon:NaN};
+    }
+    function csvToGeoJSON(text){
+      const delim = detectDelimiter(text);
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      if (lines.length < 2) throw new Error('empty_csv');
+      const headers = lines[0].split(delim).map(h=>normalizeKey(h));
+      const find = (...keys)=> headers.findIndex(h=>keys.includes(h));
+      const idxLat = find('lat','latitude','y','enlem');
+      const idxLon = find('lon','lng','long','longitude','x','boylam');
+      const idxName = find('name','ad','isim','title');
+      const idxCoord = find('koordinat','konum','location','point','geom','geometry');
+      if ((idxLat<0 || idxLon<0) && idxCoord<0) throw new Error('latlon_missing');
+      const feats = [];
+      for (let i=1;i<lines.length;i++){
+        const cols = lines[i].split(delim);
+        let lat = NaN, lon = NaN;
+        if (idxCoord>=0){ const pr = parseCoordString(cols[idxCoord]); lat = pr.lat; lon = pr.lon; }
+        if (isNaN(lat)||isNaN(lon)){
+          if (cols.length>Math.max(idxLat, idxLon)){
+            lat = toNumber(cols[idxLat]);
+            lon = toNumber(cols[idxLon]);
+          }
+        }
+        if (isNaN(lat)||isNaN(lon)) continue;
+        const props = {};
+        headers.forEach((h,ix)=>{ props[h] = cols[ix]; });
+        props.name = props.name || props.ad || props.isim || props.title || '';
+        feats.push({ type:'Feature', geometry:{ type:'Point', coordinates:[lon,lat] }, properties: props });
+      }
+      return { type:'FeatureCollection', features: feats };
+    }
+    async function loadSheltersCSV(){
+      const r = await fetch('/static/data/assembly_points.csv', {cache:'no-cache'});
+      if(!r.ok) throw new Error('csv_not_found');
+      const text = await r.text();
+      return csvToGeoJSON(text);
+    }
+    async function loadSheltersManifest(){
+      try{
+        const r = await fetch('/api/shelters_manifest', {cache:'no-cache'});
+        if(!r.ok) return {files:[]};
+        return await r.json();
+      }catch(e){ return {files:[]}; }
+    }
+    async function loadSheltersFromFiles(files){
+      const feats = [];
+      const add = (gj)=>{ if (gj && gj.features) gj.features.forEach(f=>feats.push(f)); };
+      for (const url of files){
+        const ext = url.split('.').pop().toLowerCase();
+        try{
+          if (ext === 'geojson' || ext === 'json'){
+            const r = await fetch(url, {cache:'no-cache'}); add(await r.json());
+          } else if (ext === 'csv'){
+            const r = await fetch(url, {cache:'no-cache'}); add(csvToGeoJSON(await r.text()));
+          } else if (ext === 'xlsx' || ext === 'xls'){
+            const r = await fetch(url, {cache:'no-cache'}); const buf = await r.arrayBuffer();
+            const wb = XLSX.read(buf, {type:'array'}); const ws = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(ws, {defval:'', raw:false});
+            const tmp = { type:'FeatureCollection', features: [] };
+            for (const row of rows){
+              const obj = {}; Object.keys(row).forEach(k=>obj[normalizeKey(k)] = row[k]);
+              let lat = obj.lat || obj.latitude || obj.enlem || obj.y;
+              let lon = obj.lon || obj.lng || obj.long || obj.longitude || obj.boylam || obj.x;
+              if ((lat===undefined || lon===undefined) && (obj.koordinat || obj.konum || obj.location || obj.point || obj.geom || obj.geometry)){
+                const pr = parseCoordString(obj.koordinat || obj.konum || obj.location || obj.point || obj.geom || obj.geometry);
+                lat = pr.lat; lon = pr.lon;
+              }
+              const toNum = (v)=>{ if (typeof v==='number') return v; if(!v) return NaN; let s=String(v).trim(); if(s.includes(',')&&!s.includes('.')) s=s.replace(',', '.'); s=s.replace(/\s/g,''); const n=parseFloat(s); return isNaN(n)?NaN:n; };
+              lat = toNum(lat); lon = toNum(lon);
+              const name = obj.name || obj.ad || obj.isim || obj.title || '';
+              if (!isNaN(lat)&&!isNaN(lon)) tmp.features.push({ type:'Feature', geometry:{ type:'Point', coordinates:[lon,lat] }, properties:{ name, ...obj } });
+            }
+            add(tmp);
+          }
+        }catch(e){ console.warn('shelter file parse failed:', url, e); }
+      }
+      return { type:'FeatureCollection', features: feats };
+    }
+
+    async function loadFires(){
+      const info = document.getElementById('info');
+      let d = parseInt(document.getElementById('dr').value||'1',10);
+      d = Math.max(1, Math.min(10, d));
+      info.textContent = 'FIRMS yükleniyor...'; setStatus('FIRMS yükleniyor...');
+      try{
+        const res = await fetch(`/api/firms?day_range=${d}`);
+        const geo = await res.json();
+        if (firesLayer) map.removeLayer(firesLayer);
+        if (geo.error){ info.textContent='Hata: '+geo.error; return; }
+        firesLayer = createFiresLayer(geo).addTo(map);
+        try{ const b = firesLayer.getBounds(); if (b.isValid()) map.fitBounds(b.pad(0.2)); }catch(e){}
+        const count = (geo.features||[]).length;
+        info.textContent = `İzmir Yangınları: ${count}`; setStatus(`İzmir Yangınları: ${count}`);
+      }catch(e){ info.textContent = 'Ağ hatası'; console.error(e); }
+    }
+
+    async function loadLiveTracking(startTracking=false){
+      const btn = document.getElementById('btnLiveTracking');
+      const info = document.getElementById('info');
+
+      if (btn.dataset.isLive === 'true') {
+        btn.dataset.isLive = 'false';
+        btn.textContent = '🔴 Canlı Takip';
+        btn.style.filter = 'brightness(1)';
+        if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+        if (firesLayer) map.removeLayer(firesLayer);
+        info.textContent = 'Canlı takip durduruldu';
+        return;
+      }
+
+      btn.dataset.isLive = 'true';
+      btn.textContent = '🟢 Canlı Takip';
+      btn.style.filter = 'brightness(1.2) drop-shadow(0 0 8px rgba(0,255,0,0.6))';
+
+      await updateLiveData();
+
+      if (autoTimer) clearInterval(autoTimer);
+      autoTimer = setInterval(updateLiveData, 30000);
+    }
+
+    async function updateLiveData(){
+      const info = document.getElementById('info');
+      try{
+        const res = await fetch(`/api/fires?day_range=1`);
+        const geo = await res.json();
+        if (firesLayer) map.removeLayer(firesLayer);
+        if (geo.error){ info.textContent='Hata: '+geo.error; return; }
+        firesLayer = createFiresLayer(geo).addTo(map);
+        try{ const b = firesLayer.getBounds(); if (b.isValid()) map.fitBounds(b.pad(0.2)); }catch(e){}
+        const count = (geo.features||[]).length;
+        const now = new Date().toLocaleTimeString('tr-TR');
+        info.textContent = `🟢 Canlı Yangınlar: ${count} | Güncelleme: ${now}`;
+      }catch(e){ console.error(e); }
+    }
+
+    function ensureLegend(){
+      if (legendCtl) return;
+      legendCtl = L.control({position:'bottomright'});
+      legendCtl.onAdd = function(){
+        const div = L.DomUtil.create('div','legend');
+        div.innerHTML = '<b>Risk</b>'+
+          '<div class="row"><span class="sw" style="background:#ffffb2"></span>0 - 0.1</div>'+
+          '<div class="row"><span class="sw" style="background:#fecc5c"></span>0.1 - 0.3</div>'+
+          '<div class="row"><span class="sw" style="background:#fd8d3c"></span>0.3 - 0.6</div>'+
+          '<div class="row"><span class="sw" style="background:#f03b20"></span>0.6 - 0.8</div>'+
+          '<div class="row"><span class="sw" style="background:#bd0026"></span>0.8 - 1.0</div>';
+        return div;
+      };
+    }
+
+    function currentBboxParam(){
+      const b = map.getBounds();
+      const sw = b.getSouthWest();
+      const ne = b.getNorthEast();
+      const minLon = Math.min(sw.lng, ne.lng);
+      const minLat = Math.min(sw.lat, ne.lat);
+      const maxLon = Math.max(sw.lng, ne.lng);
+      const maxLat = Math.max(sw.lat, ne.lat);
+      return `bbox=${minLon.toFixed(6)},${minLat.toFixed(6)},${maxLon.toFixed(6)},${maxLat.toFixed(6)}`;
+    }
+
+    function contourColor(v){
+      if (v>=0.8) return '#8b0000';
+      if (v>=0.6) return '#d7301f';
+      if (v>=0.4) return '#fc8d59';
+      if (v>=0.2) return '#fdcc8a';
+      return '#fef0d9';
+    }
+
+    let fireRiskLayer = null;
+    let fireRiskLegendCtl = null;
+
+    function getFireRiskColor(riskClass) {
+      const colors = {
+        'SAFE_UNBURNABLE': '#2ecc71',
+        'LOW_RISK': '#f39c12',
+        'MEDIUM_RISK': '#e74c3c',
+        'HIGH_RISK': '#8b0000'
+      };
+      return colors[riskClass] || '#808080';
+    }
+
+    function getFireRiskLabel(riskClass) {
+      const labels = {
+        'SAFE_UNBURNABLE': 'Güvenli/Yanmayan',
+        'LOW_RISK': 'Düşük Risk',
+        'MEDIUM_RISK': 'Orta Risk',
+        'HIGH_RISK': 'Yüksek Risk'
+      };
+      return labels[riskClass] || riskClass;
+    }
+
+    async function loadFireRiskPoints() {
+      const info = document.getElementById('info');
+      info.textContent = 'ML Yangın Risk Noktaları yükleniyor...';
+      setStatus('Yangın risk yükleniyor...');
+
+      try {
+        const response = await fetch('/api/fire-risk/points?limit=50000');
+        if (!response.ok) throw new Error('API hatası: ' + response.status);
+
+        const geoJson = await response.json();
+
+        if (!geoJson.features || geoJson.features.length === 0) {
+          info.textContent = 'Yangın risk verisi bulunamadı';
+          return;
+        }
+
+        console.log('Yangın risk noktaları toplam:', geoJson.features.length);
+
+        const filteredFeatures = geoJson.features.filter(f => {
+          const coords = f.geometry?.coordinates;
+          if (!coords || coords.length < 2) return false;
+          const [lon, lat] = coords;
+          return isInIzmir(lat, lon);
+        });
+
+        console.log('İzmir içinde:', filteredFeatures.length);
+
+        if (fireRiskLayer) map.removeLayer(fireRiskLayer);
+
+        let lowRiskFeatures = filteredFeatures.filter(f => f.properties.risk_class !== 'HIGH_RISK' && f.properties.risk_class !== 'MEDIUM_RISK');
+        let mediumRiskFeatures = filteredFeatures.filter(f => f.properties.risk_class === 'MEDIUM_RISK');
+        let highRiskFeatures = filteredFeatures.filter(f => f.properties.risk_class === 'HIGH_RISK');
+        const orderedFeatures = [...lowRiskFeatures, ...mediumRiskFeatures, ...highRiskFeatures];
+
+        fireRiskLayer = L.geoJSON({type: 'FeatureCollection', features: orderedFeatures}, {
+          pointToLayer: (feature, latlng) => {
+            const props = feature.properties || {};
+            const riskClass = props.risk_class || 'SAFE_UNBURNABLE';
+            const color = getFireRiskColor(riskClass);
+
+            let radius = 3;
+            let opacity = 0.5;
+            let fillOpacity = 0.4;
+
+            if (riskClass === 'HIGH_RISK') {
+              radius = 8;
+              opacity = 1;
+              fillOpacity = 0.85;
+            } else if (riskClass === 'MEDIUM_RISK') {
+              radius = 6;
+              opacity = 0.9;
+              fillOpacity = 0.75;
+            } else if (riskClass === 'LOW_RISK') {
+              radius = 4;
+              opacity = 0.7;
+              fillOpacity = 0.6;
+            }
+
+            return L.circleMarker(latlng, {
+              radius: radius,
+              color: color,
+              fillColor: color,
+              fillOpacity: fillOpacity,
+              weight: 1,
+              opacity: opacity
+            });
+          },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties || {};
+            const riskClass = props.risk_class || 'SAFE_UNBURNABLE';
+            const fireProb = (props.fire_probability * 100).toFixed(1);
+            const riskScore = (props.combined_risk_score).toFixed(3);
+
+            const popup = `<b>Yangın Risk Analizi</b><br>
+              <span style="font-size: 12px;">
+              <strong>${getFireRiskLabel(riskClass)}</strong><br>
+              Yangın Olasılığı: ${fireProb}%<br>
+              Risk Skoru: ${riskScore}<br>
+              Konum: (${parseFloat(feature.geometry.coordinates[1]).toFixed(4)}, ${parseFloat(feature.geometry.coordinates[0]).toFixed(4)})</span>`;
+
+            layer.bindPopup(popup);
+          }
+        }).addTo(map);
+
+        if (fireRiskLegendCtl) {
+          try { fireRiskLegendCtl.remove(); } catch(e) {}
+        }
+
+        fireRiskLegendCtl = L.control({ position: 'bottomright' });
+        fireRiskLegendCtl.onAdd = function() {
+          const div = L.DomUtil.create('div', 'legend');
+          div.style.backgroundColor = 'white';
+          div.style.padding = '10px';
+          div.style.borderRadius = '5px';
+          div.style.boxShadow = '0 0 15px rgba(0,0,0,0.2)';
+          div.style.fontSize = '12px';
+
+          div.innerHTML = '<b>Yangın Risk Sınıfları</b><br>' +
+            '<div class="row"><span class="sw" style="background:#8b0000; width: 12px; height: 12px; display: inline-block; margin-right: 5px; border-radius: 50%;"></span>Yüksek Risk (' + highRiskFeatures.length + ')</div>' +
+            '<div class="row"><span class="sw" style="background:#e74c3c; width: 10px; height: 10px; display: inline-block; margin-right: 5px; border-radius: 50%;"></span>Orta Risk (' + mediumRiskFeatures.length + ')</div>' +
+            '<div class="row"><span class="sw" style="background:#f39c12; width: 8px; height: 8px; display: inline-block; margin-right: 5px; border-radius: 50%;"></span>Düşük Risk (' + lowRiskFeatures.filter(f => f.properties.risk_class === 'LOW_RISK').length + ')</div>' +
+            '<div class="row"><span class="sw" style="background:#2ecc71; width: 6px; height: 6px; display: inline-block; margin-right: 5px; border-radius: 50%;"></span>Güvenli (' + lowRiskFeatures.filter(f => f.properties.risk_class !== 'LOW_RISK').length + ')</div>';
+          return div;
+        };
+        fireRiskLegendCtl.addTo(map);
+
+        info.textContent = `ML Yangın Risk Noktaları açık (${filteredFeatures.length} bulundu)`;
+        setStatus(`Yangın risk açık (${filteredFeatures.length})`);
+
+      } catch (e) {
+        info.textContent = 'Yangın risk yükleme hatası: ' + e.message;
+        console.error('Yangın risk yükleme hatası:', e);
+      }
+    }
+
+    let heatmapLayer = null;
+    let heatmapLegendCtl = null;
+    let airAccessLayer = null;
+    let proximityLayer = null;
+    let proximityLegendCtl = null;
+    let proximityLinesLayer = null;
+    let integratedLayer = null;
+    let integratedLegendCtl = null;
+    let pipelineLayer = null;
+    let pipelineLegendCtl = null;
+
+    async function loadPipelineLayer() {
+      const info = document.getElementById('info');
+      info.textContent = 'Pipeline sonucu yükleniyor...';
+      setStatus('Pipeline sonucu yükleniyor...');
+
+      try {
+        const response = await fetch('/api/fire_station_risk_matching');
+        if (!response.ok) throw new Error('API hatası: ' + response.status);
+
+        const geoJson = await response.json();
+
+        if (!geoJson.features || geoJson.features.length === 0) {
+          info.textContent = 'Pipeline sonucu verisi bulunamadı';
+          return;
+        }
+
+        console.log('Pipeline risk noktaları:', geoJson.features.length);
+
+        if (pipelineLayer) {
+          try { map.removeLayer(pipelineLayer); } catch (e) {}
+        }
+
+        if (!map.getPane('pipelinePane')) {
+          map.createPane('pipelinePane');
+          map.getPane('pipelinePane').style.zIndex = 760;
+        }
+
+        const palette = [
+          '#e41a1c', '#377eb8', '#4daf4a', '#984ea3',
+          '#ff7f00', '#ffff33', '#a65628', '#f781bf', '#999999'
+        ];
+        const clusterColors = {};
+        let colorIndex = 0;
+
+        pipelineLayer = L.geoJSON(geoJson, {
+          pane: 'pipelinePane',
+          pointToLayer: (feature, latlng) => {
+            const props = feature.properties || {};
+            const clusterId = props.cluster_id || 'default_cluster';
+            if (!clusterColors[clusterId]) {
+              clusterColors[clusterId] = palette[colorIndex % palette.length];
+              colorIndex += 1;
+            }
+            const color = clusterColors[clusterId];
+            return L.circleMarker(latlng, {
+              radius: 4,
+              color: color,
+              weight: 1,
+              fillColor: color,
+              fillOpacity: 0.85,
+              opacity: 0.9
+            });
+          },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties || {};
+            const riskClass = props.risk_class || 'N/A';
+            const demand = props.demand != null ? props.demand : 1;
+            const clusterId = props.cluster_id || 'N/A';
+            const stationName = props.station_name || 'Bilinmiyor';
+            const distanceKm = (props.distance_km != null)
+              ? Number(props.distance_km).toFixed(2) + ' km'
+              : 'N/A';
+
+            const popupContent = `
+              <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 12px; min-width: 220px;">
+                <div style="font-weight: 700; font-size: 14px; margin-bottom: 6px;">
+                  🔗 Pipeline Sonucu
+                </div>
+                <div style="margin-bottom: 6px;">
+                  <div><strong>Risk Sınıfı:</strong> ${riskClass}</div>
+                  <div><strong>Talep (demand):</strong> ${demand}</div>
+                  <div><strong>Küme (cluster_id):</strong> ${clusterId}</div>
+                </div>
+                <div style="border-top:1px solid #ddd; padding-top:6px; margin-top:4px;">
+                  <div style="font-weight:600; margin-bottom:4px; color:#C41E3A;">🚒 Atanan İtfaiye İstasyonu</div>
+                  <div style="margin-left:10px;">
+                    <div><strong>${stationName}</strong></div>
+                    <div style="font-size:11px; color:#666;">Mesafe: ${distanceKm}</div>
+                  </div>
+                </div>
+              </div>
+            `;
+
+            layer.bindPopup(popupContent);
+          }
+        }).addTo(map);
+
+        if (pipelineLegendCtl) {
+          try { pipelineLegendCtl.remove(); } catch (e) {}
+        }
+
+        pipelineLegendCtl = L.control({ position: 'bottomleft' });
+        pipelineLegendCtl.onAdd = function () {
+          const div = L.DomUtil.create('div', 'legend');
+          div.style.backgroundColor = 'white';
+          div.style.padding = '8px';
+          div.style.borderRadius = '5px';
+          div.style.boxShadow = '0 0 15px rgba(0,0,0,0.2)';
+          div.style.fontSize = '11px';
+
+          const clusterEntries = Object.keys(clusterColors);
+          let html = '<b>📦 Pipeline Kümeleri</b><br/>';
+          clusterEntries.slice(0, 8).forEach(cid => {
+            const c = clusterColors[cid];
+            html += `<div class="row"><span class="sw" style="background:${c}; width:12px; height:12px; display:inline-block; margin-right:5px; border-radius:50%; border:1px solid #333;"></span>${cid}</div>`;
+          });
+          if (clusterEntries.length > 8) {
+            html += `<div style="margin-top:4px; color:#666;">+ ${clusterEntries.length - 8} daha...</div>`;
+          }
+
+          div.innerHTML = html;
+          return div;
+        };
+        pipelineLegendCtl.addTo(map);
+
+        allActiveLayers.push(pipelineLayer);
+        info.textContent = `Pipeline sonucu açık (${geoJson.features.length} nokta)`;
+        setStatus(`Pipeline sonucu açık (${geoJson.features.length} nokta)`);
+      } catch (e) {
+        info.textContent = 'Pipeline sonucu yükleme hatası: ' + e.message;
+        console.error('Pipeline layer hatası:', e);
+      }
+    }
+
+    async function togglePipelineLayer() {
+      const info = document.getElementById('info');
+
+      if (pipelineLayer) {
+        const layerToRemove = pipelineLayer;
+        try { map.removeLayer(pipelineLayer); } catch (e) {}
+        pipelineLayer = null;
+        if (pipelineLegendCtl) {
+          try { pipelineLegendCtl.remove(); } catch (e) {}
+          pipelineLegendCtl = null;
+        }
+        const idx = allActiveLayers.indexOf(layerToRemove);
+        if (idx > -1) allActiveLayers.splice(idx, 1);
+        info.textContent = 'Pipeline sonucu kapatıldı';
+        setStatus('Pipeline sonucu kapatıldı');
+        return;
+      }
+
+      await loadPipelineLayer();
+    }
+
+    async function loadHeatmapGrid() {
+      const info = document.getElementById('info');
+      info.textContent = 'Heatmap grid yükleniyor...';
+      setStatus('Heatmap grid yükleniyor...');
+
+      try {
+        const response = await fetch('/api/fire-risk/heatmap-data?cell_size=0.05');
+        if (!response.ok) throw new Error('API hatası: ' + response.status);
+
+        const geoJson = await response.json();
+
+        if (!geoJson.features || geoJson.features.length === 0) {
+          info.textContent = 'Heatmap verisi bulunamadı';
+          return;
+        }
+
+        console.log('Heatmap grid hücreleri:', geoJson.features.length);
+
+        if (heatmapLayer) map.removeLayer(heatmapLayer);
+
+        heatmapLayer = L.geoJSON(geoJson, {
+          style: (feature) => {
+            const props = feature.properties || {};
+            const riskScore = props.combined_risk_score || 0;
+
+            let color, opacity;
+            if (riskScore >= 0.8) {
+              color = "#8b0000";
+              opacity = 0.85;
+            } else if (riskScore >= 0.6) {
+              color = "#d70000";
+              opacity = 0.80;
+            } else if (riskScore >= 0.4) {
+              color = "#ff4500";
+              opacity = 0.75;
+            } else if (riskScore >= 0.2) {
+              color = "#ffa500";
+              opacity = 0.70;
+            } else {
+              color = "#ffff00";
+              opacity = 0.65;
+            }
+
+            return {
+              color: color,
+              weight: 0.5,
+              fillColor: color,
+              fillOpacity: opacity,
+              opacity: 0.8
+            };
+          },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties || {};
+            const riskScore = props.combined_risk_score || 0;
+            const fireProb = (props.fire_probability * 100).toFixed(1);
+
+            const popup = `<b>Yangın Risk Heatmap</b><br>
+              <span style="font-size: 12px;">
+              Risk Skoru: ${riskScore.toFixed(3)}<br>
+              Yangın Olasılığı: ${fireProb}%<br>
+              Sınıf: ${props.risk_class || 'N/A'}</span>`;
+
+            layer.bindPopup(popup);
+          }
+        }).addTo(map);
+
+        if (heatmapLegendCtl) {
+          try { heatmapLegendCtl.remove(); } catch(e) {}
+        }
+
+        heatmapLegendCtl = L.control({ position: 'bottomright' });
+        heatmapLegendCtl.onAdd = function() {
+          const div = L.DomUtil.create('div', 'legend');
+          div.style.backgroundColor = 'white';
+          div.style.padding = '12px';
+          div.style.borderRadius = '5px';
+          div.style.boxShadow = '0 0 15px rgba(0,0,0,0.3)';
+          div.style.fontSize = '13px';
+          div.style.lineHeight = '1.6';
+
+          div.innerHTML = '<b>Yangın Risk Heatmap</b><br>' +
+            '<div style="margin-top: 8px;">' +
+            '<div><span style="display:inline-block; width: 15px; height: 15px; background: #8b0000; margin-right: 8px;"></span>Çok Yüksek (≥0.8)</div>' +
+            '<div><span style="display:inline-block; width: 15px; height: 15px; background: #d70000; margin-right: 8px;"></span>Yüksek (≥0.6)</div>' +
+            '<div><span style="display:inline-block; width: 15px; height: 15px; background: #ff4500; margin-right: 8px;"></span>Orta (≥0.4)</div>' +
+            '<div><span style="display:inline-block; width: 15px; height: 15px; background: #ffa500; margin-right: 8px;"></span>Düşük (≥0.2)</div>' +
+            '<div><span style="display:inline-block; width: 15px; height: 15px; background: #ffff00; border: 1px solid #333; margin-right: 8px;"></span>Çok Düşük (&lt;0.2)</div>' +
+            '</div>';
+          return div;
+        };
+        heatmapLegendCtl.addTo(map);
+
+        info.textContent = `Yangın Risk Heatmap açık (${geoJson.features.length} hücre)`;
+        setStatus(`Heatmap açık (${geoJson.features.length} hücre)`);
+
+      } catch (e) {
+        info.textContent = 'Heatmap yükleme hatası: ' + e.message;
+        console.error('Heatmap yükleme hatası:', e);
+      }
+    }
+
+    async function toggleHeatmap() {
+      const info = document.getElementById('info');
+
+      if (heatmapLayer) {
+        map.removeLayer(heatmapLayer);
+        heatmapLayer = null;
+        if (heatmapLegendCtl) {
+          try { heatmapLegendCtl.remove(); } catch(e) {}
+          heatmapLegendCtl = null;
+        }
+        info.textContent = 'Yangın Risk Heatmap kapatıldı';
+        setStatus('Heatmap kapatıldı');
+        return;
+      }
+
+      await loadHeatmapGrid();
+    }
+
+    async function toggleFireRisk() {
+      const info = document.getElementById('info');
+
+      if (fireRiskLayer) {
+        map.removeLayer(fireRiskLayer);
+        fireRiskLayer = null;
+        if (fireRiskLegendCtl) {
+          try { fireRiskLegendCtl.remove(); } catch(e) {}
+          fireRiskLegendCtl = null;
+        }
+        info.textContent = 'ML Yangın Risk Noktaları kapatıldı';
+        setStatus('Yangın risk kapatıldı');
+        return;
+      }
+
+      await loadFireRiskPoints();
+    }
+
+    async function loadRiskForView(){
+      const info = document.getElementById('info');
+      const cellInput = document.getElementById('cellKm');
+      const cellKm = Math.max(2, Math.min(50, parseInt((cellInput?.value)||'8',10)));
+      info.textContent = 'Risk (contour) hesaplanıyor...'; setStatus('Risk hesaplanıyor...');
+      try{
+        const url = `/api/risk_grid?cell_km=${cellKm}&use_default_wind=true&${currentBboxParam()}`;
+        const r = await fetch(url);
+        const grid = await r.json();
+        if (grid.error){ info.textContent = 'Risk hata: '+grid.error; return; }
+        const {bbox, nrows, ncols, values} = grid;
+        const minx=bbox[0], miny=bbox[1], maxx=bbox[2], maxy=bbox[3];
+        const dx=(maxx-minx)/(ncols-1); const dy=(maxy-miny)/(nrows-1);
+        const thresholds=[0.2,0.4,0.6,0.8];
+        const contours = d3.contours().size([ncols, nrows]).thresholds(thresholds)(values);
+        const feats=[];
+        for (const con of contours){
+          const val=con.value;
+          const multiPoly = [];
+          for (const poly of con.coordinates){
+            const rings = [];
+            for (const ring of poly){
+              const coords = ring.map(([x,y])=>[minx + x*dx, miny + y*dy]);
+              rings.push(coords);
+            }
+            multiPoly.push(rings);
+          }
+          feats.push({
+            type:'Feature',
+            geometry:{type:'MultiPolygon', coordinates: multiPoly},
+            properties:{level:val}
+          });
+        }
+        const geo = {type:'FeatureCollection', features:feats};
+        if (riskLayer) map.removeLayer(riskLayer);
+        riskLayer = L.geoJSON(geo, { style: f=>({
+          color: contourColor(f.properties?.level||0),
+          weight: 1,
+          opacity: 0.8,
+          fillColor: contourColor(f.properties?.level||0),
+          fillOpacity: 0.28
+        }) }).addTo(map);
+
+        ensureLegend();
+        if (legendCtl){ try{ legendCtl.remove(); }catch(e){} }
+        legendCtl = L.control({position:'bottomright'});
+        legendCtl.onAdd = function(){
+          const div = L.DomUtil.create('div','legend');
+          div.innerHTML = '<b>Risk (Contours)</b>'+
+            '<div class="row"><span class="sw" style="background:#8b0000"></span>≥ 0.8</div>'+
+            '<div class="row"><span class="sw" style="background:#d7301f"></span>≥ 0.6</div>'+
+            '<div class="row"><span class="sw" style="background:#fc8d59"></span>≥ 0.4</div>'+
+            '<div class="row"><span class="sw" style="background:#fdcc8a"></span>≥ 0.2</div>';
+          return div;
+        };
+        legendCtl.addTo(map);
+        info.textContent = 'Risk izohips çizgileri açık'; setStatus('Risk katmanı açık');
+      }catch(e){ info.textContent = 'Risk hatası'; console.error(e); }
+    }
+
+    async function toggleRisk(){
+      const info = document.getElementById('info');
+      if (riskLayer){
+        map.removeLayer(riskLayer); riskLayer=null; riskActive=false;
+        if (legendCtl){ try{ legendCtl.remove(); }catch(e){} }
+        info.textContent='Risk kapatıldı'; setStatus('Risk kapatıldı');
+        return;
+      }
+      riskActive = true;
+      await loadRiskForView();
+    }
+
+    function resetMap(){
+      if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+      const btn = document.getElementById('btnLiveTracking');
+      if (btn) {
+        btn.dataset.isLive = 'false';
+        btn.textContent = '🔴 Canlı Takip';
+        btn.style.filter = 'brightness(1)';
+      }
+
+      allActiveLayers.forEach(layer => {
+        try { map.removeLayer(layer); } catch(e) {}
+      });
+      allActiveLayers = [];
+
+      if (firesLayer){ try { map.removeLayer(firesLayer); } catch(e) {} firesLayer=null; }
+      if (spreadLayer){ try { map.removeLayer(spreadLayer); } catch(e) {} spreadLayer=null; }
+      if (fireRiskLayer){ try { map.removeLayer(fireRiskLayer); } catch(e) {} fireRiskLayer=null; }
+      if (heatmapLayer){ try { map.removeLayer(heatmapLayer); } catch(e) {} heatmapLayer=null; }
+      if (reservoirLayer){ try { map.removeLayer(reservoirLayer); } catch(e) {} reservoirLayer=null; }
+      if (window.waterTanksLayer){ try { map.removeLayer(window.waterTanksLayer); } catch(e) {} window.waterTanksLayer=null; }
+      if (waterSourcesLayer){ try { map.removeLayer(waterSourcesLayer); } catch(e) {} waterSourcesLayer=null; }
+      if (lakesLayer){ try { map.removeLayer(lakesLayer); } catch(e) {} lakesLayer=null; }
+      if (fireStationsLayer){ try { map.removeLayer(fireStationsLayer); } catch(e) {} fireStationsLayer=null; }
+      if (proximityLayer){ try { map.removeLayer(proximityLayer); } catch(e) {} proximityLayer=null; }
+      if (integratedLayer){ try { map.removeLayer(integratedLayer); } catch(e) {} integratedLayer=null; }
+      if (proximityLinesLayer){ try { map.removeLayer(proximityLinesLayer); } catch(e) {} proximityLinesLayer=null; }
+      if (typeof sheltersLayer !== 'undefined' && sheltersLayer){ try { map.removeLayer(sheltersLayer); } catch(e) {} sheltersLayer=null; }
+      if (typeof boundaryPointsLayer !== 'undefined' && boundaryPointsLayer){ try { map.removeLayer(boundaryPointsLayer); } catch(e) {} boundaryPointsLayer=null; }
+      if (firePointLayer){ try { map.removeLayer(firePointLayer); } catch(e) {} firePointLayer=null; }
+
+      if (legendCtl){ try { legendCtl.remove(); } catch(e) {} legendCtl=null; }
+      if (fireRiskLegendCtl){ try { fireRiskLegendCtl.remove(); } catch(e) {} fireRiskLegendCtl=null; }
+      if (heatmapLegendCtl){ try { heatmapLegendCtl.remove(); } catch(e) {} heatmapLegendCtl=null; }
+      if (proximityLegendCtl){ try { proximityLegendCtl.remove(); } catch(e) {} proximityLegendCtl=null; }
+      if (integratedLegendCtl){ try { integratedLegendCtl.remove(); } catch(e) {} integratedLegendCtl=null; }
+
+      const layersToRemove = [];
+      map.eachLayer(function(layer) {
+        if (!(layer instanceof L.TileLayer)) {
+          layersToRemove.push(layer);
+        }
+      });
+      layersToRemove.forEach(layer => {
+        try { map.removeLayer(layer); } catch(e) {}
+      });
+
+      satelliteLayer.addTo(map);
+      if (izmirBoundaryLayer) {
+        try { izmirBoundaryLayer.addTo(map); } catch(e) {}
+      }
+
+      map.setView([38.42, 27.14], 8);
+
+      const drSelect = document.getElementById('dr');
+      if (drSelect) drSelect.value = '1';
+
+      const info = document.getElementById('info');
+      if (info) info.textContent = '';
+      clearFirePointInfo();
+
+      setStatus('Harita sıfırlandı');
+    }
+
+    function setAutoRefresh(on){
+      const info = document.getElementById('info');
+      if (autoTimer){ clearInterval(autoTimer); autoTimer=null; }
+      if (on){
+        autoTimer = setInterval(()=>loadLiveTracking(false), 60000);
+        info.textContent = 'Otomatik yenileme açık (60s)';
+      } else {
+        info.textContent = 'Otomatik yenileme kapalı';
+      }
+    }
+
+    async function loadWindAtCenter(){
+      const info = document.getElementById('info');
+      const c = map.getCenter();
+      info.textContent = 'Rüzgâr sorgulanıyor...'; setStatus('Rüzgâr sorgulanıyor...');
+      try{
+        const r = await fetch(`/api/wind?lat=${c.lat}&lon=${c.lng}`);
+        lastWind = await r.json();
+        if (lastWind.error){ info.textContent='Rüzgâr hata: '+lastWind.error; return; }
+        info.textContent = `Rüzgâr: ${lastWind.speed_ms?.toFixed(1)||'-'} m/s @ ${lastWind.deg?.toFixed(0)||'-'}° (${lastWind.source})`; setStatus('Rüzgâr güncellendi');
+      }catch(e){ info.textContent = 'Ağ hatası'; console.error(e); }
+    }
+
+    async function drawSpread(){
+      const info = document.getElementById('info');
+      const c = map.getCenter();
+      const durInput = document.getElementById('dur');
+      if (!lastWind || lastWind.error){ await loadWindAtCenter(); }
+      const dur = Math.max(5, Math.min(180, parseInt((durInput?.value)||'30',10)));
+      const dir = lastWind?.deg ?? 240;
+      const spd = lastWind?.speed_ms ?? 6;
+      try{
+        const url = `/api/spread?lat=${c.lat}&lon=${c.lng}&wind_dir_deg=${dir}&wind_speed_ms=${spd}&duration_min=${dur}`;
+        const r = await fetch(url);
+        const geo = await r.json();
+        if (spreadLayer) map.removeLayer(spreadLayer);
+        spreadLayer = L.geoJSON(geo, { style:{ color:'#d81b60', weight:2, fillColor:'#d81b60', fillOpacity:0.2 } }).addTo(map);
+        try{ const b = spreadLayer.getBounds(); if (b.isValid()) map.fitBounds(b.pad(0.2)); }catch(e){}
+        info.textContent = `Tahmin çizildi (dir: ${dir.toFixed?.(0)||dir}°, hız: ${spd.toFixed?.(1)||spd} m/s, ${dur} dk)`; setStatus('Yayılım tahmini çizildi');
+      }catch(e){ info.textContent = 'Tahmin hatası'; console.error(e); }
+    }
+
+    function getAccessibilityColor(level) {
+      const colors = {
+        'EXCELLENT': '#2ecc71',
+        'GOOD': '#3498db',
+        'MODERATE': '#f39c12',
+        'DIFFICULT': '#e74c3c',
+        'RESTRICTED': '#8b0000'
+      };
+      return colors[level] || '#999';
+    }
+
+    function getAccessibilityIcon(level) {
+      const icons = {
+        'EXCELLENT': '✅',
+        'GOOD': '👍',
+        'MODERATE': '⚠️',
+        'DIFFICULT': '⛔',
+        'RESTRICTED': '🚫'
+      };
+      return icons[level] || '❓';
+    }
+
+    async function loadAirAccessibility() {
+      const info = document.getElementById('info');
+      info.textContent = 'Hava erişilebilirliği yükleniyor...';
+      setStatus('Hava erişilebilirliği yükleniyor...');
+
+      try {
+        const bounds = map.getBounds();
+        const request = {
+          min_lon: bounds.getWest(),
+          min_lat: bounds.getSouth(),
+          max_lon: bounds.getEast(),
+          max_lat: bounds.getNorth(),
+          grid_size: 0.02,
+          aircraft_type: 'HELICOPTER'
+        };
+
+        const response = await fetch('/api/air-accessibility/grid-map', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(request)
+        });
+
+        if (!response.ok) throw new Error('API hatası: ' + response.status);
+
+        const geoJson = await response.json();
+
+        if (airAccessLayer) map.removeLayer(airAccessLayer);
+
+        airAccessLayer = L.geoJSON(geoJson, {
+          pointToLayer: (feature, latlng) => {
+            const props = feature.properties;
+            const color = getAccessibilityColor(props.accessibility_level);
+
+            return L.circleMarker(latlng, {
+              radius: 6,
+              fillColor: color,
+              color: '#fff',
+              weight: 1,
+              opacity: 0.9,
+              fillOpacity: 0.7
+            });
+          },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties;
+            const icon = getAccessibilityIcon(props.accessibility_level);
+
+            const popupContent = `
+              <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 12px; min-width: 200px;">
+                <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px; color: ${getAccessibilityColor(props.accessibility_level)};">
+                  ${icon} ${props.accessibility_level}
+                </div>
+                <div style="display: grid; gap: 6px;">
+                  <div><strong>Skor:</strong> ${props.score}/100</div>
+                  <div><strong>Mesafe:</strong> ${props.distance_to_base_km} km</div>
+                  <div><strong>Varış:</strong> ~${props.eta_minutes} dakika</div>
+                  <div><strong>Araç:</strong> ${props.aircraft_type === 'HELICOPTER' ? '🚁 Helikopter' : props.aircraft_type}</div>
+                </div>
+              </div>
+            `;
+
+            layer.bindPopup(popupContent);
+          }
+        }).addTo(map);
+
+        if (legendCtl) { try { legendCtl.remove(); } catch(e) {} }
+        legendCtl = L.control({position: 'bottomright'});
+        legendCtl.onAdd = function() {
+          const div = L.DomUtil.create('div', 'legend');
+          div.innerHTML = `
+            <b>🚁 Hava Erişilebilirliği</b>
+            <div class="row"><span class="sw" style="background:#2ecc71"></span>✅ Mükemmel</div>
+            <div class="row"><span class="sw" style="background:#3498db"></span>👍 İyi</div>
+            <div class="row"><span class="sw" style="background:#f39c12"></span>⚠️ Orta</div>
+            <div class="row"><span class="sw" style="background:#e74c3c"></span>⛔ Zor</div>
+            <div class="row"><span class="sw" style="background:#8b0000"></span>🚫 Kısıtlı</div>
+          `;
+          return div;
+        };
+        legendCtl.addTo(map);
+
+        allActiveLayers.push(airAccessLayer);
+        info.textContent = `Hava erişilebilirliği gösteriliyor (${geoJson.features.length} nokta)`;
+        setStatus('Hava erişilebilirliği aktif');
+
+      } catch(e) {
+        info.textContent = 'Hava erişilebilirliği hatası';
+        console.error('Hava erişilebilirliği yükleme hatası:', e);
+      }
+    }
+
+    async function toggleAirAccessibility() {
+      const info = document.getElementById('info');
+
+      if (airAccessLayer) {
+        const layerToRemove = airAccessLayer;
+        map.removeLayer(airAccessLayer);
+        airAccessLayer = null;
+        if (legendCtl) { try { legendCtl.remove(); } catch(e) {} }
+        legendCtl = null;
+        info.textContent = 'Hava erişilebilirliği kapatıldı';
+        setStatus('Hava erişilebilirliği kapatıldı');
+        const idx = allActiveLayers.indexOf(layerToRemove);
+        if (idx > -1) allActiveLayers.splice(idx, 1);
+        return;
+      }
+
+      await loadAirAccessibility();
+    }
+
+    async function loadProximityGrid() {
+      const info = document.getElementById('info');
+      info.textContent = 'Kaynak yakınlık haritası yükleniyor...';
+      setStatus('Kaynak yakınlık haritası yükleniyor...');
+
+      try {
+        const response = await fetch('/api/proximity/high-medium-grid?cell_size=0.02');
+        if (!response.ok) throw new Error('API hatası: ' + response.status);
+
+        const geoJson = await response.json();
+
+        if (!geoJson.features || geoJson.features.length === 0) {
+          info.textContent = 'Kaynak yakınlık verisi bulunamadı';
+          return;
+        }
+
+        console.log('Proximity grid hücreleri:', geoJson.features.length);
+
+        if (proximityLayer) map.removeLayer(proximityLayer);
+
+        if (!map.getPane('proximityPane')) {
+          map.createPane('proximityPane');
+          map.getPane('proximityPane').style.zIndex = 700;
+        }
+
+        if (!map.getPane('proximityPopupPane')) {
+          map.createPane('proximityPopupPane');
+          map.getPane('proximityPopupPane').style.zIndex = 1000;
+        }
+
+        proximityLayer = L.geoJSON(geoJson, {
+          pane: 'proximityPane',
+          interactive: true,
+          style: (feature) => {
+            const props = feature.properties || {};
+            const riskClass = props.risk_class || 'MEDIUM_RISK';
+
+            let color, fillOpacity;
+            if (riskClass === 'HIGH_RISK') {
+              color = '#8b0000';
+              fillOpacity = 0.6;
+            } else {
+              color = '#e74c3c';
+              fillOpacity = 0.5;
+            }
+
+            return {
+              color: color,
+              weight: 1.5,
+              fillColor: color,
+              fillOpacity: fillOpacity,
+              opacity: 0.9
+            };
+          },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties || {};
+            const riskClass = props.risk_class || 'MEDIUM_RISK';
+            const riskScore = (props.combined_risk_score || 0).toFixed(3);
+            const pointCount = props.point_count || 0;
+
+            const waterName = props.nearest_water_name || 'Bilinmiyor';
+            const waterDist = (props.nearest_water_distance_km !== null && props.nearest_water_distance_km !== undefined)
+              ? Number(props.nearest_water_distance_km).toFixed(2) + ' km'
+              : 'N/A';
+
+            const fireStationName = props.nearest_fire_station_name || 'Bilinmiyor';
+            const fireStationDist = (props.nearest_fire_station_distance_km !== null && props.nearest_fire_station_distance_km !== undefined)
+              ? Number(props.nearest_fire_station_distance_km).toFixed(2) + ' km'
+              : 'N/A';
+
+            const popupContent = `
+              <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 12px; min-width: 220px;">
+                <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px; color: ${riskClass === 'HIGH_RISK' ? '#8b0000' : '#e74c3c'};">
+                  ${riskClass === 'HIGH_RISK' ? '🔥 Yüksek Risk' : '⚠️ Orta Risk'}
+                </div>
+                <div style="display: grid; gap: 6px; margin-bottom: 8px;">
+                  <div><strong>Risk Skoru:</strong> ${riskScore}</div>
+                  <div><strong>Nokta Sayısı:</strong> ${pointCount}</div>
+                </div>
+                <div style="border-top: 1px solid #ddd; padding-top: 8px; margin-top: 8px;">
+                  <div style="font-weight: 600; margin-bottom: 4px; color: #0277BD;">💧 En Yakın Su Kaynağı</div>
+                  <div style="margin-left: 12px; margin-bottom: 6px;">
+                    <div><strong>${waterName}</strong></div>
+                    <div style="font-size: 11px; color: #666;">Mesafe: ${waterDist}</div>
+                  </div>
+                  <div style="font-weight: 600; margin-bottom: 4px; color: #C41E3A;">🚒 En Yakın İtfaiye</div>
+                  <div style="margin-left: 12px;">
+                    <div><strong>${fireStationName}</strong></div>
+                    <div style="font-size: 11px; color: #666;">Mesafe: ${fireStationDist}</div>
+                  </div>
+                </div>
+                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd; font-size: 10px; color: #888;">
+                  💡 Bu bölge için en yakın müdahale kaynakları gösteriliyor
+                </div>
+              </div>
+            `;
+
+            layer.bindPopup(popupContent, {
+              className: 'proximity-popup',
+              pane: 'proximityPopupPane',
+              autoPan: true,
+              autoPanPadding: [50, 50]
+            });
+
+            layer.on('click', function(e) {
+              this.openPopup(e.latlng);
+            });
+
+            layer.on('mouseover', function(e) {
+              this.setStyle({ weight: 3 });
+            });
+
+            layer.on('mouseout', function(e) {
+              const props = feature.properties || {};
+              const riskClass = props.risk_class || 'MEDIUM_RISK';
+              const color = riskClass === 'HIGH_RISK' ? '#8b0000' : '#e74c3c';
+              this.setStyle({ weight: 1.5, color: color });
+            });
+          }
+        }).addTo(map);
+
+        if (proximityLegendCtl) {
+          try { proximityLegendCtl.remove(); } catch(e) {}
+        }
+
+        proximityLegendCtl = L.control({ position: 'bottomright' });
+        proximityLegendCtl.onAdd = function() {
+          const div = L.DomUtil.create('div', 'legend');
+          div.style.backgroundColor = 'white';
+          div.style.padding = '10px';
+          div.style.borderRadius = '5px';
+          div.style.boxShadow = '0 0 15px rgba(0,0,0,0.2)';
+          div.style.fontSize = '12px';
+
+          div.innerHTML = '<b>📍 Kaynak Yakınlık Haritası</b><br>' +
+            '<div style="margin-top: 6px;">' +
+            '<div class="row"><span class="sw" style="background:#8b0000; width: 14px; height: 14px; display: inline-block; margin-right: 6px; border: 1px solid #333;"></span>Yüksek Risk</div>' +
+            '<div class="row"><span class="sw" style="background:#e74c3c; width: 14px; height: 14px; display: inline-block; margin-right: 6px; border: 1px solid #333;"></span>Orta Risk</div>' +
+            '<div style="margin-top: 8px; font-size: 11px; color: #666; line-height: 1.4;">' +
+            '💡 <strong>Nasıl kullanılır:</strong><br>' +
+            '• Her kare bir risk bölgesidir<br>' +
+            '• Kareye tıklayınca veya üzerine gelince popup açılır<br>' +
+            '• Popup\'ta en yakın su kaynağı ve itfaiye bilgileri görünür<br>' +
+            '• Mesafeler km cinsinden gösterilir' +
+            '</div>' +
+            '</div>';
+          return div;
+        };
+        proximityLegendCtl.addTo(map);
+
+        allActiveLayers.push(proximityLayer);
+        info.textContent = `Kaynak yakınlık haritası açık (${geoJson.features.length} hücre)`;
+        setStatus(`Kaynak yakınlık haritası açık (${geoJson.features.length} hücre)`);
+
+      } catch(e) {
+        info.textContent = 'Kaynak yakınlık haritası yükleme hatası: ' + e.message;
+        console.error('Proximity yükleme hatası:', e);
+      }
+    }
+
+    async function toggleProximityGrid() {
+      const info = document.getElementById('info');
+
+      if (proximityLayer) {
+        const layerToRemove = proximityLayer;
+        map.removeLayer(proximityLayer);
+        proximityLayer = null;
+        if (proximityLinesLayer) {
+          try { map.removeLayer(proximityLinesLayer); } catch(e) {}
+          proximityLinesLayer = null;
+        }
+        if (proximityLegendCtl) {
+          try { proximityLegendCtl.remove(); } catch(e) {}
+          proximityLegendCtl = null;
+        }
+        const idx = allActiveLayers.indexOf(layerToRemove);
+        if (idx > -1) allActiveLayers.splice(idx, 1);
+        info.textContent = 'Kaynak yakınlık haritası kapatıldı';
+        setStatus('Kaynak yakınlık haritası kapatıldı');
+        return;
+      }
+
+      await loadProximityGrid();
+    }
+
+    function formatAirAccessLevel(level) {
+      if (!level) return 'Bilinmiyor';
+      let v = String(level);
+      if (v.includes('.')) {
+        v = v.split('.').pop();
+      }
+      const labels = {
+        EXCELLENT: 'Mükemmel',
+        GOOD: 'İyi',
+        MODERATE: 'Orta',
+        DIFFICULT: 'Zor',
+        RESTRICTED: 'Kısıtlı'
+      };
+      return labels[v] || v;
+    }
+
+    async function loadIntegratedLayer() {
+      const info = document.getElementById('info');
+      info.textContent = 'Entegre katman yükleniyor...';
+      setStatus('Entegre katman yükleniyor...');
+
+      try {
+        const response = await fetch('/api/dashboard/integrated-layer?cell_size=0.02');
+        if (!response.ok) throw new Error('API hatası: ' + response.status);
+
+        const geoJson = await response.json();
+
+        if (!geoJson.features || geoJson.features.length === 0) {
+          info.textContent = 'Entegre katman verisi bulunamadı';
+          return;
+        }
+
+        console.log('Entegre grid hücreleri:', geoJson.features.length);
+
+        if (integratedLayer) map.removeLayer(integratedLayer);
+
+        if (!map.getPane('integratedPane')) {
+          map.createPane('integratedPane');
+          map.getPane('integratedPane').style.zIndex = 750;
+        }
+
+        integratedLayer = L.geoJSON(geoJson, {
+          pane: 'integratedPane',
+          style: (feature) => {
+            const props = feature.properties || {};
+            const riskClass = props.risk_class || 'MEDIUM_RISK';
+
+            let color, fillOpacity;
+            if (riskClass === 'HIGH_RISK') {
+              color = '#8b0000';
+              fillOpacity = 0.6;
+            } else {
+              color = '#e74c3c';
+              fillOpacity = 0.5;
+            }
+
+            return {
+              color: color,
+              weight: 1.5,
+              fillColor: color,
+              fillOpacity: fillOpacity,
+              opacity: 0.9
+            };
+          },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties || {};
+            const riskClass = props.risk_class || 'MEDIUM_RISK';
+            const riskScore = (props.combined_risk_score || 0).toFixed(3);
+            const pointCount = props.point_count || 0;
+
+            const waterName = props.nearest_water_name || 'Bilinmiyor';
+            const waterDist = (props.nearest_water_distance_km !== null && props.nearest_water_distance_km !== undefined)
+              ? Number(props.nearest_water_distance_km).toFixed(2) + ' km'
+              : 'N/A';
+
+            const fireStationName = props.nearest_fire_station_name || 'Bilinmiyor';
+            const fireStationDist = (props.nearest_fire_station_distance_km !== null && props.nearest_fire_station_distance_km !== undefined)
+              ? Number(props.nearest_fire_station_distance_km).toFixed(2) + ' km'
+              : 'N/A';
+
+            const airLevelRaw = props.air_access_level || '';
+            const airLevelKey = String(airLevelRaw).includes('.') ? String(airLevelRaw).split('.').pop() : airLevelRaw;
+            const airLevelLabel = formatAirAccessLevel(airLevelKey);
+            const airScore = props.air_access_score !== null && props.air_access_score !== undefined
+              ? Number(props.air_access_score).toFixed(1)
+              : null;
+            const airDist = (props.air_distance_to_base_km !== null && props.air_distance_to_base_km !== undefined)
+              ? Number(props.air_distance_to_base_km).toFixed(2) + ' km'
+              : 'N/A';
+            const airEta = (props.air_eta_minutes !== null && props.air_eta_minutes !== undefined)
+              ? Number(props.air_eta_minutes).toFixed(1) + ' dk'
+              : 'N/A';
+            const airBase = props.air_nearest_base || 'Bilinmiyor';
+
+            const popupContent = `
+              <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 12px; min-width: 240px;">
+                <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px; color: ${riskClass === 'HIGH_RISK' ? '#8b0000' : '#e74c3c'};">
+                  ${riskClass === 'HIGH_RISK' ? '🔥 Yüksek Risk' : '⚠️ Orta Risk'}
+                </div>
+                <div style="display: grid; gap: 4px; margin-bottom: 8px;">
+                  <div><strong>Risk Skoru:</strong> ${riskScore}</div>
+                  <div><strong>Nokta Sayısı:</strong> ${pointCount}</div>
+                </div>
+                <div style="border-top: 1px solid #ddd; padding-top: 6px; margin-top: 4px;">
+                  <div style="font-weight: 600; margin-bottom: 4px; color: #0277BD;">💧 En Yakın Su Kaynağı</div>
+                  <div style="margin-left: 12px; margin-bottom: 4px;">
+                    <div><strong>${waterName}</strong></div>
+                    <div style="font-size: 11px; color: #666;">Mesafe: ${waterDist}</div>
+                  </div>
+                  <div style="font-weight: 600; margin-bottom: 4px; color: #C41E3A;">🚒 En Yakın İtfaiye</div>
+                  <div style="margin-left: 12px;">
+                    <div><strong>${fireStationName}</strong></div>
+                    <div style="font-size: 11px; color: #666;">Mesafe: ${fireStationDist}</div>
+                  </div>
+                </div>
+                <div style="border-top: 1px solid #ddd; padding-top: 6px; margin-top: 6px;">
+                  <div style="font-weight: 600; margin-bottom: 4px; color: #2c3e50;">🚁 Hava Erişilebilirliği</div>
+                  <div style="margin-left: 12px; margin-bottom: 4px;">
+                    <div><strong>Seviye:</strong> ${airLevelLabel}${airScore ? ' (' + airScore + '/100)' : ''}</div>
+                    <div style="font-size: 11px; color: #666;">En Yakın Üs: ${airBase}</div>
+                    <div style="font-size: 11px; color: #666;">Mesafe: ${airDist} | ETA: ${airEta}</div>
+                  </div>
+                </div>
+                <div style="margin-top: 6px; padding-top: 4px; border-top: 1px solid #eee; font-size: 10px; color: #888;">
+                  💡 Bu grid hücresi için risk, kaynak yakınlığı ve hava erişimi birlikte gösteriliyor.
+                </div>
+              </div>
+            `;
+
+            layer.bindPopup(popupContent);
+
+            layer.on('click', function(e) {
+              this.openPopup(e.latlng);
+            });
+          }
+        }).addTo(map);
+
+        if (integratedLegendCtl) {
+          try { integratedLegendCtl.remove(); } catch (e) {}
+        }
+
+        integratedLegendCtl = L.control({ position: 'bottomright' });
+        integratedLegendCtl.onAdd = function () {
+          const div = L.DomUtil.create('div', 'legend');
+          div.style.backgroundColor = 'white';
+          div.style.padding = '10px';
+          div.style.borderRadius = '5px';
+          div.style.boxShadow = '0 0 15px rgba(0,0,0,0.2)';
+          div.style.fontSize = '12px';
+
+          div.innerHTML =
+            '<b>🗺️ Entegre Katman</b><br>' +
+            '<div style="margin-top:6px;">' +
+            '<div class="row"><span class="sw" style="background:#8b0000; width:14px; height:14px; display:inline-block; margin-right:6px; border:1px solid #333;"></span>Yüksek Risk</div>' +
+            '<div class="row"><span class="sw" style="background:#e74c3c; width:14px; height:14px; display:inline-block; margin-right:6px; border:1px solid #333;"></span>Orta Risk</div>' +
+            '</div>';
+
+          return div;
+        };
+        integratedLegendCtl.addTo(map);
+
+        allActiveLayers.push(integratedLayer);
+        info.textContent = `Entegre katman açık (${geoJson.features.length} hücre)`;
+        setStatus(`Entegre katman açık (${geoJson.features.length} hücre)`);
+      } catch (e) {
+        info.textContent = 'Entegre katman yükleme hatası: ' + e.message;
+        console.error('Integrated layer hatası:', e);
+      }
+    }
+
+    async function toggleIntegratedLayer() {
+      const info = document.getElementById('info');
+
+      if (integratedLayer) {
+        const layerToRemove = integratedLayer;
+        map.removeLayer(integratedLayer);
+        integratedLayer = null;
+        if (integratedLegendCtl) {
+          try { integratedLegendCtl.remove(); } catch (e) {}
+          integratedLegendCtl = null;
+        }
+        const idx = allActiveLayers.indexOf(layerToRemove);
+        if (idx > -1) allActiveLayers.splice(idx, 1);
+        info.textContent = 'Entegre katman kapatıldı';
+        setStatus('Entegre katman kapatıldı');
+        return;
+      }
+
+      await loadIntegratedLayer();
+    }
+
+    function safeBind(id, eventName, handler){
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener(eventName, handler);
+      }
+    }
+
+    safeBind('btnFires', 'click', loadFires);
+    safeBind('btnLiveTracking', 'click', ()=>loadLiveTracking(true));
+    safeBind('btnFireRisk', 'click', toggleFireRisk);
+    safeBind('btnHeatmap', 'click', toggleHeatmap);
+    safeBind('btnAirAccess', 'click', toggleAirAccessibility);
+    safeBind('btnReservoirs', 'click', loadReservoirs);
+    safeBind('btnWaterSources', 'click', loadWaterSources);
+    safeBind('btnWaterTanks', 'click', loadWaterTanks);
+    safeBind('btnLakes', 'click', loadLakes);
+    safeBind('btnFireStations', 'click', loadFireStations);
+    safeBind('btnProximity', 'click', toggleProximityGrid);
+    safeBind('btnIntegrated', 'click', toggleIntegratedLayer);
+    safeBind('btnFirePoints', 'click', toggleFirePoints);
+    safeBind('btnPipeline', 'click', togglePipelineLayer);
+    safeBind('btnBoundaryPoints', 'click', ()=>loadBoundaryPoints());
+    safeBind('autoRef', 'change', (e)=> setAutoRefresh(e.target.checked));
+    safeBind('cellKm', 'change', ()=>{ if (riskActive) loadRiskForView(); });
+    safeBind('btnReset', 'click', resetMap);
+    safeBind('btnWind', 'click', loadWindAtCenter);
+    safeBind('btnSpread', 'click', drawSpread);
+
+    map.on('moveend zoomend', ()=>{ if (riskActive) loadRiskForView(); });
+  </script>
+</body>
+</html>
