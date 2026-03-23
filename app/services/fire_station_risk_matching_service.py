@@ -7,7 +7,7 @@ Her risk noktasını en yakın itfaiye istasyonu ile eşleştirir (nearest neigh
 import csv
 import math
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 
 def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -61,7 +61,7 @@ def _load_risk_points(root: Path) -> List[Dict[str, Any]]:
     return rows
 
 
-def build_matching(root: Path | None = None) -> List[Dict[str, Any]]:
+def build_matching(root: Optional[Path] = None) -> List[Dict[str, Any]]:
     """
     Tüm risk noktalarını en yakın itfaiye ile eşleştir.
 
