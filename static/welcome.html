@@ -2,164 +2,398 @@
 <html lang="tr">
 <head>
   <meta charset="utf-8"/>
-  <title>KORU - Hoş Geldiniz</title>
+  <title>KORU — Hoş Geldiniz</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    html, body { width:100%; height:100%; }
+    :root {
+      --bg:        #061209;
+      --surface:   #0C1E0E;
+      --card:      rgba(12, 28, 10, 0.75);
+      --border:    rgba(74, 124, 58, 0.2);
+      --border-hi: rgba(245, 158, 11, 0.5);
+      --accent:    #F59E0B;
+      --green:     #4A7C3A;
+      --green-hi:  #6AAD58;
+      --text:      #D8EDD0;
+      --text-2:    #6B9D5C;
+      --text-muted:#3E5C38;
+      --fire:      #FF6B35;
+      --danger:    #EF4444;
+    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html, body { height:100%; }
     body {
-      background: linear-gradient(160deg, #0a1a05 0%, #1a3a0a 50%, #0d1f07 100%);
+      background-color:var(--bg);
+      font-family:'Inter', system-ui, sans-serif;
+      min-height:100vh;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+
+    /* Background */
+    .bg-grid {
+      position:fixed;
+      inset:0;
+      background-image:
+        linear-gradient(rgba(74,124,58,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(74,124,58,0.04) 1px, transparent 1px);
+      background-size:48px 48px;
+      z-index:0;
+      pointer-events:none;
+    }
+    .bg-orb { position:fixed; border-radius:50%; filter:blur(100px); pointer-events:none; z-index:0; }
+    .bg-orb-1 {
+      width:700px; height:700px;
+      background:radial-gradient(circle, rgba(20,70,12,0.4) 0%, transparent 70%);
+      top:-200px; left:-150px;
+    }
+    .bg-orb-2 {
+      width:500px; height:500px;
+      background:radial-gradient(circle, rgba(245,158,11,0.07) 0%, transparent 70%);
+      bottom:-100px; right:-50px;
+    }
+    .bg-orb-3 {
+      width:400px; height:400px;
+      background:radial-gradient(circle, rgba(15,50,10,0.5) 0%, transparent 70%);
+      top:50%; left:50%;
+      transform:translate(-50%,-50%);
+    }
+
+    /* Top bar */
+    .topbar {
+      position:relative;
+      z-index:10;
       display:flex;
       align-items:center;
+      justify-content:space-between;
+      padding:16px 32px;
+      border-bottom:1px solid var(--border);
+      background:rgba(6,18,9,0.6);
+      backdrop-filter:blur(12px);
+    }
+    .topbar-brand {
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .topbar-icon {
+      width:30px; height:30px;
+      background:linear-gradient(135deg, var(--accent), #E67E00);
+      border-radius:8px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:15px;
+      box-shadow:0 2px 10px rgba(245,158,11,0.3);
+    }
+    .topbar-name {
+      font-size:16px;
+      font-weight:700;
+      letter-spacing:3px;
+      color:var(--text);
+    }
+    .topbar-right {
+      display:flex;
+      align-items:center;
+      gap:16px;
+    }
+    .topbar-user {
+      font-size:12px;
+      color:var(--text-2);
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+    .topbar-logout {
+      font-size:12px;
+      color:var(--text-muted);
+      background:none;
+      border:1px solid var(--border);
+      border-radius:8px;
+      padding:6px 14px;
+      color:var(--text-2);
+      cursor:pointer;
+      font-family:'Inter', sans-serif;
+      transition:all .2s;
+    }
+    .topbar-logout:hover {
+      border-color:var(--border-hi);
+      color:var(--accent);
+    }
+
+    /* Main area */
+    .main {
+      position:relative;
+      z-index:1;
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
       justify-content:center;
-      font-family:'Montserrat', system-ui, sans-serif;
+      padding:40px 24px;
+      gap:56px;
+    }
+
+    /* Hero */
+    .hero {
+      text-align:center;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:12px;
+    }
+    .hero-eyebrow {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-size:11px;
+      font-weight:600;
+      letter-spacing:2px;
+      text-transform:uppercase;
+      color:var(--text-2);
+      background:rgba(74,124,58,0.1);
+      border:1px solid var(--border);
+      border-radius:20px;
+      padding:5px 14px;
+    }
+    .live-dot {
+      width:6px; height:6px;
+      border-radius:50%;
+      background:#EF4444;
+      animation:livepulse 1.2s ease-in-out infinite;
+    }
+    .hero-title {
+      font-size:clamp(64px, 12vw, 110px);
+      font-weight:800;
+      letter-spacing:12px;
+      color:var(--text);
+      line-height:1;
+      text-shadow:0 0 80px rgba(74,124,58,0.3);
+    }
+    .hero-sub {
+      font-size:13px;
+      font-weight:400;
+      color:var(--text-muted);
+      letter-spacing:2px;
+      text-transform:uppercase;
+    }
+
+    /* Cards */
+    .cards {
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(280px, 340px));
+      gap:20px;
+      justify-content:center;
+      width:100%;
+      max-width:740px;
+    }
+    .card {
+      position:relative;
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:20px;
+      padding:32px 28px;
+      cursor:pointer;
+      text-decoration:none;
+      display:block;
+      backdrop-filter:blur(20px);
+      -webkit-backdrop-filter:blur(20px);
+      transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease;
       overflow:hidden;
     }
-    
-    video {
-      position:fixed;
-      top:0;
-      left:0;
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      z-index:1;
+    .card::before {
+      content:'';
+      position:absolute;
+      inset:0;
+      background:linear-gradient(135deg, rgba(74,124,58,0.06) 0%, transparent 60%);
+      border-radius:inherit;
+      opacity:0;
+      transition:opacity .25s;
     }
-    
-    .welcome-container {
-      position:relative;
-      z-index:2;
-      text-align:center;
-      padding:60px 40px;
-      border-radius:20px;
-      max-width:800px;
-      width:90%;
-    }
-    
-    h1 {
-      font-size:64px;
-      font-weight:800;
-      color:#fff;
-      margin-bottom:50px;
-      letter-spacing:3px;
-      text-shadow:0 4px 20px rgba(0,0,0,0.5);
-    }
-    
-    .buttons {
-      display:flex;
-      gap:30px;
-      flex-wrap:wrap;
-      justify-content:center;
-      align-items:center;
-    }
-    
-    .btn-welcome {
-      background:rgba(255,255,255,0.1);
-      border:2px solid rgba(255,255,255,0.3);
-      border-radius:20px;
-      padding:60px 70px;
-      cursor:pointer;
-      font-family:'Montserrat', sans-serif;
-      font-size:24px;
-      font-weight:700;
-      color:#fff;
-      transition:all 0.3s ease;
-      min-width:380px;
-      text-align:center;
-      box-shadow:0 8px 32px rgba(31, 38, 135, 0.37);
-      text-decoration:none;
-      display:inline-block;
-      backdrop-filter:blur(4px);
-      -webkit-backdrop-filter:blur(4px);
-    }
-    
-    .btn-welcome:hover {
-      background:rgba(255,255,255,0.2);
-      border-color:rgba(255,255,255,0.6);
-      box-shadow:0 12px 48px rgba(255,255,255,.3);
+    .card:hover {
       transform:translateY(-6px);
+      border-color:rgba(245,158,11,0.35);
+      box-shadow:0 20px 60px rgba(0,0,0,0.4), 0 0 40px rgba(74,124,58,0.1);
     }
-    
-    .btn-welcome:active {
-      transform:translateY(-3px);
+    .card:hover::before { opacity:1; }
+    .card:active { transform:translateY(-3px); }
+
+    /* Card – accent line */
+    .card-accent {
+      position:absolute;
+      top:0; left:28px; right:28px;
+      height:2px;
+      border-radius:2px;
+      opacity:0;
+      transition:opacity .25s;
     }
-    
-    @media (max-width:768px) {
-      h1 {
-        font-size:48px;
-        margin-bottom:40px;
-      }
-      
-      .buttons {
-        gap:20px;
-      }
-      
-      .btn-welcome {
-        padding:45px 55px;
-        font-size:18px;
-        min-width:280px;
-      }
-      
-      .welcome-container {
-        padding:40px 20px;
-      }
+    .card:hover .card-accent { opacity:1; }
+    .card--fire .card-accent {
+      background:linear-gradient(90deg, transparent, var(--fire), var(--accent), transparent);
+    }
+    .card--station .card-accent {
+      background:linear-gradient(90deg, transparent, var(--green-hi), var(--accent), transparent);
+    }
+
+    .card-icon {
+      font-size:32px;
+      margin-bottom:16px;
+      display:block;
+    }
+    .card-title {
+      font-size:18px;
+      font-weight:700;
+      color:var(--text);
+      margin-bottom:8px;
+      letter-spacing:.2px;
+    }
+    .card-desc {
+      font-size:12px;
+      font-weight:400;
+      color:var(--text-2);
+      line-height:1.6;
+    }
+    .card-badge {
+      display:inline-flex;
+      align-items:center;
+      gap:5px;
+      margin-top:20px;
+      font-size:11px;
+      font-weight:600;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      color:var(--accent);
+      border-top:1px solid var(--border);
+      padding-top:16px;
+      width:100%;
+    }
+    .card-badge-arrow { margin-left:auto; opacity:0.6; transition:transform .2s; }
+    .card:hover .card-badge-arrow { transform:translateX(4px); opacity:1; }
+
+    .card--coming .card-title { opacity:0.5; }
+    .card--coming .card-desc { opacity:0.5; }
+    .card--coming .card-badge { color:var(--text-muted); }
+    .soon-chip {
+      position:absolute;
+      top:16px; right:16px;
+      font-size:10px;
+      font-weight:600;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      color:var(--text-muted);
+      background:rgba(74,124,58,0.08);
+      border:1px solid var(--border);
+      border-radius:8px;
+      padding:3px 8px;
+    }
+
+    /* Footer */
+    .footer {
+      position:relative;
+      z-index:10;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:24px;
+      padding:14px 32px;
+      border-top:1px solid var(--border);
+      background:rgba(6,18,9,0.6);
+      backdrop-filter:blur(12px);
+      flex-wrap:wrap;
+    }
+    .footer-item {
+      font-size:11px;
+      color:var(--text-muted);
+      display:flex;
+      align-items:center;
+      gap:5px;
+      letter-spacing:.3px;
+    }
+    .footer-item span { color:var(--text-2); }
+    .footer-divider { width:1px; height:12px; background:var(--border); }
+
+    @keyframes livepulse {
+      0%, 100% { opacity:1; box-shadow:0 0 0 0 rgba(239,68,68,0.4); }
+      50% { opacity:0.7; box-shadow:0 0 0 5px rgba(239,68,68,0); }
+    }
+
+    /* Responsive */
+    @media (max-width:600px) {
+      .topbar { padding:14px 20px; }
+      .topbar-name { font-size:14px; letter-spacing:2px; }
+      .cards { grid-template-columns:1fr; max-width:360px; }
+      .footer { gap:16px; padding:12px 20px; }
+      .footer-divider { display:none; }
     }
   </style>
 </head>
-  <body>
-    <script>
-      (function(){
-        const token = sessionStorage.getItem('token');
-        const isLoggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
-        if (!token || !isLoggedIn) {
-          window.location.href = '/login';
-        }
-      })();
-    </script>
-  <video id="bgVideo"
-    src="/static/img/Paragraf%20metniniz.mp4"
-    muted loop autoplay playsinline preload="auto"
-    oncanplay="this.muted=true;this.play();"
-    onloadeddata="this.muted=true;this.play();">
-  </video>
-  <script>
-    (function(){
-      var v = document.getElementById('bgVideo');
-      if(!v) return;
-      v.muted = true;
-      v.volume = 0;
-      // Hemen dene
-      v.play().catch(function(){});
-      // Her 200ms'de bir, 3 saniye boyunca dene
-      var tries = 0;
-      var interval = setInterval(function(){
-        if(v.paused && tries < 15){
-          v.muted = true;
-          v.play().catch(function(){});
-          tries++;
-        } else {
-          clearInterval(interval);
-        }
-      }, 200);
-    })();
-  </script>
-  
-  <div class="welcome-container">
-    <h1>KORU</h1>
-    <div class="buttons">
-      <a href="/" class="btn-welcome">Canlı Yangın ve Risk Haritası</a>
-      <a href="/" class="btn-welcome" onclick="alert('İtfaiye istasyonları özelliği yakında açılacak'); return false;">İtfaiye Nerede?</a>
-    </div>
-  </div>
-  
-  <script>
-    // Check if logged in
-    const isLoggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
-    if (!isLoggedIn) {
-      window.location.href = '/login';
-    }
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+  <div class="bg-orb bg-orb-3"></div>
 
-  </script>
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-icon">🌲</div>
+      <span class="topbar-name">KORU</span>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-user">
+        <span>👤</span>
+        <span>Admin — Test Kullanıcı</span>
+      </div>
+      <button class="topbar-logout" onclick="window.location.href='/login'">Çıkış</button>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="hero">
+      <div class="hero-eyebrow">
+        <div class="live-dot"></div>
+        İzmir Afet Yönetim Sistemi
+      </div>
+      <h1 class="hero-title">KORU</h1>
+      <p class="hero-sub">Yangın Önleme &amp; İzleme Platformu</p>
+    </div>
+
+    <div class="cards">
+      <!-- Card 1: Fire map -->
+      <a href="/app" class="card card--fire">
+        <div class="card-accent"></div>
+        <span class="card-icon">🔥</span>
+        <div class="card-title">Canlı Yangın ve Risk Haritası</div>
+        <div class="card-desc">NASA FIRMS verileriyle gerçek zamanlı aktif yangın noktaları, risk bölgeleri ve hava erişim katmanları.</div>
+        <div class="card-badge">
+          Haritayı Aç
+          <span class="card-badge-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- Card 2: Fire station -->
+      <a href="#" class="card card--station card--coming" onclick="return false;">
+        <div class="card-accent"></div>
+        <div class="soon-chip">Yakında</div>
+        <span class="card-icon">🚒</span>
+        <div class="card-title">İtfaiye Nerede?</div>
+        <div class="card-desc">En yakın itfaiye istasyonunu bulun, yanıt sürelerini ve güzergahları görüntüleyin.</div>
+        <div class="card-badge">
+          Yakında
+          <span class="card-badge-arrow">→</span>
+        </div>
+      </a>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-item">📞 <span>153</span></div>
+    <div class="footer-divider"></div>
+    <div class="footer-item">📠 <span>(0232) 293 39 95</span></div>
+    <div class="footer-divider"></div>
+    <div class="footer-item">✉️ <a href="mailto:him@izmir.bel.tr" style="color:var(--text-2);text-decoration:none;">him@izmir.bel.tr</a></div>
+  </footer>
 </body>
 </html>

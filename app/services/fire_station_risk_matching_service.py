@@ -7,7 +7,7 @@ Her risk noktasını en yakın itfaiye istasyonu ile eşleştirir (nearest neigh
 import csv
 import math
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 
 def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -61,7 +61,7 @@ def _load_risk_points(root: Path) -> List[Dict[str, Any]]:
     return rows
 
 
-def build_matching(root: Path | None = None) -> List[Dict[str, Any]]:
+def build_matching(root: Optional[Path] = None) -> List[Dict[str, Any]]:
     """
     Tüm risk noktalarını en yakın itfaiye ile eşleştir.
 
@@ -116,7 +116,17 @@ def matching_to_geojson(matching: List[Dict[str, Any]]) -> Dict[str, Any]:
     Her feature: risk noktası + properties'ta station bilgisi ve distance_km.
     """
     features = []
+    # Her istasyon için tutarlı bir cluster_id üretelim ki harita tarafında
+    # "cluster coloring" yapılabilsin. Burada küme kimliği olarak istasyon ID
+    # kullanılıyor (örn. cluster_3 -> station 3'ün hizmet kümesi gibi).
+    station_cluster_ids: Dict[Any, str] = {}
+
     for m in matching:
+        station_id = m["station_id"]
+        if station_id not in station_cluster_ids:
+            station_cluster_ids[station_id] = f"cluster_{station_id}"
+        cluster_id = station_cluster_ids[station_id]
+
         features.append({
             "type": "Feature",
             "geometry": {
@@ -126,7 +136,12 @@ def matching_to_geojson(matching: List[Dict[str, Any]]) -> Dict[str, Any]:
             "properties": {
                 "risk_id": m["risk_id"],
                 "risk_class": m["risk_class"],
-                "station_id": m["station_id"],
+                # Talebe (demand) karşılık gelen her risk noktası için şimdilik
+                # 1 birimlik talep varsayıyoruz; ileride pipeline'dan gerçek
+                # demand değeri beslenebilir.
+                "demand": 1,
+                "cluster_id": cluster_id,
+                "station_id": station_id,
                 "station_name": m["station_name"],
                 "distance_km": m["distance_km"],
             },
