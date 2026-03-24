@@ -79,6 +79,21 @@
     .copyable:hover .copy-btn{ display:inline-block }
     .proximity-popup{ z-index: 2000 !important; }
     .leaflet-popup-pane{ z-index: 2000 !important; }
+
+    /* ═══ ACCORDION PANEL ═══ */
+    .acc{border-bottom:1px solid rgba(74,124,58,.12)}
+    .acc:last-of-type{border-bottom:none}
+    .acc-head{display:flex;align-items:center;gap:8px;padding:12px 0;cursor:pointer;user-select:none;transition:color .2s}
+    .acc-head:hover{color:var(--accent)}
+    .acc-icon{flex-shrink:0;width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:rgba(74,124,58,.1);border-radius:8px}
+    .acc-icon svg{width:14px;height:14px;stroke:var(--text2);stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+    .acc-label{font-size:12px;font-weight:700;letter-spacing:.5px;flex:1;color:var(--text)}
+    .acc-count{font-size:10px;font-weight:600;color:var(--text2);background:rgba(74,124,58,.12);border-radius:10px;padding:2px 8px}
+    .acc-arrow{font-size:10px;color:var(--text2);transition:transform .25s ease;margin-left:4px}
+    .acc.open .acc-arrow{transform:rotate(180deg)}
+    .acc-body{max-height:0;overflow:hidden;transition:max-height .3s ease}
+    .acc.open .acc-body{max-height:400px}
+    .acc-body .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:0 0 12px 0}
     @media (max-width:480px){ .panel{width:100%;top:76px;right:0;height:calc(100% - 76px - 60px);transform:translateX(100%)} .panel-toggle{right:12px} .panel-toggle.open{right:12px} .map-frame{top:88px; left:8px; right:8px; bottom:68px; border-width:1px} .header{padding:10px 12px} .logo{height:34px} .header .title{font-size:14px; letter-spacing:.05px; white-space:nowrap} .footer{height:64px} .footer img{height:44px; max-width:45vw} .footer .contact{font-size:11px} }
   </style>
 </head>
@@ -100,41 +115,89 @@
   <div id="backdrop" class="backdrop"></div>
   <div class="panel">
     <button class="panel-close-btn" id="panelCloseBtn" title="Paneli Kapat">×</button>
-    <div class="section">
-      <div class="section-title">İzmir Yangınları</div>
-      <div class="row">
-        <label for="dr">Yangın Aralığı</label>
-        <select id="dr" style="height:28px;padding:3px 8px;border:1px solid #d3d7e3;border-radius:8px;font-family:inherit;font-size:12px">
-          <option value="1">Son 24 saat</option>
-          <option value="7">Son 1 hafta</option>
-        </select>
-        <button id="btnFires" class="btn btn-outline">Göster</button>
-        <button id="btnLiveTracking" class="btn btn-primary">🔴 Canlı Takip</button>
+
+    <!-- Yangın Takibi -->
+    <div class="acc open">
+      <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
+        <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M12 2c-4 4-7 8-7 12a7 7 0 0014 0c0-4-3-8-7-12z"/></svg></div>
+        <span class="acc-label">Yangın Takibi</span>
+        <span class="acc-count">2</span>
+        <span class="acc-arrow">▼</span>
+      </div>
+      <div class="acc-body">
+        <div class="row">
+          <label for="dr">Aralık</label>
+          <select id="dr">
+            <option value="1">Son 24 saat</option>
+            <option value="7">Son 1 hafta</option>
+          </select>
+          <button id="btnFires" class="btn btn-outline">Göster</button>
+          <button id="btnLiveTracking" class="btn btn-primary">Canlı Takip</button>
+        </div>
       </div>
     </div>
-    <div class="section">
-      <div class="section-title">Risk ve Katmanlar</div>
-      <div class="row">
-        <button id="btnFireRisk" class="btn btn-outline">Riskli Bölgeler</button>
-        <button id="btnHeatmap" class="btn btn-outline">Isıl Harita</button>
-        <button id="btnAirAccess" class="btn btn-outline">🚁 Hava Erişimi</button>
-        <button id="btnReservoirs" class="btn btn-outline">Su Rezervuarları</button>
-        <button id="btnWaterSources" class="btn btn-outline">Su Kaynakları</button>
-        <button id="btnWaterTanks" class="btn btn-outline">Su Tankları</button>
-        <button id="btnLakes" class="btn btn-outline">Göl ve Göletler</button>
-        <button id="btnFireStations" class="btn btn-outline">🚒 İtfaiye İstasyonları</button>
-        <button id="btnProximity" class="btn btn-outline">📍 Kaynak Yakınlık</button>
-        <button id="btnIntegrated" class="btn btn-outline">🗺️ Entegre Katman</button>
-        <button id="btnFirePoints" class="btn btn-outline">🔥 High / Low Noktalar</button>
-        <button id="btnPipeline" class="btn btn-outline">📦 Pipeline Sonucu</button>
+
+    <!-- Risk Analizi -->
+    <div class="acc">
+      <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
+        <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>
+        <span class="acc-label">Risk Analizi</span>
+        <span class="acc-count">4</span>
+        <span class="acc-arrow">▼</span>
+      </div>
+      <div class="acc-body">
+        <div class="row">
+          <button id="btnFireRisk" class="btn btn-outline">Riskli Bölgeler</button>
+          <button id="btnHeatmap" class="btn btn-outline">Isıl Harita</button>
+          <button id="btnFirePoints" class="btn btn-outline">High / Low</button>
+          <button id="btnPipeline" class="btn btn-outline">Pipeline</button>
+        </div>
       </div>
     </div>
-    <div class="section">
+
+    <!-- Su Kaynakları -->
+    <div class="acc">
+      <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
+        <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M12 2c-4 5-7 9-7 13a7 7 0 0014 0c0-4-3-8-7-13z"/><path d="M9.5 16a2.5 2.5 0 005 0" opacity=".5"/></svg></div>
+        <span class="acc-label">Su Kaynakları</span>
+        <span class="acc-count">4</span>
+        <span class="acc-arrow">▼</span>
+      </div>
+      <div class="acc-body">
+        <div class="row">
+          <button id="btnReservoirs" class="btn btn-outline">Rezervuarlar</button>
+          <button id="btnWaterSources" class="btn btn-outline">Su Kaynakları</button>
+          <button id="btnWaterTanks" class="btn btn-outline">Su Tankları</button>
+          <button id="btnLakes" class="btn btn-outline">Göl & Göletler</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Erişim & Müdahale -->
+    <div class="acc">
+      <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
+        <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M9 20l-5.447-2.724A2 2 0 013 15.382V5.618a2 2 0 011.106-1.789L9 1m0 19l6-3m-6 3V1m6 16l4.553 2.276A2 2 0 0021 17.382V7.618a2 2 0 00-.894-1.664L15 2m0 15V2m0 0L9 1"/></svg></div>
+        <span class="acc-label">Erişim & Müdahale</span>
+        <span class="acc-count">4</span>
+        <span class="acc-arrow">▼</span>
+      </div>
+      <div class="acc-body">
+        <div class="row">
+          <button id="btnAirAccess" class="btn btn-outline">Hava Erişimi</button>
+          <button id="btnFireStations" class="btn btn-outline">İtfaiye</button>
+          <button id="btnProximity" class="btn btn-outline">Yakınlık</button>
+          <button id="btnIntegrated" class="btn btn-outline">Entegre</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sıfırla + Durum -->
+    <div style="padding:12px 0;display:flex;flex-direction:column;gap:8px">
       <div class="row">
         <button id="btnReset" class="btn">Sıfırla</button>
-        <span id="info" style="margin-left:6px;color:#555"></span>
+        <span id="info" style="margin-left:6px;color:var(--text2)"></span>
       </div>
-      <div id="firePointInfo" style="display:none; margin-top:10px; padding:10px; border:1px solid #d3d7e3; border-radius:8px; background:#fafafa; font-size:12px; color:#333;"></div>
+      <div id="firePointInfo" style="display:none; margin-top:10px; padding:10px; border:1px solid var(--border); border-radius:8px; background:rgba(14,30,12,.6); font-size:12px; color:var(--text);"></div>
     </div>
   </div>
 
