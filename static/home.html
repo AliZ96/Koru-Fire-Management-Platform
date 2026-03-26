@@ -154,6 +154,7 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
 .nav-links a{font-size:12px;font-weight:500;color:var(--text-dark2);letter-spacing:.5px;transition:color .2s}
 .nav-links a:hover{color:var(--text-dark)}
 .nav-cta{font-size:12px;font-weight:700;color:#0A0A0A;background:var(--accent);border:none;border-radius:10px;padding:8px 18px;cursor:pointer;font-family:var(--font);letter-spacing:.5px;transition:all .2s;box-shadow:0 2px 12px rgba(245,158,11,.3)}
+.nav-links a.nav-cta{color:#111111}
 .nav-cta:hover{box-shadow:0 4px 20px rgba(245,158,11,.5);transform:translateY(-1px)}
 .nav-mobile{display:none;background:none;border:none;cursor:pointer;flex-direction:column;gap:4px;padding:8px}
 .nav-mobile span{display:block;width:18px;height:2px;background:var(--text-dark2);border-radius:2px}
@@ -238,7 +239,7 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
 .feat-card:nth-child(3)::before{background:linear-gradient(90deg,transparent,var(--accent),var(--fire),transparent)}
 .feat-card:nth-child(4)::before{background:linear-gradient(90deg,transparent,var(--green-hi),transparent)}
 .feat-card:nth-child(5)::before{background:linear-gradient(90deg,transparent,var(--accent),var(--green-hi),transparent)}
-.feat-icon{width:48px;height:48px;border-radius:12px;background:rgba(74,124,58,.12);border:1px solid rgba(74,124,58,.2);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px}
+.feat-icon{display:none}
 .feat-title{font-size:16px;font-weight:700;color:var(--text-dark);margin-bottom:8px}
 .feat-desc{font-size:13px;color:var(--text-dark2);line-height:1.7}
 
@@ -263,7 +264,7 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
 .usecase-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:48px}
 .persona{background:var(--card-dark);border:1px solid var(--border);border-radius:var(--radius);padding:32px 28px;transition:all .3s}
 .persona:hover{border-color:rgba(74,124,58,.4);box-shadow:0 12px 40px rgba(0,0,0,.3);transform:translateY(-3px)}
-.persona-icon{font-size:32px;margin-bottom:14px;display:block}
+.persona-icon{display:none}
 .persona-role{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
 .persona-title{font-size:18px;font-weight:700;color:var(--text-dark);margin-bottom:8px}
 .persona-desc{font-size:13px;color:var(--text-dark2);line-height:1.7}
@@ -558,27 +559,22 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
     </div>
     <div class="features-grid">
       <div class="feat-card reveal">
-        <div class="feat-icon">🧠</div>
         <div class="feat-title">ML Risk Zone Modelling</div>
         <div class="feat-desc">Trained on 10 years of İzmir wildfire data — satellite imagery, NDVI vegetation indices, topography, and meteorological patterns — to predict where the next fire is most likely to ignite.</div>
       </div>
       <div class="feat-card reveal reveal-d1">
-        <div class="feat-icon">🗺️</div>
         <div class="feat-title">Accessibility & Resource Analysis</div>
         <div class="feat-desc">GIS-powered evaluation of every risk zone — which are reachable by fire trucks, which require helicopter deployment, and where water sources and fire stations are positioned.</div>
       </div>
       <div class="feat-card reveal reveal-d2">
-        <div class="feat-icon">🚒</div>
         <div class="feat-title">SA + Genetic Algorithm Routes</div>
         <div class="feat-desc">Scenario-based route optimization using Simulated Annealing and Genetic Algorithms. Generates strategic intervention paths in under 2 minutes — factoring in terrain, road access, and resource proximity.</div>
       </div>
       <div class="feat-card reveal reveal-d3">
-        <div class="feat-icon">📊</div>
         <div class="feat-title">Strategic Planning Dashboard</div>
         <div class="feat-desc">Interactive map layers, risk heatmaps, scenario simulation, and real-time monitoring. One command center for fire chiefs to visualize threats and coordinate multi-team response.</div>
       </div>
       <div class="feat-card reveal">
-        <div class="feat-icon">☁️</div>
         <div class="feat-title">Cloud-Native Backend API</div>
         <div class="feat-desc">Built on FastAPI and deployed on Azure. OWASP-secured with role-based access control, designed to serve 50+ concurrent users across municipal fire departments.</div>
       </div>
@@ -606,13 +602,11 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
     </div>
     <div class="usecase-grid">
       <div class="persona reveal">
-        <span class="persona-icon">👨‍🚒</span>
         <div class="persona-role">Ali Yılmaz — Regional Fire Chief</div>
         <div class="persona-title">"30 Minutes Lost. That Fire Could Have Been Contained."</div>
         <div class="persona-desc">45 years old, 20 years of frontline experience. Ali once lost 30 critical minutes reaching a large wildfire because no pre-defined strategic response plan existed. With KORU, he simulates scenarios before fire season, reviews optimized routes, and deploys teams with data — not guesswork.</div>
       </div>
       <div class="persona reveal reveal-d1">
-        <span class="persona-icon">🌲</span>
         <div class="persona-role">Elif Çınar — Forest Fire Prevention Officer</div>
         <div class="persona-title">"I Need to Know Where to Focus Before the Season Starts."</div>
         <div class="persona-desc">36-year-old forestry engineer responsible for prevention across İzmir's fire-prone districts. Elif uses KORU's ML risk maps to prioritize firebreak construction, allocate patrol resources, and identify areas where ground teams can't reach — flagging them for aerial intervention planning.</div>
