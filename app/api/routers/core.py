@@ -84,3 +84,17 @@ def get_fire_station_risk_matching():
     root = Path(__file__).resolve().parent.parent.parent.parent
     matching = build_matching(root)
     return matching_to_geojson(matching)
+
+
+@router.get("/pipeline/run", response_class=JSONResponse)
+def run_pipeline(
+    n: int = Query(20, ge=1, le=554, description="Seçilecek risk noktası sayısı"),
+    k: int = Query(4, ge=1, le=100, description="Küme sayısı"),
+):
+    """
+    S9-1: `scripts/llf22/k-means.py` ile aynı pipeline (run_pipeline + pipeline_to_geojson).
+    """
+    from ...services.pipeline_kmeans_service import run_pipeline_geojson
+
+    root = Path(__file__).resolve().parent.parent.parent.parent
+    return run_pipeline_geojson(root=root, n=n, k=k)

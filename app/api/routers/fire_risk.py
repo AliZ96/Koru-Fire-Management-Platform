@@ -9,8 +9,22 @@ from math import radians, sin, cos, sqrt, atan2
 
 router = APIRouter(prefix="/api/fire-risk", tags=["fire-risk"])
 
-# CSV dosyasını yükle
-RISK_DATA_PATH = Path(__file__).parent.parent.parent.parent / "database" / "ml-map" / "izmir_future_fire_risk_dataset.csv"
+# CSV dosya yolları
+# 1) Sprint-8/9 pipeline kaynağı (öncelikli)
+PIPELINE_RISK_DATA_PATH = (
+    Path(__file__).parent.parent.parent.parent
+    / "scripts"
+    / "llf22"
+    / "output"
+    / "izmir_fire_points_filtered2.csv"
+)
+# 2) ML map kaynağı (fallback)
+ML_RISK_DATA_PATH = (
+    Path(__file__).parent.parent.parent.parent
+    / "database"
+    / "ml-map"
+    / "izmir_future_fire_risk_dataset.csv"
+)
 
 # Risk sınıflarına göre renkler
 RISK_COLORS = {
@@ -114,10 +128,56 @@ def _cluster_to_zones(
     return zones
 
 def load_risk_data():
-    """CSV'den yangın risk verilerini yükle"""
-    if RISK_DATA_PATH.exists():
-        return pd.read_csv(RISK_DATA_PATH)
-    return None
+    """CSV'den yangın risk verilerini yükle ve ortak şemaya normalize et."""
+    df = None
+
+    # Kullanıcı isteğine göre öncelik: izmir_fire_points_filtered2.csv
+    if PIPELINE_RISK_DATA_PATH.exists():
+        df = pd.read_csv(PIPELINE_RISK_DATA_PATH)
+    elif ML_RISK_DATA_PATH.exists():
+        df = pd.read_csv(ML_RISK_DATA_PATH)
+    else:
+        return None
+
+    # Ortak kolon adlandırması
+    if "predicted_risk_class" not in df.columns and "risk_class" in df.columns:
+        df["predicted_risk_class"] = df["risk_class"]
+
+    if "latitude" not in df.columns and "center_lat" in df.columns:
+        df["latitude"] = df["center_lat"]
+    if "longitude" not in df.columns and "center_lon" in df.columns:
+        df["longitude"] = df["center_lon"]
+
+    # Pipeline dosyasında olmayan skor alanları için varsayılanlar
+    if "fire_probability" not in df.columns:
+        df["fire_probability"] = 0.0
+    if "high_fire_probability" not in df.columns:
+        # HIGH sınıfı için basit ikili gösterim
+        df["high_fire_probability"] = (df["predicted_risk_class"] == "HIGH_RISK").astype(float)
+    if "combined_risk_score" not in df.columns:
+        # Basit sınıf bazlı skorlandırma (sunum/demoda tutarlı görsel için)
+        class_scores = {
+            "SAFE_UNBURNABLE": 0.1,
+            "LOW_RISK": 0.35,
+            "MEDIUM_RISK": 0.65,
+            "HIGH_RISK": 0.9,
+            "LOW": 0.35,
+            "MEDIUM": 0.65,
+            "HIGH": 0.9,
+        }
+        df["combined_risk_score"] = (
+            df["predicted_risk_class"].map(class_scores).fillna(0.2)
+        )
+
+    # Risk sınıfı değerlerini standartlaştır (LOW/HIGH -> *_RISK)
+    replacements = {
+        "LOW": "LOW_RISK",
+        "HIGH": "HIGH_RISK",
+        "MEDIUM": "MEDIUM_RISK",
+    }
+    df["predicted_risk_class"] = df["predicted_risk_class"].replace(replacements)
+
+    return df
 
 @router.get("/points")
 async def get_fire_risk_points(
