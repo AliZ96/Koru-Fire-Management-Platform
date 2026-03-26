@@ -40,6 +40,12 @@
     .legend{background:rgba(8,21,16,.9);padding:6px 8px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.25);font:12px/1.2 sans-serif;border:1px solid var(--border);color:var(--text)}
     .legend .row{display:flex;align-items:center;margin:2px 0}
     .legend .sw{width:14px;height:14px;margin-right:6px;border:1px solid rgba(74,124,58,.4)}
+    .legend.pipeline-legend{background:rgba(255,255,255,.98);border:1px solid rgba(0,0,0,.12);color:#111827;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+    .legend.pipeline-legend .row{color:#111827;margin:4px 0}
+    .legend.pipeline-legend .sw{border:1px solid rgba(17,24,39,.35)}
+    .legend.pipeline-legend .legend-note{margin:6px 0;font-size:10px;line-height:1.45;color:#374151}
+    .legend.pipeline-legend .legend-title{font-weight:700;color:#111827}
+    .legend.pipeline-legend .legend-subtitle{font-weight:600;margin-top:6px;color:#111827}
     .header{position:absolute;top:0;left:0;right:0;z-index:10000;background:rgba(5,14,7,.92);padding:10px 16px;display:flex;align-items:center;gap:10px;justify-content:flex-start;border-bottom:1px solid var(--border); color:var(--text); flex-wrap:nowrap;backdrop-filter:blur(20px);height:64px}
     .nav-brand{display:flex;align-items:center;gap:8px;flex:0}
     .nav-icon{font-size:24px;display:flex;align-items:center}
@@ -106,7 +112,7 @@
       <span><strong>E-Posta:</strong> <span class="copyable" data-copy="him@izmir.bel.tr"><a href="mailto:him@izmir.bel.tr">him@izmir.bel.tr</a><button type="button" class="copy-btn" aria-label="Kopyala">Kopyala</button></span></span>
     </div>
   </div>
-  <div class="header"><a href="/welcome" class="back-btn" title="Geri">←</a><a href="/" class="brand-link"><div class="nav-brand"><div class="nav-icon">🌲</div><span class="title">KORU</span></div></a><div class="user-info"><div class="user-dropdown"><span id="userDisplay" class="user-dropdown-toggle"></span><div id="userDropdownMenu" class="user-dropdown-menu"><a href="#" id="profileLink">👤 Profil</a><a href="#" id="logoutLink">🚪 Oturum Kapat</a></div></div></div><button id="menuBtn" class="hamburger" aria-label="Menü"><span></span><span></span><span></span></button></div>
+  <div class="header"><a href="/welcome" class="back-btn" title="Geri">←</a><a href="/" class="brand-link"><div class="nav-brand"><img id="logoImg" class="logo" alt="Koru logo"/><span class="title">KORU</span></div></a><div class="user-info"><div class="user-dropdown"><span id="userDisplay" class="user-dropdown-toggle"></span><div id="userDropdownMenu" class="user-dropdown-menu"><a href="#" id="profileLink">Profil</a><a href="#" id="logoutLink">Oturum Kapat</a></div></div></div><button id="menuBtn" class="hamburger" aria-label="Menü"><span></span><span></span><span></span></button></div>
   <div id="sidebar" class="sidebar" aria-hidden="true">
     <a href="#" id="mFires">İzmir Yangınları</a>
     <a href="#" id="mVolunteer">AFAD Gönüllüsü olun</a>
@@ -117,7 +123,7 @@
     <button class="panel-close-btn" id="panelCloseBtn" title="Paneli Kapat">×</button>
 
     <!-- Yangın Takibi -->
-    <div class="acc open">
+    <div class="acc">
       <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
         <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M12 2c-4 4-7 8-7 12a7 7 0 0014 0c0-4-3-8-7-12z"/></svg></div>
         <span class="acc-label">Yangın Takibi</span>
@@ -136,25 +142,25 @@
         </div>
       </div>
     </div>
-    <div class="section">
-      <div class="section-title">Risk ve Katmanlar</div>
-      <div class="row">
-        <button id="btnFireRisk" class="btn btn-outline">Riskli Bölgeler</button>
-        <button id="btnHeatmap" class="btn btn-outline">Isıl Harita</button>
-        <button id="btnAirAccess" class="btn btn-outline">🚁 Hava Erişimi</button>
-        <button id="btnReservoirs" class="btn btn-outline">Su Rezervuarları</button>
-        <button id="btnWaterSources" class="btn btn-outline">Su Kaynakları</button>
-        <button id="btnWaterTanks" class="btn btn-outline">Su Tankları</button>
-        <button id="btnLakes" class="btn btn-outline">Göl ve Göletler</button>
-        <button id="btnFireStations" class="btn btn-outline">🚒 İtfaiye İstasyonları</button>
-        <button id="btnProximity" class="btn btn-outline">📍 Kaynak Yakınlık</button>
-        <button id="btnIntegrated" class="btn btn-outline">🗺️ Entegre Katman</button>
-        <button id="btnFirePoints" class="btn btn-outline">🔥 High / Low Noktalar</button>
-        <button id="btnPipeline" class="btn btn-outline">📦 Pipeline Sonucu</button>
-        <label for="pipelineN">n:</label>
-        <input id="pipelineN" type="number" value="20" min="1" max="554" style="width:64px;" />
-        <label for="pipelineK">k:</label>
-        <input id="pipelineK" type="number" value="4" min="1" max="100" style="width:56px;" />
+    <!-- Risk Analizi -->
+    <div class="acc">
+      <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
+        <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M3 12l4-4 4 4 4-4 4 4"/></svg></div>
+        <span class="acc-label">Risk Analizi</span>
+        <span class="acc-count">4</span>
+        <span class="acc-arrow">▼</span>
+      </div>
+      <div class="acc-body">
+        <div class="row">
+          <button id="btnFireRisk" class="btn btn-outline">Riskli Bölgeler</button>
+          <button id="btnHeatmap" class="btn btn-outline">Isıl Harita</button>
+          <button id="btnFirePoints" class="btn btn-outline">High / Low Noktalar</button>
+          <button id="btnPipeline" class="btn btn-outline">Pipeline Sonucu</button>
+          <label for="pipelineN">n:</label>
+          <input id="pipelineN" type="number" value="20" min="1" max="554" style="width:64px;" />
+          <label for="pipelineK">k:</label>
+          <input id="pipelineK" type="number" value="4" min="1" max="100" style="width:56px;" />
+        </div>
       </div>
     </div>
 
@@ -171,7 +177,7 @@
           <button id="btnReservoirs" class="btn btn-outline">Rezervuarlar</button>
           <button id="btnWaterSources" class="btn btn-outline">Su Kaynakları</button>
           <button id="btnWaterTanks" class="btn btn-outline">Su Tankları</button>
-          <button id="btnLakes" class="btn btn-outline">Göl & Göletler</button>
+          <button id="btnLakes" class="btn btn-outline">Göl ve Göletler</button>
         </div>
       </div>
     </div>
@@ -187,9 +193,9 @@
       <div class="acc-body">
         <div class="row">
           <button id="btnAirAccess" class="btn btn-outline">Hava Erişimi</button>
-          <button id="btnFireStations" class="btn btn-outline">İtfaiye</button>
-          <button id="btnProximity" class="btn btn-outline">Yakınlık</button>
-          <button id="btnIntegrated" class="btn btn-outline">Entegre</button>
+          <button id="btnFireStations" class="btn btn-outline">İtfaiye İstasyonları</button>
+          <button id="btnProximity" class="btn btn-outline">Kaynak Yakınlık</button>
+          <button id="btnIntegrated" class="btn btn-outline">Entegre Katman</button>
         </div>
       </div>
     </div>
@@ -1644,23 +1650,21 @@
 
         pipelineLegendCtl = L.control({ position: 'bottomleft' });
         pipelineLegendCtl.onAdd = function () {
-          const div = L.DomUtil.create('div', 'legend');
-          div.style.backgroundColor = 'white';
+          const div = L.DomUtil.create('div', 'legend pipeline-legend');
           div.style.padding = '8px';
           div.style.borderRadius = '5px';
-          div.style.boxShadow = '0 0 15px rgba(0,0,0,0.2)';
           div.style.fontSize = '11px';
 
           const clusterEntries = Object.keys(clusterColors);
-          let html = '<b>📦 Pipeline (k-means.py)</b><br/>';
-          html += '<div style="margin:6px 0; font-size:10px; color:#444;">● renkli küçük = risk noktası<br/>⬤ kalın = küme merkezi<br/>○ beyaz = atanmış itfaiye</div>';
-          html += '<div style="font-weight:600; margin-top:4px;">Renkler (küme)</div>';
+          let html = '<div class="legend-title">📦 Pipeline (k-means.py)</div>';
+          html += '<div class="legend-note">● renkli küçük = risk noktası<br/>⬤ kalın = küme merkezi<br/>○ beyaz = atanmış itfaiye</div>';
+          html += '<div class="legend-subtitle">Renkler (küme)</div>';
           clusterEntries.slice(0, 8).forEach(cid => {
             const c = clusterColors[cid];
             html += `<div class="row"><span class="sw" style="background:${c}; width:12px; height:12px; display:inline-block; margin-right:5px; border-radius:50%; border:1px solid #333;"></span>${cid}</div>`;
           });
           if (clusterEntries.length > 8) {
-            html += `<div style="margin-top:4px; color:#666;">+ ${clusterEntries.length - 8} daha...</div>`;
+            html += `<div class="legend-note">+ ${clusterEntries.length - 8} daha...</div>`;
           }
 
           div.innerHTML = html;
