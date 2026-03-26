@@ -1,0 +1,630 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 190,
+        "risk_class": "HIGH",
+        "cluster_id": 2,
+        "demand": 98,
+        "fire_station_id": 24,
+        "fire_station_name": "Il\u0131ca \u0130tfaiye Grubu",
+        "station_distance_km": 13.66
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.495,
+          38.2408
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 299,
+        "risk_class": "HIGH",
+        "cluster_id": 1,
+        "demand": 64,
+        "fire_station_id": 31,
+        "fire_station_name": "Kar\u015f\u0131yaka \u0130tfaiyesi",
+        "station_distance_km": 14.1
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.155,
+          38.3408
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 185,
+        "risk_class": "HIGH",
+        "cluster_id": 2,
+        "demand": 99,
+        "fire_station_id": 24,
+        "fire_station_name": "Il\u0131ca \u0130tfaiye Grubu",
+        "station_distance_km": 8.26
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.315,
+          38.2408
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 469,
+        "risk_class": "HIGH",
+        "cluster_id": 0,
+        "demand": 87,
+        "fire_station_id": 6,
+        "fire_station_name": "Bergama OSB \u0130tfaiye Grubu",
+        "station_distance_km": 25.93
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.125,
+          38.8808
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 61,
+        "risk_class": "LOW",
+        "cluster_id": 3,
+        "demand": 41,
+        "fire_station_id": 44,
+        "fire_station_name": "Tire \u0130tfaiye Grubu",
+        "station_distance_km": 9.61
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.635,
+          38.1008
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 229,
+        "risk_class": "LOW",
+        "cluster_id": 4,
+        "demand": 34,
+        "fire_station_id": 7,
+        "fire_station_name": "Beyda\u011f \u0130tfaiye Grubu",
+        "station_distance_km": 24.69
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.385,
+          38.2608
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 432,
+        "risk_class": "LOW",
+        "cluster_id": 1,
+        "demand": 31,
+        "fire_station_id": 31,
+        "fire_station_name": "Kar\u015f\u0131yaka \u0130tfaiyesi",
+        "station_distance_km": 21.87
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.095,
+          38.6608
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 222,
+        "risk_class": "LOW",
+        "cluster_id": 1,
+        "demand": 40,
+        "fire_station_id": 31,
+        "fire_station_name": "Kar\u015f\u0131yaka \u0130tfaiyesi",
+        "station_distance_km": 24.82
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.245,
+          38.2608
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 551,
+        "risk_class": "HIGH",
+        "cluster_id": 0,
+        "demand": 75,
+        "fire_station_id": 6,
+        "fire_station_name": "Bergama OSB \u0130tfaiye Grubu",
+        "station_distance_km": 26.84
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.275,
+          39.3408
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 189,
+        "risk_class": "HIGH",
+        "cluster_id": 2,
+        "demand": 92,
+        "fire_station_id": 24,
+        "fire_station_name": "Il\u0131ca \u0130tfaiye Grubu",
+        "station_distance_km": 11.51
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.465,
+          38.2408
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 381,
+        "risk_class": "LOW",
+        "cluster_id": 1,
+        "demand": 21,
+        "fire_station_id": 31,
+        "fire_station_name": "Kar\u015f\u0131yaka \u0130tfaiyesi",
+        "station_distance_km": 16.96
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.305,
+          38.5408
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 326,
+        "risk_class": "LOW",
+        "cluster_id": 1,
+        "demand": 41,
+        "fire_station_id": 31,
+        "fire_station_name": "Kar\u015f\u0131yaka \u0130tfaiyesi",
+        "station_distance_km": 8.52
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.185,
+          38.4008
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 350,
+        "risk_class": "LOW",
+        "cluster_id": 1,
+        "demand": 37,
+        "fire_station_id": 31,
+        "fire_station_name": "Kar\u015f\u0131yaka \u0130tfaiyesi",
+        "station_distance_km": 8.82
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.035,
+          38.4808
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 188,
+        "risk_class": "HIGH",
+        "cluster_id": 2,
+        "demand": 91,
+        "fire_station_id": 24,
+        "fire_station_name": "Il\u0131ca \u0130tfaiye Grubu",
+        "station_distance_km": 9.6
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.435,
+          38.2408
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 42,
+        "risk_class": "LOW",
+        "cluster_id": 3,
+        "demand": 47,
+        "fire_station_id": 44,
+        "fire_station_name": "Tire \u0130tfaiye Grubu",
+        "station_distance_km": 3.86
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.785,
+          38.0808
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 192,
+        "risk_class": "HIGH",
+        "cluster_id": 2,
+        "demand": 77,
+        "fire_station_id": 24,
+        "fire_station_name": "Il\u0131ca \u0130tfaiye Grubu",
+        "station_distance_km": 41.06
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.825,
+          38.2408
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 391,
+        "risk_class": "HIGH",
+        "cluster_id": 1,
+        "demand": 64,
+        "fire_station_id": 31,
+        "fire_station_name": "Kar\u015f\u0131yaka \u0130tfaiyesi",
+        "station_distance_km": 14.08
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.065,
+          38.5808
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 292,
+        "risk_class": "HIGH",
+        "cluster_id": 2,
+        "demand": 82,
+        "fire_station_id": 24,
+        "fire_station_name": "Il\u0131ca \u0130tfaiye Grubu",
+        "station_distance_km": 9.82
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.465,
+          38.3408
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 206,
+        "risk_class": "HIGH",
+        "cluster_id": 3,
+        "demand": 99,
+        "fire_station_id": 44,
+        "fire_station_name": "Tire \u0130tfaiye Grubu",
+        "station_distance_km": 21.46
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.905,
+          38.2408
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 365,
+        "risk_class": "LOW",
+        "cluster_id": 1,
+        "demand": 10,
+        "fire_station_id": 31,
+        "fire_station_name": "Kar\u015f\u0131yaka \u0130tfaiyesi",
+        "station_distance_km": 10.57
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.035,
+          38.5208
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_station",
+        "cluster_id": 0,
+        "station_id": 6,
+        "name": "Bergama OSB \u0130tfaiye Grubu",
+        "district": "Bergama",
+        "total_points": 2,
+        "high_count": 2,
+        "low_count": 0,
+        "high_pct": 100.0,
+        "risk_level": "KRITIK",
+        "distance_km": 0.63
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.1937707,
+          39.1077938
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_station",
+        "cluster_id": 1,
+        "station_id": 31,
+        "name": "Kar\u015f\u0131yaka \u0130tfaiyesi",
+        "district": "Kar\u015f\u0131yaka",
+        "total_points": 8,
+        "high_count": 2,
+        "low_count": 6,
+        "high_pct": 25.0,
+        "risk_level": "NORMAL",
+        "distance_km": 0.88
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.134702,
+          38.4665598
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_station",
+        "cluster_id": 2,
+        "station_id": 24,
+        "name": "Il\u0131ca \u0130tfaiye Grubu",
+        "district": "\u00c7e\u015fme",
+        "total_points": 6,
+        "high_count": 6,
+        "low_count": 0,
+        "high_pct": 100.0,
+        "risk_level": "KRITIK",
+        "distance_km": 13.18
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.361923,
+          38.305354
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_station",
+        "cluster_id": 3,
+        "station_id": 44,
+        "name": "Tire \u0130tfaiye Grubu",
+        "district": "Tire",
+        "total_points": 3,
+        "high_count": 1,
+        "low_count": 2,
+        "high_pct": 33.3,
+        "risk_level": "NORMAL",
+        "distance_km": 5.78
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.7445669,
+          38.0947013
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_station",
+        "cluster_id": 4,
+        "station_id": 7,
+        "name": "Beyda\u011f \u0130tfaiye Grubu",
+        "district": "Beyda\u011f",
+        "total_points": 1,
+        "high_count": 0,
+        "low_count": 1,
+        "high_pct": 0.0,
+        "risk_level": "NORMAL",
+        "distance_km": 24.69
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.2110254,
+          38.0858461
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "cluster_center",
+        "cluster_id": 0,
+        "total_points": 2,
+        "high_count": 2,
+        "low_count": 0,
+        "risk_level": "KRITIK",
+        "station_id": 6,
+        "station_name": "Bergama OSB \u0130tfaiye Grubu",
+        "station_district": "Bergama",
+        "station_distance_km": 0.63
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.2,
+          39.1108
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "cluster_center",
+        "cluster_id": 1,
+        "total_points": 8,
+        "high_count": 2,
+        "low_count": 6,
+        "risk_level": "NORMAL",
+        "station_id": 31,
+        "station_name": "Kar\u015f\u0131yaka \u0130tfaiyesi",
+        "station_district": "Kar\u015f\u0131yaka",
+        "station_distance_km": 0.88
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.14,
+          38.4733
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "cluster_center",
+        "cluster_id": 2,
+        "total_points": 6,
+        "high_count": 6,
+        "low_count": 0,
+        "risk_level": "KRITIK",
+        "station_id": 24,
+        "station_name": "Il\u0131ca \u0130tfaiye Grubu",
+        "station_district": "\u00c7e\u015fme",
+        "station_distance_km": 13.18
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.5,
+          38.257466666666666
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "cluster_center",
+        "cluster_id": 3,
+        "total_points": 3,
+        "high_count": 1,
+        "low_count": 2,
+        "risk_level": "NORMAL",
+        "station_id": 44,
+        "station_name": "Tire \u0130tfaiye Grubu",
+        "station_district": "Tire",
+        "station_distance_km": 5.78
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.775000000000002,
+          38.1408
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "cluster_center",
+        "cluster_id": 4,
+        "total_points": 1,
+        "high_count": 0,
+        "low_count": 1,
+        "risk_level": "NORMAL",
+        "station_id": 7,
+        "station_name": "Beyda\u011f \u0130tfaiye Grubu",
+        "station_district": "Beyda\u011f",
+        "station_distance_km": 24.69
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.385,
+          38.2608
+        ]
+      }
+    }
+  ]
+}

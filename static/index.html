@@ -136,22 +136,25 @@
         </div>
       </div>
     </div>
-
-    <!-- Risk Analizi -->
-    <div class="acc">
-      <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
-        <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>
-        <span class="acc-label">Risk Analizi</span>
-        <span class="acc-count">4</span>
-        <span class="acc-arrow">▼</span>
-      </div>
-      <div class="acc-body">
-        <div class="row">
-          <button id="btnFireRisk" class="btn btn-outline">Riskli Bölgeler</button>
-          <button id="btnHeatmap" class="btn btn-outline">Isıl Harita</button>
-          <button id="btnFirePoints" class="btn btn-outline">High / Low</button>
-          <button id="btnPipeline" class="btn btn-outline">Pipeline</button>
-        </div>
+    <div class="section">
+      <div class="section-title">Risk ve Katmanlar</div>
+      <div class="row">
+        <button id="btnFireRisk" class="btn btn-outline">Riskli Bölgeler</button>
+        <button id="btnHeatmap" class="btn btn-outline">Isıl Harita</button>
+        <button id="btnAirAccess" class="btn btn-outline">🚁 Hava Erişimi</button>
+        <button id="btnReservoirs" class="btn btn-outline">Su Rezervuarları</button>
+        <button id="btnWaterSources" class="btn btn-outline">Su Kaynakları</button>
+        <button id="btnWaterTanks" class="btn btn-outline">Su Tankları</button>
+        <button id="btnLakes" class="btn btn-outline">Göl ve Göletler</button>
+        <button id="btnFireStations" class="btn btn-outline">🚒 İtfaiye İstasyonları</button>
+        <button id="btnProximity" class="btn btn-outline">📍 Kaynak Yakınlık</button>
+        <button id="btnIntegrated" class="btn btn-outline">🗺️ Entegre Katman</button>
+        <button id="btnFirePoints" class="btn btn-outline">🔥 High / Low Noktalar</button>
+        <button id="btnPipeline" class="btn btn-outline">📦 Pipeline Sonucu</button>
+        <label for="pipelineN">n:</label>
+        <input id="pipelineN" type="number" value="20" min="1" max="554" style="width:64px;" />
+        <label for="pipelineK">k:</label>
+        <input id="pipelineK" type="number" value="4" min="1" max="100" style="width:56px;" />
       </div>
     </div>
 
@@ -432,6 +435,9 @@
         izmirBoundaryLayer = L.geoJSON(gj, {
           pane:'izmirBoundary',
           style: { color:'#F59E0B', weight:5, fillOpacity:0, opacity:1, dashArray:'' },
+          // Sınır çizgisi sadece görsel; mouse/hover olaylarını pipeline gibi katmanlara bırakıyoruz.
+          interactive: false,
+          bubblingMouseEvents: false,
           pointToLayer: () => null
         }).addTo(map);
       }catch(e){ console.warn('İzmir sınır GeoJSON yüklenemedi:', e); }
@@ -1417,7 +1423,12 @@
       setStatus('Pipeline sonucu yükleniyor...');
 
       try {
-        const response = await fetch('/api/fire_station_risk_matching');
+        const nInput = document.getElementById('pipelineN');
+        const kInput = document.getElementById('pipelineK');
+        const n = Math.max(1, parseInt(nInput?.value || '20', 10) || 20);
+        const k = Math.max(1, parseInt(kInput?.value || '4', 10) || 4);
+
+        const response = await fetch(`/api/pipeline/run?n=${n}&k=${k}`);
         if (!response.ok) throw new Error('API hatası: ' + response.status);
 
         const geoJson = await response.json();
@@ -1427,7 +1438,10 @@
           return;
         }
 
-        console.log('Pipeline risk noktaları:', geoJson.features.length);
+        const meta = geoJson.meta || {};
+        const nSamples = meta.risk_sample_features ?? meta.total_points ?? meta.selected_points ?? 0;
+        const nCentroids = meta.centroid_features ?? meta.total_clusters ?? meta.clusters ?? 0;
+        console.log('Pipeline (k-means.py): örnek nokta', nSamples, 'merkez', nCentroids);
 
         if (pipelineLayer) {
           try { map.removeLayer(pipelineLayer); } catch (e) {}
@@ -1449,12 +1463,43 @@
           pane: 'pipelinePane',
           pointToLayer: (feature, latlng) => {
             const props = feature.properties || {};
-            const clusterId = props.cluster_id || 'default_cluster';
-            if (!clusterColors[clusterId]) {
-              clusterColors[clusterId] = palette[colorIndex % palette.length];
+            const ft = props.type || (props.kind === 'cluster_centroid' ? 'cluster_center' : 'fire_point');
+            const clusterKey = props.cluster_id != null ? String(props.cluster_id) : 'default';
+            if (!clusterColors[clusterKey]) {
+              clusterColors[clusterKey] = palette[colorIndex % palette.length];
               colorIndex += 1;
             }
-            const color = clusterColors[clusterId];
+            const color = clusterColors[clusterKey];
+            if (ft === 'cluster_center') {
+              return L.circleMarker(latlng, {
+                radius: 11,
+                color: '#1a1a1a',
+                weight: 3,
+                fillColor: color,
+                fillOpacity: 0.95,
+                opacity: 1
+              });
+            }
+            if (ft === 'fire_station') {
+              // Kare "kutucuk" marker: circle yerine divIcon kullanıyoruz
+              const sizePx = 22; // biraz daha büyütüldü
+              return L.marker(latlng, {
+                icon: L.divIcon({
+                  className: 'fireStationSquareIcon',
+                  iconSize: [sizePx, sizePx],
+                  iconAnchor: [sizePx / 2, sizePx / 2],
+                  html: `
+                    <div style="
+                      width:${sizePx}px;height:${sizePx}px;
+                      background:#ff2d2d;
+                      border:2px solid #b30000;
+                      border-radius:2px;
+                      box-sizing:border-box;
+                    "></div>
+                  `,
+                }),
+              });
+            }
             return L.circleMarker(latlng, {
               radius: 4,
               color: color,
@@ -1466,35 +1511,130 @@
           },
           onEachFeature: (feature, layer) => {
             const props = feature.properties || {};
-            const riskClass = props.risk_class || 'N/A';
-            const demand = props.demand != null ? props.demand : 1;
-            const clusterId = props.cluster_id || 'N/A';
-            const stationName = props.station_name || 'Bilinmiyor';
-            const distanceKm = (props.distance_km != null)
-              ? Number(props.distance_km).toFixed(2) + ' km'
-              : 'N/A';
+            const ft = props.type || (props.kind === 'cluster_centroid' ? 'cluster_center' : 'fire_point');
+            const clusterId = props.cluster_id != null ? props.cluster_id : 'N/A';
 
-            const popupContent = `
-              <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 12px; min-width: 220px;">
+            let popupContent;
+            if (ft === 'cluster_center') {
+              const stName = props.station_name || 'Bilinmiyor';
+              const distSt = props.station_distance_km != null
+                ? Number(props.station_distance_km).toFixed(2) + ' km'
+                : '—';
+              const hi = props.high_count != null ? props.high_count : '—';
+              const lo = props.low_count != null ? props.low_count : '—';
+              const rl = props.risk_level || '—';
+              const dist = feature.geometry && feature.geometry.coordinates
+                ? `(${feature.geometry.coordinates[1].toFixed(4)}, ${feature.geometry.coordinates[0].toFixed(4)})`
+                : '—';
+              popupContent = `
+              <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 12px; min-width: 240px;">
                 <div style="font-weight: 700; font-size: 14px; margin-bottom: 6px;">
-                  🔗 Pipeline Sonucu
+                  ⊕ Küme merkezi (K-Means)
                 </div>
-                <div style="margin-bottom: 6px;">
-                  <div><strong>Risk Sınıfı:</strong> ${riskClass}</div>
-                  <div><strong>Talep (demand):</strong> ${demand}</div>
-                  <div><strong>Küme (cluster_id):</strong> ${clusterId}</div>
-                </div>
-                <div style="border-top:1px solid #ddd; padding-top:6px; margin-top:4px;">
-                  <div style="font-weight:600; margin-bottom:4px; color:#C41E3A;">🚒 Atanan İtfaiye İstasyonu</div>
-                  <div style="margin-left:10px;">
-                    <div><strong>${stationName}</strong></div>
-                    <div style="font-size:11px; color:#666;">Mesafe: ${distanceKm}</div>
-                  </div>
+                <div><strong>Küme:</strong> ${clusterId}</div>
+                <div><strong>Merkez:</strong> ${dist}</div>
+                <div><strong>İtfaiye mesafesi (merkez–istasyon):</strong> ${distSt}</div>
+                <div><strong>Nokta:</strong> ${props.total_points != null ? props.total_points : '—'} (${hi} HIGH, ${lo} LOW) → ${rl}</div>
+                <div style="border-top:1px solid #ddd; padding-top:6px; margin-top:6px;">
+                  <div style="font-weight:600; color:#C41E3A;">🚒 ${stName}</div>
+                  <div style="font-size:11px; color:#666;">${props.station_district || ''}</div>
                 </div>
               </div>
             `;
+            } else if (ft === 'fire_station') {
+              const distKm = props.distance_km != null
+                ? Number(props.distance_km).toFixed(2) + ' km'
+                : '—';
+              popupContent = `
+              <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 12px; min-width: 220px;">
+                <div style="font-weight: 700; font-size: 14px; margin-bottom: 6px;">
+                  🚒 Atanan itfaiye (konum)
+                </div>
+                <div><strong>${props.name || 'Bilinmiyor'}</strong></div>
+                <div style="font-size:11px;">${props.district || ''}</div>
+                <div style="margin-top:6px;"><strong>Küme:</strong> ${clusterId}</div>
+                <div><strong>Merkez–istasyon:</strong> ${distKm}</div>
+                <div><strong>Kümede nokta:</strong> ${props.total_points != null ? props.total_points : '—'} (HIGH ${props.high_count != null ? props.high_count : '—'})</div>
+              </div>
+            `;
+            } else {
+              const riskClass = props.risk_class || 'N/A';
+              const demand = props.demand != null ? props.demand : 1;
+              const stLabel = props.fire_station_name || ('İstasyon #' + (props.fire_station_id != null ? props.fire_station_id : ''));
+              const distanceKm = (props.station_distance_km != null)
+                ? Number(props.station_distance_km).toFixed(1) + ' km'
+                : 'N/A';
+              popupContent = `
+              <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 12px; min-width: 220px;">
+                <div style="font-weight: 700; font-size: 14px; margin-bottom: 6px;">
+                  🔗 Örnek risk noktası
+                </div>
+                <div style="margin-bottom: 6px;">
+                  <div><strong>ID:</strong> ${props.id != null ? props.id : '—'}</div>
+                  <div><strong>Risk:</strong> ${riskClass}</div>
+                  <div><strong>Demand:</strong> ${demand}</div>
+                  <div><strong>Küme:</strong> ${clusterId}</div>
+                </div>
+                <div style="border-top:1px solid #ddd; padding-top:6px; margin-top:4px;">
+                  <div style="font-weight:600; margin-bottom:4px; color:#C41E3A;">🚒 ${stLabel}</div>
+                  <div style="font-size:11px; color:#666;">Mesafe: ${distanceKm}</div>
+                </div>
+              </div>
+            `;
+            }
 
             layer.bindPopup(popupContent);
+
+            // Hover tooltip: fire_point üzerinde id + lat/lon görünsün
+            if (ft === 'fire_point') {
+              const coords = feature.geometry && feature.geometry.coordinates ? feature.geometry.coordinates : null; // [lon, lat]
+              const lon = coords ? coords[0] : null;
+              const lat = coords ? coords[1] : null;
+              const idText = props.id != null ? props.id : '—';
+              const latText = lat != null ? Number(lat).toFixed(4) : '—';
+              const lonText = lon != null ? Number(lon).toFixed(4) : '—';
+              const hoverHtml = `
+                <div style="
+                  background: rgba(255,255,255,0.96);
+                  border: 2px solid #ff2d2d;
+                  border-radius: 6px;
+                  padding: 6px 8px;
+                  font-size: 12px;
+                  color: #111;
+                  line-height: 1.2;
+                  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+                ">
+                  <div style="font-weight:700; color:#b30000; margin-bottom:3px;">Fire Point</div>
+                  <div><strong>ID:</strong> ${idText}</div>
+                  <div><strong>Lat:</strong> ${latText}</div>
+                  <div><strong>Lon:</strong> ${lonText}</div>
+                </div>
+              `;
+
+              layer.bindTooltip(hoverHtml, {
+                direction: 'top',
+                sticky: true,
+                opacity: 1,
+                offset: [0, -10],
+              });
+
+              // Hover olduğunda noktayı belirgin yap
+              const baseRadius = 4;
+              const hoverRadius = 7;
+              const c = clusterColors[String(clusterId)] || color;
+              layer.on('mouseover', () => {
+                try {
+                  layer.setRadius(hoverRadius);
+                  layer.setStyle({ weight: 2, color: '#111', fillOpacity: 1 });
+                } catch (e) {}
+              });
+              layer.on('mouseout', () => {
+                try {
+                  layer.setRadius(baseRadius);
+                  layer.setStyle({ weight: 1, color: c, fillOpacity: 0.85 });
+                } catch (e) {}
+              });
+            }
           }
         }).addTo(map);
 
@@ -1512,7 +1652,9 @@
           div.style.fontSize = '11px';
 
           const clusterEntries = Object.keys(clusterColors);
-          let html = '<b>📦 Pipeline Kümeleri</b><br/>';
+          let html = '<b>📦 Pipeline (k-means.py)</b><br/>';
+          html += '<div style="margin:6px 0; font-size:10px; color:#444;">● renkli küçük = risk noktası<br/>⬤ kalın = küme merkezi<br/>○ beyaz = atanmış itfaiye</div>';
+          html += '<div style="font-weight:600; margin-top:4px;">Renkler (küme)</div>';
           clusterEntries.slice(0, 8).forEach(cid => {
             const c = clusterColors[cid];
             html += `<div class="row"><span class="sw" style="background:${c}; width:12px; height:12px; display:inline-block; margin-right:5px; border-radius:50%; border:1px solid #333;"></span>${cid}</div>`;
@@ -1527,8 +1669,8 @@
         pipelineLegendCtl.addTo(map);
 
         allActiveLayers.push(pipelineLayer);
-        info.textContent = `Pipeline sonucu açık (${geoJson.features.length} nokta)`;
-        setStatus(`Pipeline sonucu açık (${geoJson.features.length} nokta)`);
+        info.textContent = `Pipeline: ${nSamples} örnek nokta + ${nCentroids} küme merkezi`;
+        setStatus(`Pipeline: ${nSamples} örnek nokta + ${nCentroids} küme merkezi`);
       } catch (e) {
         info.textContent = 'Pipeline sonucu yükleme hatası: ' + e.message;
         console.error('Pipeline layer hatası:', e);
