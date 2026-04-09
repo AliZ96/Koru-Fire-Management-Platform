@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'config/app_theme.dart';
 import 'services/api_service.dart';
 import 'services/auth_service.dart';
+import 'services/map_data_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/welcome_screen.dart';
 
@@ -10,12 +11,14 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   final apiService = ApiService();
   final authService = AuthService(apiService);
+  final mapDataService = MapDataService(apiService);
 
   runApp(
     MultiProvider(
       providers: [
         Provider<ApiService>.value(value: apiService),
         ChangeNotifierProvider<AuthService>.value(value: authService),
+        ChangeNotifierProvider<MapDataService>.value(value: mapDataService),
       ],
       child: const KoruApp(),
     ),
