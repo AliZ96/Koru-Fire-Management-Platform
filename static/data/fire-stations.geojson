@@ -1,0 +1,950 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.139933,
+          38.345835
+        ]
+      },
+      "properties": {
+        "id": 1,
+        "name": "Beyazevler Mah. 576 Sokak No:2 Gaziemir",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.410096,
+          38.308617
+        ]
+      },
+      "properties": {
+        "id": 2,
+        "name": "REİSDERE",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.969587,
+          38.789234
+        ]
+      },
+      "properties": {
+        "id": 3,
+        "name": "ALİAĞA (Kuzey Bölge Merkez Grup)",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.05047,
+          38.806556
+        ]
+      },
+      "properties": {
+        "id": 4,
+        "name": "Aliağa Organize Sanayi Bölgesi Mustafa Cem Caddesi Jandarma Karakolu Arkas",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.856369,
+          38.658882
+        ]
+      },
+      "properties": {
+        "id": 5,
+        "name": "Bağarası",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.048562,
+          38.390477
+        ]
+      },
+      "properties": {
+        "id": 6,
+        "name": "Balçova",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.641524,
+          38.21878
+        ]
+      },
+      "properties": {
+        "id": 7,
+        "name": "Bayındır",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.176712,
+          38.451683
+        ]
+      },
+      "properties": {
+        "id": 8,
+        "name": "Bayraklı",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.193902,
+          39.107883
+        ]
+      },
+      "properties": {
+        "id": 9,
+        "name": "Bergama",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.211023,
+          38.085854
+        ]
+      },
+      "properties": {
+        "id": 10,
+        "name": "Beydağ",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.065873,
+          38.253029
+        ]
+      },
+      "properties": {
+        "id": 11,
+        "name": "Birgi",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.227745,
+          38.46082
+        ]
+      },
+      "properties": {
+        "id": 12,
+        "name": "Bornova",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.149541,
+          38.389367
+        ]
+      },
+      "properties": {
+        "id": 13,
+        "name": "Buca",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.182928,
+          38.425778
+        ]
+      },
+      "properties": {
+        "id": 14,
+        "name": "Çamdibi/Bornova",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.938701,
+          38.940713
+        ]
+      },
+      "properties": {
+        "id": 15,
+        "name": "ÇANDARLI",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.385067,
+          38.130186
+        ]
+      },
+      "properties": {
+        "id": 16,
+        "name": "ÇAYBAŞI",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.303063,
+          38.337164
+        ]
+      },
+      "properties": {
+        "id": 17,
+        "name": "ÇEŞME",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.041186,
+          38.49191
+        ]
+      },
+      "properties": {
+        "id": 18,
+        "name": "ÇİĞLİ AOSB",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.074827,
+          38.487275
+        ]
+      },
+      "properties": {
+        "id": 19,
+        "name": "ÇİĞLİ (BOSTANLI)",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.896655,
+          39.078141
+        ]
+      },
+      "properties": {
+        "id": 20,
+        "name": "DİKİLİ",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.168868,
+          38.397041
+        ]
+      },
+      "properties": {
+        "id": 21,
+        "name": "EVKA-1",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.214065,
+          38.488026
+        ]
+      },
+      "properties": {
+        "id": 22,
+        "name": "EVKA-4",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.754769,
+          38.666271
+        ]
+      },
+      "properties": {
+        "id": 23,
+        "name": "FOÇA",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.127743,
+          38.314008
+        ]
+      },
+      "properties": {
+        "id": 24,
+        "name": "GAZİEMİR ŞEHİT MEHMET GÜRKAN",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.404086,
+          39.22165
+        ]
+      },
+      "properties": {
+        "id": 25,
+        "name": "GÖÇBEYLİ",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.000774,
+          38.070457
+        ]
+      },
+      "properties": {
+        "id": 26,
+        "name": "GÜMÜLDÜR",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.884109,
+          38.367391
+        ]
+      },
+      "properties": {
+        "id": 27,
+        "name": "GÜZELBAHÇE ŞEHİT NİHAT ÖZTEMEL",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.114913,
+          38.402051
+        ]
+      },
+      "properties": {
+        "id": 28,
+        "name": "HATAY ŞEHİT İTFAİYE ERİ AYDIN TÜRE",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.362696,
+          38.305184
+        ]
+      },
+      "properties": {
+        "id": 29,
+        "name": "ILICA",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.23959,
+          38.430512
+        ]
+      },
+      "properties": {
+        "id": 30,
+        "name": "IŞIKKENT",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.023765,
+          38.413697
+        ]
+      },
+      "properties": {
+        "id": 31,
+        "name": "İNCİRALTI Suda Arama Kurtarma",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.206322,
+          38.192783
+        ]
+      },
+      "properties": {
+        "id": 32,
+        "name": "İTOB OSB",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.139183,
+          38.413048
+        ]
+      },
+      "properties": {
+        "id": 33,
+        "name": "KADİFEKALE",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.134405,
+          38.392657
+        ]
+      },
+      "properties": {
+        "id": 34,
+        "name": "KARABAĞLAR",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.510601,
+          38.636577
+        ]
+      },
+      "properties": {
+        "id": 35,
+        "name": "KARABURUN",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.134703,
+          38.466561
+        ]
+      },
+      "properties": {
+        "id": 36,
+        "name": "KARŞIYAKA İLHAN EROL",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.119165,
+          38.165777
+        ]
+      },
+      "properties": {
+        "id": 37,
+        "name": "KAYMAKÇI",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.365954,
+          38.454156
+        ]
+      },
+      "properties": {
+        "id": 38,
+        "name": "KEMALPAŞA OSB",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.374239,
+          39.088333
+        ]
+      },
+      "properties": {
+        "id": 39,
+        "name": "KINIK",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.305649,
+          38.30925
+        ]
+      },
+      "properties": {
+        "id": 40,
+        "name": "KIRKLAR",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.197113,
+          38.275158
+        ]
+      },
+      "properties": {
+        "id": 41,
+        "name": "KISIK",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.202046,
+          38.228782
+        ]
+      },
+      "properties": {
+        "id": 42,
+        "name": "KİRAZ",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.12833,
+          38.255216
+        ]
+      },
+      "properties": {
+        "id": 43,
+        "name": "MENDERES",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.074743,
+          38.611452
+        ]
+      },
+      "properties": {
+        "id": 44,
+        "name": "MENEMEN",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.616125,
+          38.515599
+        ]
+      },
+      "properties": {
+        "id": 45,
+        "name": "MORDOĞAN",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.016497,
+          38.393718
+        ]
+      },
+      "properties": {
+        "id": 46,
+        "name": "NARLIDERE",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.02122,
+          38.106872
+        ]
+      },
+      "properties": {
+        "id": 47,
+        "name": "OVAKENT",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.977258,
+          38.220382
+        ]
+      },
+      "properties": {
+        "id": 48,
+        "name": "ÖDEMİŞ",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.588924,
+          38.410545
+        ]
+      },
+      "properties": {
+        "id": 49,
+        "name": "ÖREN",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.251458,
+          38.208545
+        ]
+      },
+      "properties": {
+        "id": 50,
+        "name": "PANCAR OSB",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.845095,
+          38.19073
+        ]
+      },
+      "properties": {
+        "id": 51,
+        "name": "SEFERİHİSAR",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.367204,
+          37.958618
+        ]
+      },
+      "properties": {
+        "id": 52,
+        "name": "SELÇUK",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.97358,
+          38.588593
+        ]
+      },
+      "properties": {
+        "id": 53,
+        "name": "SEYREK",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.428647,
+          37.943278
+        ]
+      },
+      "properties": {
+        "id": 54,
+        "name": "ŞİRİNCE",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.744255,
+          38.094217
+        ]
+      },
+      "properties": {
+        "id": 55,
+        "name": "TİRE",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.364578,
+          38.151677
+        ]
+      },
+      "properties": {
+        "id": 56,
+        "name": "TORBALI ŞEHİT İTFAİYE ERİ FAHRİCAN YAVAŞ",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.191735,
+          38.405534
+        ]
+      },
+      "properties": {
+        "id": 57,
+        "name": "TOROS",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.770611,
+          38.327417
+        ]
+      },
+      "properties": {
+        "id": 58,
+        "name": "URLA (Batı Bölge Merkez Grup)",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.113733,
+          38.381959
+        ]
+      },
+      "properties": {
+        "id": 59,
+        "name": "YENİ ÇAMLIK ŞEHİT ER OZAN AVŞAR",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          26.843257,
+          38.744014
+        ]
+      },
+      "properties": {
+        "id": 60,
+        "name": "YENİFOCA",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.066594,
+          38.885445
+        ]
+      },
+      "properties": {
+        "id": 61,
+        "name": "YENİŞAKRAN",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.153841,
+          38.422619
+        ]
+      },
+      "properties": {
+        "id": 62,
+        "name": "YENİŞEHİR MERKEZ",
+        "type": "fire_station"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.090147,
+          39.253728
+        ]
+      },
+      "properties": {
+        "id": 63,
+        "name": "YUKARIBEY",
+        "type": "fire_station"
+      }
+    }
+  ]
+}
