@@ -1,13 +1,23 @@
 import os
+import time
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 
 import requests
 
 from app.core.config import settings
 
+_weather_cache: Dict[Tuple[float, float], Dict[str, Any]] = {}
+
 
 def get_hourly_weather(lat: float, lon: float) -> Dict[str, Any]:
+    cache_ttl_s = float(os.getenv("WEATHER_CACHE_TTL", "300"))
+    cache_key = (round(lat, 3), round(lon, 3))
+    now = time.time()
+    cached_item = _weather_cache.get(cache_key)
+    if cached_item and now - cached_item["ts"] < cache_ttl_s:
+        return cached_item["data"]
+
     base = settings.OPEN_METEO_BASE
     params = {
         "latitude": lat,
@@ -27,7 +37,9 @@ def get_hourly_weather(lat: float, lon: float) -> Dict[str, Any]:
     timeout_s = float(os.getenv("WEATHER_TIMEOUT", "6"))
     r = requests.get(base, params=params, timeout=timeout_s)
     r.raise_for_status()
-    return r.json()
+    data = r.json()
+    _weather_cache[cache_key] = {"ts": now, "data": data}
+    return data
 
 
 def get_wind(lat: float, lon: float, when_iso: Optional[str] = None) -> Dict[str, Any]:

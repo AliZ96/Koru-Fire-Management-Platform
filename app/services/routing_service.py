@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -37,6 +38,7 @@ AVG_SPEED_KMH: float = 60.0          # İtfaiye aracı ortalama hızı (km/h)
 STATION_RADIUS_KM: float = 50.0      # İstasyon → LOW_RISK bağlantı yarıçapı
 LOW_LOW_RADIUS_KM: float = 8.0       # LOW_RISK → LOW_RISK komşu bağlantı yarıçapı
 LOW_HIGH_RADIUS_KM: float = 25.0     # LOW_RISK → HIGH_RISK bağlantı yarıçapı
+MAX_LOW_NODES: int = int(os.getenv("ROUTING_MAX_LOW_NODES", "1200"))
 
 # Risk düzeyi sıralaması (geçiş yönü kontrolü için)
 RISK_LEVEL: Dict[str, int] = {
@@ -57,6 +59,18 @@ def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     dlam = math.radians(lon2 - lon1)
     a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlam / 2) ** 2
     return 2 * R * math.asin(math.sqrt(a))
+
+
+def _bucket_key(lat: float, lon: float, cell_deg: float) -> tuple[int, int]:
+    return (int(lat / cell_deg), int(lon / cell_deg))
+
+
+def _neighbor_bucket_keys(base_key: tuple[int, int], radius_cells: int = 1) -> List[tuple[int, int]]:
+    return [
+        (base_key[0] + di, base_key[1] + dj)
+        for di in range(-radius_cells, radius_cells + 1)
+        for dj in range(-radius_cells, radius_cells + 1)
+    ]
 
 
 # ─── Ana Sınıf ────────────────────────────────────────────────────────────────
@@ -182,6 +196,9 @@ class RoutingService:
             }
             for i, (_, row) in enumerate(low.iterrows())
         ]
+        if len(self.low_nodes) > MAX_LOW_NODES:
+            step = max(1, len(self.low_nodes) // MAX_LOW_NODES)
+            self.low_nodes = self.low_nodes[::step][:MAX_LOW_NODES]
 
         G = nx.Graph()
 
@@ -193,28 +210,58 @@ class RoutingService:
         for c in self.clusters:
             G.add_node(c["id"], **c)
 
-        # 1. İstasyon → LOW_RISK (erişim kapısı; doğrudan HIGH bağlantısı yok)
-        for s in self.stations:
-            for ln in self.low_nodes:
-                d = haversine(s["lat"], s["lon"], ln["lat"], ln["lon"])
-                if d <= STATION_RADIUS_KM:
-                    G.add_edge(s["id"], ln["id"], weight=d, edge_type="station_to_low")
+        # 1-3 için spatial buckets (naive O(n^2) yerine aday daraltma)
+        station_cell_deg = max(STATION_RADIUS_KM / 111.0, 0.01)
+        low_cell_deg = max(LOW_LOW_RADIUS_KM / 111.0, 0.01)
+        high_cell_deg = max(LOW_HIGH_RADIUS_KM / 111.0, 0.01)
 
-        # 2. LOW_RISK → LOW_RISK komşu bağlantıları (risk gradyanı geçişi)
-        low_arr = [(ln["id"], ln["lat"], ln["lon"]) for ln in self.low_nodes]
-        for i, (id_i, lat_i, lon_i) in enumerate(low_arr):
-            for j in range(i + 1, len(low_arr)):
-                id_j, lat_j, lon_j = low_arr[j]
-                d = haversine(lat_i, lon_i, lat_j, lon_j)
-                if d <= LOW_LOW_RADIUS_KM:
-                    G.add_edge(id_i, id_j, weight=d, edge_type="low_to_low")
+        low_buckets_station: Dict[tuple[int, int], List[Dict]] = {}
+        low_buckets_low: Dict[tuple[int, int], List[Dict]] = {}
+        high_buckets: Dict[tuple[int, int], List[Dict]] = {}
 
-        # 3. LOW_RISK → HIGH_RISK geçişleri (zon sınırı)
         for ln in self.low_nodes:
-            for c in self.clusters:
-                d = haversine(ln["lat"], ln["lon"], c["lat"], c["lon"])
-                if d <= LOW_HIGH_RADIUS_KM:
-                    G.add_edge(ln["id"], c["id"], weight=d, edge_type="low_to_high")
+            low_buckets_station.setdefault(
+                _bucket_key(ln["lat"], ln["lon"], station_cell_deg), []
+            ).append(ln)
+            low_buckets_low.setdefault(
+                _bucket_key(ln["lat"], ln["lon"], low_cell_deg), []
+            ).append(ln)
+
+        for c in self.clusters:
+            high_buckets.setdefault(
+                _bucket_key(c["lat"], c["lon"], high_cell_deg), []
+            ).append(c)
+
+        # 1. İstasyon → LOW_RISK
+        for s in self.stations:
+            bkey = _bucket_key(s["lat"], s["lon"], station_cell_deg)
+            for nb in _neighbor_bucket_keys(bkey, radius_cells=1):
+                for ln in low_buckets_station.get(nb, []):
+                    d = haversine(s["lat"], s["lon"], ln["lat"], ln["lon"])
+                    if d <= STATION_RADIUS_KM:
+                        G.add_edge(s["id"], ln["id"], weight=d, edge_type="station_to_low")
+
+        # 2. LOW_RISK → LOW_RISK
+        for ln in self.low_nodes:
+            id_i, lat_i, lon_i = ln["id"], ln["lat"], ln["lon"]
+            bkey = _bucket_key(lat_i, lon_i, low_cell_deg)
+            for nb in _neighbor_bucket_keys(bkey, radius_cells=1):
+                for cand in low_buckets_low.get(nb, []):
+                    id_j = cand["id"]
+                    if id_j <= id_i:
+                        continue
+                    d = haversine(lat_i, lon_i, cand["lat"], cand["lon"])
+                    if d <= LOW_LOW_RADIUS_KM:
+                        G.add_edge(id_i, id_j, weight=d, edge_type="low_to_low")
+
+        # 3. LOW_RISK → HIGH_RISK
+        for ln in self.low_nodes:
+            bkey = _bucket_key(ln["lat"], ln["lon"], high_cell_deg)
+            for nb in _neighbor_bucket_keys(bkey, radius_cells=1):
+                for c in high_buckets.get(nb, []):
+                    d = haversine(ln["lat"], ln["lon"], c["lat"], c["lon"])
+                    if d <= LOW_HIGH_RADIUS_KM:
+                        G.add_edge(ln["id"], c["id"], weight=d, edge_type="low_to_high")
 
         # 4. Yedek: istasyonun erişebildiği LOW düğümü yoksa doğrudan bağla
         for s in self.stations:

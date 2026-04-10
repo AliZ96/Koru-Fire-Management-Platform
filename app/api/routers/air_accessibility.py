@@ -22,6 +22,8 @@ from app.services.air_accessibility_service import (
 )
 
 router = APIRouter(prefix="/api/air-accessibility", tags=["air-accessibility"])
+MAX_GRID_POINTS = 8000
+MIN_GRID_SIZE = 0.005
 
 # Servis instance
 air_service = AirAccessibilityService()
@@ -131,6 +133,24 @@ async def get_accessibility_grid_map(request: GridMapRequest):
     try:
         # Bounding box tuple oluştur
         bbox = (request.min_lon, request.min_lat, request.max_lon, request.max_lat)
+        if request.grid_size < MIN_GRID_SIZE:
+            raise HTTPException(
+                status_code=422,
+                detail=f"grid_size must be >= {MIN_GRID_SIZE}",
+            )
+        if request.min_lon >= request.max_lon or request.min_lat >= request.max_lat:
+            raise HTTPException(status_code=422, detail="Invalid bbox bounds")
+        lon_steps = int((request.max_lon - request.min_lon) / request.grid_size) + 1
+        lat_steps = int((request.max_lat - request.min_lat) / request.grid_size) + 1
+        estimated_points = lon_steps * lat_steps
+        if estimated_points > MAX_GRID_POINTS:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    f"Requested grid too dense ({estimated_points} points). "
+                    f"Max allowed: {MAX_GRID_POINTS}. Increase grid_size or reduce bbox."
+                ),
+            )
         
         # Grid haritası oluştur
         result = air_service.get_accessibility_map(
