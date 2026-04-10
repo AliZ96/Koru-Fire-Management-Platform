@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 
 # DB imports
@@ -29,6 +30,15 @@ def create_app() -> FastAPI:
         title="Koru Bitirme",
         version="1.0.0",
         description="KORU – Orman Yangını Risk Analizi ve Yönetim Sistemi"
+    )
+
+    # Dev ortaminda Flutter web/mobile istemcilerinden gelen istekler icin CORS.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     @app.on_event("startup")
