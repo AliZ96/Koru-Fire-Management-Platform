@@ -1,4 +1,6 @@
-from fastapi import FastAPI
+import logging
+import time
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -40,6 +42,25 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    perf_logger = logging.getLogger("app.performance")
+
+    @app.middleware("http")
+    async def add_request_timing(request: Request, call_next):
+        start = time.perf_counter()
+        response = await call_next(request)
+        elapsed_ms = (time.perf_counter() - start) * 1000
+        response.headers["X-Response-Time-Ms"] = f"{elapsed_ms:.2f}"
+
+        if elapsed_ms > 800:
+            perf_logger.warning(
+                "Slow request detected: %s %s took %.2fms",
+                request.method,
+                request.url.path,
+                elapsed_ms,
+            )
+
+        return response
 
     @app.on_event("startup")
     def on_startup():

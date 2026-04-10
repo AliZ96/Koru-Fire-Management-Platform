@@ -2,8 +2,9 @@
 
 from pathlib import Path
 from typing import List, Optional
+from functools import lru_cache
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 import pandas as pd
 from math import radians, sin, cos, sqrt, atan2
 
@@ -127,6 +128,7 @@ def _cluster_to_zones(
 
     return zones
 
+@lru_cache(maxsize=1)
 def load_risk_data():
     """CSV'den yangın risk verilerini yükle ve ortak şemaya normalize et."""
     df = None
@@ -182,7 +184,8 @@ def load_risk_data():
 @router.get("/points")
 async def get_fire_risk_points(
     risk_class: Optional[str] = None,
-    limit: int = 50000
+    limit: int = Query(10000, ge=1, le=50000),
+    offset: int = Query(0, ge=0),
 ):
     """
     Yangın risk noktalarını döndür
@@ -200,7 +203,11 @@ async def get_fire_risk_points(
     if risk_class:
         df = df[df["predicted_risk_class"] == risk_class]
     
-    # Veriyi sınırla
+    total_before_pagination = len(df)
+
+    # Veriyi sınırla (offset + limit)
+    if offset:
+        df = df.iloc[offset:]
     df = df.head(limit)
     
     # GeoJSON formatına çevir
@@ -224,7 +231,10 @@ async def get_fire_risk_points(
     return {
         "type": "FeatureCollection",
         "features": points,
-        "total": len(points)
+        "total": len(points),
+        "offset": offset,
+        "limit": limit,
+        "total_available": total_before_pagination,
     }
 
 @router.get("/statistics")

@@ -1,6 +1,6 @@
 from typing import Optional, Tuple
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from app.schemas.air_accessibility import AircraftType as ApiAircraftType
 from app.services.air_accessibility_service import (
@@ -11,6 +11,8 @@ from app.services.integrated_layer_service import IntegratedLayerService
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 service = IntegratedLayerService()
+MAX_BBOX_AREA_DEG2 = 1.0
+MIN_CELL_SIZE = 0.005
 
 
 def _build_bbox(
@@ -28,6 +30,28 @@ def _build_bbox(
         return None
 
     return float(min_lon), float(min_lat), float(max_lon), float(max_lat)
+
+
+def _validate_integrated_request(
+    cell_size: float,
+    bbox: Optional[Tuple[float, float, float, float]],
+) -> None:
+    if cell_size < MIN_CELL_SIZE:
+        raise HTTPException(
+            status_code=422,
+            detail=f"cell_size must be >= {MIN_CELL_SIZE}",
+        )
+    if bbox is None:
+        return
+    min_lon, min_lat, max_lon, max_lat = bbox
+    if min_lon >= max_lon or min_lat >= max_lat:
+        raise HTTPException(status_code=422, detail="Invalid bbox bounds")
+    area = (max_lon - min_lon) * (max_lat - min_lat)
+    if area > MAX_BBOX_AREA_DEG2:
+        raise HTTPException(
+            status_code=422,
+            detail=f"bbox area too large ({area:.3f}). Max allowed: {MAX_BBOX_AREA_DEG2}",
+        )
 
 
 @router.get("/integrated-layer")
@@ -66,6 +90,7 @@ async def get_integrated_layer(
     Çıktı GeoJSON FeatureCollection formatındadır.
     """
     bbox = _build_bbox(min_lat=min_lat, min_lon=min_lon, max_lat=max_lat, max_lon=max_lon)
+    _validate_integrated_request(cell_size=cell_size, bbox=bbox)
 
     cells = service.build_integrated_grid(
         cell_size=cell_size,
