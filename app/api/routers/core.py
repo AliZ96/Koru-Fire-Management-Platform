@@ -2,12 +2,14 @@ from fastapi import APIRouter, Query, HTTPException
 from fastapi.responses import JSONResponse
 from pathlib import Path
 import json
+from functools import lru_cache
 from ...services.firms_service import fetch_firms_geojson
 from ...services.weather_service import get_wind
 
 router = APIRouter(prefix="/api", tags=["api"])
 
 # GeoJSON dosyalarını yükleme
+@lru_cache(maxsize=16)
 def load_geojson(filename: str):
     """Statik verilerden GeoJSON dosyasını yükle"""
     try:

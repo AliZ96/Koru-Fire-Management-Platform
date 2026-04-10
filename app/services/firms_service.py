@@ -1,5 +1,7 @@
 import csv
 import io
+import os
+import time
 from typing import Any, Dict
 
 import requests
@@ -7,6 +9,8 @@ import requests
 from app.core.config import settings
 
 API_TIMEOUT = 30
+_CACHE_TTL_SECONDS = int(os.getenv("FIRMS_CACHE_TTL_SECONDS", "120"))
+_firms_cache: Dict[str, Any] = {}
 
 
 def fetch_firms_geojson(day_range: int = 3) -> Dict[str, Any]:
@@ -29,6 +33,13 @@ def fetch_firms_geojson(day_range: int = 3) -> Dict[str, Any]:
 
     # 2) URL oluşturma
     url = f"https://firms.modaps.eosdis.nasa.gov/api/area/csv/{settings.MAP_KEY}/{source}/{bbox}/{day_range}"
+
+    # 2.1) Kısa süreli cache (aynı day_range ve kaynak için)
+    cache_key = f"{source}|{bbox}|{day_range}"
+    now = time.time()
+    cached_item = _firms_cache.get(cache_key)
+    if cached_item and now - cached_item["ts"] < _CACHE_TTL_SECONDS:
+        return cached_item["data"]
 
     # 3) İstek
     try:
@@ -70,4 +81,6 @@ def fetch_firms_geojson(day_range: int = 3) -> Dict[str, Any]:
             }
         )
 
-    return {"type": "FeatureCollection", "features": feats}
+    data = {"type": "FeatureCollection", "features": feats}
+    _firms_cache[cache_key] = {"ts": now, "data": data}
+    return data
