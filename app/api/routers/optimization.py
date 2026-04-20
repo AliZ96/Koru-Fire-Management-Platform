@@ -1,192 +1,109 @@
 """
 optimization.py – Optimization API Router
 ==========================================
-Senaryo verisini SA ve GA motorlarına bağlayan endpoint'ler.
+Hocanın SA/GA optimizasyon motorlarını API'ye bağlar.
 
-Endpoints:
-  POST /api/optimize/sa         → Simulated Annealing optimizasyonu
-  POST /api/optimize/ga         → Genetic Algorithm optimizasyonu
-  POST /api/optimize/auto       → Otomatik algoritma seçimi
-  GET  /api/optimize/scenario   → Mevcut senaryo verisi (istasyonlar + kümeler)
+Akış:
+  1) POST /api/optimize/pipeline → k_means çalıştır, pipeline_result.csv üret
+  2) POST /api/optimize/run      → SA + GA çalıştır (main.py)
+  3) GET  /api/optimize/sa       → SA sonuçlarını oku (tour'lar, polyline)
+  4) GET  /api/optimize/ga       → GA sonuçlarını oku (tour'lar, polyline)
+  5) GET  /api/optimize/scenario → Mevcut senaryo durumu
 """
 
 from __future__ import annotations
 
-from functools import lru_cache
-from typing import List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from app.schemas.optimization import CostWeights, OptimizationAlgorithm
-from app.services.optimization_service import run_optimization
-from app.services.routing_service import RoutingService
+from app.services.optimization_service import (
+    get_optimization_results,
+    get_scenario_info,
+    run_pipeline,
+    run_sa_ga_optimization,
+)
 
 router = APIRouter(prefix="/api/optimize", tags=["optimization"])
 
 
-# ── Routing servis singleton (routing.py ile aynı pattern) ───────────────────
+# ── Request Schemas ──────────────────────────────────────────────────────────
 
-@lru_cache(maxsize=1)
-def _get_routing_service() -> RoutingService:
-    return RoutingService(n_clusters=12)
-
-
-# ── Request / Response Schemas ───────────────────────────────────────────────
-
-class OptimizeRequest(BaseModel):
-    """Optimizasyon isteği."""
-    station_id: Optional[str] = Field(
-        default=None,
-        description="Başlangıç istasyonu ID (verilmezse ilk istasyon kullanılır)",
-    )
-    cluster_ids: Optional[List[str]] = Field(
-        default=None,
-        description="Hedef küme ID'leri (verilmezse tüm kümeler kullanılır)",
-    )
-    max_candidates: int = Field(default=20, ge=1, le=200)
-    random_seed: Optional[int] = Field(default=None)
-    weights: CostWeights = Field(default_factory=CostWeights)
-    average_speed_kmh: float = Field(default=50.0, gt=0)
-
-
-class OptimizeErrorResponse(BaseModel):
-    """Hata durumunda dönen response."""
-    success: bool = False
-    error: str
-    best_route: None = None
-    algorithm: str
+class PipelineRequest(BaseModel):
+    """K-Means pipeline isteği."""
+    n: int = Field(..., ge=1, le=554, description="Yangın noktası sayısı (max 554)")
+    k: int = Field(..., ge=1, le=100, description="Küme sayısı")
 
 
 # ── Endpoint'ler ─────────────────────────────────────────────────────────────
 
-@router.post("/sa", summary="Simulated Annealing Optimizasyonu")
-async def optimize_sa(request: OptimizeRequest):
+@router.post("/pipeline", summary="K-Means Pipeline Çalıştır")
+async def run_kmeans_pipeline(request: PipelineRequest):
     """
-    Simulated Annealing algoritması ile rota optimizasyonu.
+    K-Medoids kümeleme pipeline'ını çalıştırır:
+    1. dist_all.csv'den n adet rastgele yangın noktası seçer
+    2. K-Medoids ile k kümeye ayırır
+    3. Her kümeye en yakın itfaiye istasyonunu eşleştirir
+    4. pipeline_result.csv üretir
 
-    Senaryo verisi (istasyon + HIGH_RISK kümeler) otomatik olarak routing
-    servisinden alınır. Sonuç, harita üzerinde çizilecek rota bilgisini içerir.
-
-    **Rota bulunamazsa:** `{ success: false, best_route: null }`
-    → Frontend harita üzerinde hiçbir şey çizmez.
+    Bu adım SA/GA çalıştırmadan önce gereklidir.
     """
-    svc = _get_routing_service()
-    result = run_optimization(
-        routing_svc=svc,
-        algorithm=OptimizationAlgorithm.SA,
-        station_id=request.station_id,
-        cluster_ids=request.cluster_ids,
-        max_candidates=request.max_candidates,
-        random_seed=request.random_seed,
-        weights=request.weights,
-        average_speed_kmh=request.average_speed_kmh,
-    )
+    result = run_pipeline(request.n, request.k)
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail=result)
+    return result
+
+
+@router.post("/run", summary="SA + GA Optimizasyon Çalıştır")
+async def run_optimization():
+    """
+    pipeline_result.csv + dist_all.csv kullanarak SA ve GA algoritmalarını çalıştırır.
+    Her istasyon için en iyi tour'ları üretir ve JSON olarak kaydeder.
+
+    Önkoşul: Önce /api/optimize/pipeline ile pipeline çalıştırılmalıdır.
+    """
+    result = run_sa_ga_optimization()
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail=result)
+    return result
+
+
+@router.get("/sa", summary="SA Sonuçlarını Getir")
+async def get_sa_results():
+    """
+    Simulated Annealing sonuçlarını döndürür.
+    Her istasyon için: tour (rota), polyline (haritada çizim), mesafe, yük.
+
+    **Rota yoksa**: `{ success: false, best_route: null }` → Map hiçbir şey çizmez.
+    """
+    result = get_optimization_results("SA")
     if not result.get("success"):
         raise HTTPException(status_code=404, detail=result)
     return result
 
 
-@router.post("/ga", summary="Genetic Algorithm Optimizasyonu")
-async def optimize_ga(request: OptimizeRequest):
+@router.get("/ga", summary="GA Sonuçlarını Getir")
+async def get_ga_results():
     """
-    Genetic Algorithm ile rota optimizasyonu.
+    Genetic Algorithm sonuçlarını döndürür.
+    Her istasyon için: tour (rota), polyline (haritada çizim), mesafe, yük.
 
-    Senaryo verisi (istasyon + HIGH_RISK kümeler) otomatik olarak routing
-    servisinden alınır. Sonuç, harita üzerinde çizilecek rota bilgisini içerir.
-
-    **Rota bulunamazsa:** `{ success: false, best_route: null }`
-    → Frontend harita üzerinde hiçbir şey çizmez.
+    **Rota yoksa**: `{ success: false, best_route: null }` → Map hiçbir şey çizmez.
     """
-    svc = _get_routing_service()
-    result = run_optimization(
-        routing_svc=svc,
-        algorithm=OptimizationAlgorithm.GA,
-        station_id=request.station_id,
-        cluster_ids=request.cluster_ids,
-        max_candidates=request.max_candidates,
-        random_seed=request.random_seed,
-        weights=request.weights,
-        average_speed_kmh=request.average_speed_kmh,
-    )
+    result = get_optimization_results("GA")
     if not result.get("success"):
         raise HTTPException(status_code=404, detail=result)
     return result
 
 
-@router.post("/auto", summary="Otomatik Algoritma Seçimi")
-async def optimize_auto(request: OptimizeRequest):
-    """
-    Hedef sayısına göre otomatik algoritma seçimi:
-    - ≤7 hedef → Base (exhaustive permutation)
-    - 8-15 hedef → SA (Simulated Annealing)
-    - >15 hedef → GA (Genetic Algorithm)
-    """
-    svc = _get_routing_service()
-
-    # Hedef sayısına göre algoritma seç
-    if request.cluster_ids:
-        target_count = len(request.cluster_ids)
-    else:
-        target_count = len(svc.clusters)
-
-    if target_count <= 7:
-        algo = OptimizationAlgorithm.AUTO
-    elif target_count <= 15:
-        algo = OptimizationAlgorithm.SA
-    else:
-        algo = OptimizationAlgorithm.GA
-
-    result = run_optimization(
-        routing_svc=svc,
-        algorithm=algo,
-        station_id=request.station_id,
-        cluster_ids=request.cluster_ids,
-        max_candidates=request.max_candidates,
-        random_seed=request.random_seed,
-        weights=request.weights,
-        average_speed_kmh=request.average_speed_kmh,
-    )
-    if not result.get("success"):
-        raise HTTPException(status_code=404, detail=result)
-    return result
-
-
-@router.get("/scenario", summary="Mevcut Senaryo Verisi")
+@router.get("/scenario", summary="Mevcut Senaryo Durumu")
 async def get_scenario():
     """
-    Optimizasyon için kullanılabilecek senaryo verisini döndürür.
-    Frontend bu veriyi kullanarak istasyon ve küme ID'lerini seçebilir.
+    Mevcut optimizasyon senaryosunun durumunu döndürür:
+    - Pipeline çalıştırıldı mı?
+    - SA/GA sonuçları hazır mı?
+    - Pipeline noktaları (koordinatlarla)
+    - Mevcut istasyonlar
     """
-    svc = _get_routing_service()
-
-    stations = [
-        {
-            "id": s["id"],
-            "name": s.get("name", ""),
-            "lat": s["lat"],
-            "lon": s["lon"],
-        }
-        for s in svc.stations
-    ]
-
-    clusters = [
-        {
-            "id": c["id"],
-            "lat": c["lat"],
-            "lon": c["lon"],
-            "combined_risk_score": c.get("combined_risk_score", 0.0),
-            "fire_probability": c.get("fire_probability", 0.0),
-            "cluster_size": c.get("cluster_size", 0),
-        }
-        for c in svc.clusters
-    ]
-
-    return {
-        "stations": stations,
-        "clusters": clusters,
-        "station_count": len(stations),
-        "cluster_count": len(clusters),
-        "available_algorithms": [a.value for a in OptimizationAlgorithm],
-        "default_weights": CostWeights().model_dump(),
-    }
+    return get_scenario_info()
