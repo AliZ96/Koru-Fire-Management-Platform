@@ -23,6 +23,7 @@ from app.api.routers.fire_risk import router as fire_risk_router
 from app.api.routers.health_router import router as health_router
 from app.api.routers.integrated_layer import router as integrated_layer_router
 from app.api.routers.mobile_ui import router as mobile_ui_router
+from app.api.routers.optimization import router as optimization_router
 from app.api.routers.resource_proximity import router as resource_proximity_router
 from app.api.routers.routing import router as routing_router
 from app.core.config import settings
@@ -86,6 +87,7 @@ def create_app() -> FastAPI:
     app.include_router(resource_proximity_router)
     app.include_router(integrated_layer_router)
     app.include_router(routing_router)
+    app.include_router(optimization_router)
     app.include_router(mobile_ui_router)
     app.include_router(accessibility_router)
 
