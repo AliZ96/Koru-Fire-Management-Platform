@@ -1,12 +1,9 @@
-<<<<<<< S10.5-deployment-preparation
-=======
 import logging
 import time
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
->>>>>>> main
 from pathlib import Path
 
 from fastapi import FastAPI

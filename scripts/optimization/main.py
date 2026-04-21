@@ -1,7 +1,12 @@
 import json
-import PlotResults
+import os
 from GA import *
 from SA import *
+
+try:
+    import PlotResults
+except Exception:
+    PlotResults = None
 
 def SA_AllStationsBestSolutionOfPopulationTests():
     ProblemInstance.loadInstance("pipeline_result.csv",
@@ -89,14 +94,17 @@ def writeAllStationsSolutionsToJSON(fileName: str, stationSolutionsList: list) -
         json.dump(data, f, indent=2)
 
 def runAlgorithm(algorithm : str) -> None:
+    disable_plots = os.getenv("KORU_DISABLE_PLOTS", "0") == "1"
     if algorithm == "GA":
         gaResults = GA_AllStationsBestSolutionOfPopulationTests()
-        PlotResults.plotAllStationsVehicles(algorithm, gaResults)
+        if PlotResults is not None and not disable_plots:
+            PlotResults.plotAllStationsVehicles(algorithm, gaResults)
         writeAllStationsSolutionsToFile("GA_All_Stations_Best_Solutions.txt", gaResults)
         writeAllStationsSolutionsToJSON("GA_All_Stations_Best_Solutions.json", gaResults)
     elif algorithm == "SA":
         saResults = SA_AllStationsBestSolutionOfPopulationTests()
-        PlotResults.plotAllStationsVehicles(algorithm, saResults)
+        if PlotResults is not None and not disable_plots:
+            PlotResults.plotAllStationsVehicles(algorithm, saResults)
         writeAllStationsSolutionsToFile("SA_All_Stations_Best_Solutions.txt", saResults)
         writeAllStationsSolutionsToJSON("SA_All_Stations_Best_Solutions.json", saResults)
 
