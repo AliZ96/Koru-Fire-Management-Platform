@@ -286,19 +286,19 @@ if __name__ == "__main__":
     # Her kümenin detayı
     for c in result["clusters"]:
         print()
-        print(f"  ┌─ Kume {c['cluster_id']} ─ Station {c['station_id']} (medoid: {c['medoid_id']})")
-        print(f"  │  Itfaiye mesafesi: {c['station_distance_km']} km")
-        print(f"  │  Nokta: {c['total_count']} ({c['high_count']} HIGH, {c['low_count']} LOW) → {c['risk_level']}")
-        print(f"  │")
-        print(f"  │  {'ID':>4s} | {'Demand':>6s} | {'Station':>7s} | {'Risk':>5s} | {'Mesafe':>8s}")
-        print(f"  │  {'-'*4} | {'-'*6} | {'-'*7} | {'-'*5} | {'-'*8}")
+        print(f"  +- Kume {c['cluster_id']} - Station {c['station_id']} (medoid: {c['medoid_id']})")
+        print(f"  |  Itfaiye mesafesi: {c['station_distance_km']} km")
+        print(f"  |  Nokta: {c['total_count']} ({c['high_count']} HIGH, {c['low_count']} LOW) -> {c['risk_level']}")
+        print(f"  |")
+        print(f"  |  {'ID':>4s} | {'Demand':>6s} | {'Station':>7s} | {'Risk':>5s} | {'Mesafe':>8s}")
+        print(f"  |  {'-'*4} | {'-'*6} | {'-'*7} | {'-'*5} | {'-'*8}")
         for p in c["points"]:
             print(
-                f"  │  {p['id']:>4d} | "
+                f"  |  {p['id']:>4d} | "
                 f"{p['demand']:>6d} | {p['fire_station_id']:>7d} | "
                 f"{p['risk_class']:>5s} | {p['station_distance_km']:>6.4f}km"
             )
-        print(f"  └{'─' * 55}")
+        print(f"  +{'-' * 55}")
 
     # CSV kaydet
     csv_path = os.path.join(SCRIPT_DIR, "pipeline_result.csv")

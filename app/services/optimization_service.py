@@ -109,6 +109,8 @@ def run_pipeline(n: int, k: int) -> Dict:
         return {"success": False, "error": "k_means.py bulunamadı"}
 
     try:
+        env = os.environ.copy()
+        env["KORU_DISABLE_PLOTS"] = "1"
         proc = subprocess.run(
             [sys.executable, str(kmeans_script)],
             input=f"{n}\n{k}\n",
@@ -116,6 +118,7 @@ def run_pipeline(n: int, k: int) -> Dict:
             text=True,
             timeout=120,
             cwd=str(_OPTIMIZATION_DIR),
+            env=env,
         )
         if proc.returncode != 0:
             logger.error("k_means.py stderr: %s", proc.stderr)
@@ -146,12 +149,15 @@ def run_sa_ga_optimization() -> Dict:
     main_script = _OPTIMIZATION_DIR / "main.py"
 
     try:
+        env = os.environ.copy()
+        env["KORU_DISABLE_PLOTS"] = "1"
         proc = subprocess.run(
             [sys.executable, str(main_script)],
             capture_output=True,
             text=True,
             timeout=300,
             cwd=str(_OPTIMIZATION_DIR),
+            env=env,
         )
         if proc.returncode != 0:
             logger.error("main.py stderr: %s", proc.stderr)
