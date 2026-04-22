@@ -1,0 +1,1146 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>KORU - Admin Panel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #050E07;
+      --bg2: #0B1710;
+      --surface: rgba(11, 24, 16, 0.86);
+      --surface-2: rgba(16, 32, 22, 0.86);
+      --surface-3: rgba(9, 20, 13, 0.92);
+      --border: rgba(74, 124, 58, 0.22);
+      --border-strong: rgba(245, 158, 11, 0.32);
+      --accent: #F59E0B;
+      --accent-2: #D97706;
+      --green: #4A7C3A;
+      --green-hi: #6AAD58;
+      --text: #E2F0DA;
+      --text-2: #8DB87E;
+      --text-3: #5A8A4C;
+      --danger: #EF4444;
+      --warning: #F97316;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+      --radius: 22px;
+      --radius-sm: 14px;
+      --font: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: var(--font);
+      color: var(--text);
+      background:
+        radial-gradient(ellipse at top left, rgba(20, 70, 20, 0.32), transparent 48%),
+        radial-gradient(ellipse at bottom right, rgba(245, 158, 11, 0.10), transparent 42%),
+        linear-gradient(160deg, var(--bg), var(--bg2));
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(74, 124, 58, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(74, 124, 58, 0.03) 1px, transparent 1px);
+      background-size: 54px 54px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.9), rgba(0,0,0,0.25));
+      opacity: 0.6;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button, input, select, textarea { font: inherit; }
+
+    .shell {
+      position: relative;
+      z-index: 1;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 20px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(8, 19, 13, 0.78);
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--accent-2), var(--accent));
+      color: #111;
+      font-weight: 900;
+      box-shadow: 0 14px 36px rgba(245, 158, 11, 0.24);
+      flex-shrink: 0;
+    }
+
+    .brand-copy { min-width: 0; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--text-2);
+      margin-bottom: 6px;
+    }
+
+    .title {
+      font-size: clamp(24px, 3vw, 36px);
+      line-height: 1.05;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      margin: 0;
+    }
+
+    .subtitle {
+      margin-top: 8px;
+      color: var(--text-2);
+      font-size: 14px;
+      line-height: 1.6;
+      max-width: 720px;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(11, 24, 16, 0.68);
+      color: var(--text-2);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green-hi);
+      box-shadow: 0 0 0 6px rgba(106, 173, 88, 0.12);
+      flex-shrink: 0;
+    }
+
+    .btn {
+      border: 1px solid rgba(74, 124, 58, 0.28);
+      background: rgba(14, 30, 12, 0.86);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 11px 14px;
+      min-height: 42px;
+      cursor: pointer;
+      transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
+    }
+
+    .btn:hover { transform: translateY(-1px); border-color: rgba(245, 158, 11, 0.42); }
+    .btn:active { transform: translateY(0); }
+    .btn.primary {
+      background: linear-gradient(135deg, var(--accent-2), var(--accent));
+      color: #111;
+      border-color: transparent;
+      font-weight: 800;
+    }
+    .btn.ghost {
+      background: transparent;
+      color: var(--text-2);
+    }
+    .btn.danger {
+      border-color: rgba(239, 68, 68, 0.24);
+      color: #fecaca;
+      background: rgba(69, 10, 10, 0.42);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .card {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: inherit;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 18%);
+    }
+
+    .kpi-grid { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+    .kpi {
+      padding: 18px;
+      min-height: 138px;
+    }
+    .kpi-label {
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-3);
+      font-weight: 800;
+    }
+    .kpi-value {
+      margin-top: 10px;
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 900;
+      letter-spacing: -0.05em;
+    }
+    .kpi-note {
+      margin-top: 10px;
+      color: var(--text-2);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .panel {
+      padding: 18px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .section-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+    }
+    .section-desc {
+      margin-top: 6px;
+      color: var(--text-2);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .split-left { grid-column: span 7; }
+    .split-right { grid-column: span 5; }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .search {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 44px;
+      padding: 0 14px;
+      border-radius: 14px;
+      background: rgba(8, 18, 13, 0.82);
+      border: 1px solid var(--border);
+      color: var(--text);
+      min-width: 260px;
+    }
+
+    .search input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      outline: none;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border-radius: 18px;
+      border: 1px solid rgba(74, 124, 58, 0.16);
+      background: rgba(8, 18, 13, 0.62);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 720px;
+    }
+
+    th, td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid rgba(74, 124, 58, 0.12);
+      vertical-align: top;
+      font-size: 13px;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: rgba(9, 20, 13, 0.96);
+      color: var(--text-2);
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      z-index: 1;
+    }
+
+    td { color: var(--text); }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      color: #d5e8cd;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(74, 124, 58, 0.22);
+      background: rgba(74, 124, 58, 0.10);
+      color: var(--text-2);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+
+    .tag.high { background: rgba(127, 29, 29, 0.18); color: #fecaca; border-color: rgba(239, 68, 68, 0.28); }
+    .tag.medium { background: rgba(251, 146, 60, 0.14); color: #fed7aa; border-color: rgba(251, 146, 60, 0.28); }
+    .tag.low { background: rgba(245, 158, 11, 0.12); color: #fde68a; border-color: rgba(245, 158, 11, 0.24); }
+    .tag.safe { background: rgba(34, 197, 94, 0.10); color: #bbf7d0; border-color: rgba(34, 197, 94, 0.18); }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .scenario-item, .risk-item {
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(74, 124, 58, 0.16);
+      background: rgba(8, 18, 13, 0.66);
+    }
+
+    .scenario-item {
+      display: grid;
+      gap: 10px;
+    }
+
+    .scenario-top, .risk-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .scenario-name, .risk-name { font-weight: 800; font-size: 14px; }
+    .scenario-meta, .risk-meta { color: var(--text-2); font-size: 12px; line-height: 1.5; }
+
+    .kv {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .kv > div {
+      padding: 10px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(74, 124, 58, 0.10);
+    }
+
+    .kv label {
+      display: block;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 8px;
+      font-weight: 800;
+    }
+
+    .kv strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .empty {
+      padding: 24px;
+      text-align: center;
+      color: var(--text-2);
+      border: 1px dashed rgba(74, 124, 58, 0.18);
+      border-radius: 16px;
+      background: rgba(8, 18, 13, 0.52);
+    }
+
+    .login-screen {
+      min-height: calc(100vh - 48px);
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .login-card {
+      width: min(100%, 460px);
+      padding: 28px;
+      border-radius: 28px;
+      border: 1px solid var(--border);
+      background: rgba(8, 18, 13, 0.88);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(20px);
+    }
+
+    .login-card h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.05;
+      font-weight: 900;
+    }
+
+    .login-card p {
+      margin: 0 0 18px;
+      color: var(--text-2);
+      line-height: 1.6;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .field label {
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-3);
+      font-weight: 800;
+    }
+
+    .field input {
+      width: 100%;
+      min-height: 46px;
+      border-radius: 14px;
+      border: 1px solid rgba(74, 124, 58, 0.22);
+      background: rgba(4, 13, 8, 0.74);
+      color: var(--text);
+      padding: 0 14px;
+      outline: none;
+    }
+
+    .field input:focus {
+      border-color: rgba(245, 158, 11, 0.42);
+      box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.10);
+    }
+
+    .login-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+
+    .hint {
+      margin-top: 14px;
+      color: var(--text-3);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .status-line {
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-2);
+      font-size: 12px;
+    }
+
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid rgba(245, 158, 11, 0.24);
+      border-top-color: var(--accent);
+      animation: spin 0.9s linear infinite;
+    }
+
+    .hidden { display: none !important; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 1100px) {
+      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .split-left, .split-right { grid-column: 1 / -1; }
+    }
+
+    @media (max-width: 720px) {
+      .shell { padding: 14px; }
+      .topbar { padding: 16px; flex-direction: column; align-items: flex-start; }
+      .top-actions { width: 100%; justify-content: flex-start; }
+      .kpi-grid { grid-template-columns: 1fr; }
+      .kv { grid-template-columns: 1fr; }
+      .search { min-width: 100%; }
+      .login-card { padding: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <main id="appShell" class="shell hidden">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">K</div>
+        <div class="brand-copy">
+          <div class="eyebrow"><span class="dot"></span> Admin Panel</div>
+          <h1 class="title">KORU Yönetim Paneli</h1>
+          <div class="subtitle">Risk noktalarını incele, senaryo snapshot'larını yönet ve mevcut optimizasyon durumunu tek ekranda takip et.</div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <div class="pill"><span class="dot"></span><span id="sessionBadge">Admin oturumu bekleniyor</span></div>
+        <a class="btn ghost" href="/welcome">Ana Ekran</a>
+        <button class="btn" id="refreshBtn" type="button">Veriyi Yenile</button>
+        <button class="btn danger" id="logoutBtn" type="button">Çıkış</button>
+      </div>
+    </header>
+
+    <section class="kpi-grid" aria-label="Özet metrikler">
+      <article class="card kpi">
+        <div class="kpi-label">Toplam Risk Noktası</div>
+        <div class="kpi-value" id="kpiRiskPoints">--</div>
+        <div class="kpi-note">İlk 200 kayıt üzerinden canlı önizleme.</div>
+      </article>
+      <article class="card kpi">
+        <div class="kpi-label">Aktif Senaryo</div>
+        <div class="kpi-value" id="kpiScenarioState">--</div>
+        <div class="kpi-note" id="kpiScenarioHint">Senaryo durumu API'den okunuyor.</div>
+      </article>
+      <article class="card kpi">
+        <div class="kpi-label">Kaydedilen Snapshot</div>
+        <div class="kpi-value" id="kpiSnapshots">0</div>
+        <div class="kpi-note">Admin tarafında saklanan yerel senaryo arşivi.</div>
+      </article>
+      <article class="card kpi">
+        <div class="kpi-label">Yükleme Durumu</div>
+        <div class="kpi-value" id="kpiStatus">Hazır</div>
+        <div class="kpi-note" id="kpiStatusNote">Panel başlatıldı.</div>
+      </article>
+    </section>
+
+    <section class="grid" style="margin-top: 18px;">
+      <article class="card panel split-left">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">Risk Noktaları</h2>
+            <div class="section-desc">Son yüklenen risk noktaları ve sınıflar. Listeyi filtreleyebilir, sırala ve hızlıca inceleyebilirsin.</div>
+          </div>
+          <div class="toolbar">
+            <div class="search">
+              <span style="color: var(--text-3);">⌕</span>
+              <input id="riskSearch" type="search" placeholder="Risk sınıfı veya koordinat ara"/>
+            </div>
+            <button class="btn" id="reloadRiskBtn" type="button">Riskleri Yükle</button>
+          </div>
+        </div>
+        <div id="riskSummary" class="kv" style="margin-bottom: 14px;"></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Risk Sınıfı</th>
+                <th>Koordinat</th>
+                <th>Skor</th>
+                <th>Durum</th>
+              </tr>
+            </thead>
+            <tbody id="riskTable"></tbody>
+          </table>
+        </div>
+      </article>
+
+      <aside class="card panel split-right">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">Mevcut Senaryo</h2>
+            <div class="section-desc">API'den gelen son optimizasyon durumunu görüntüle ve istersen snapshot olarak kaydet.</div>
+          </div>
+          <div class="toolbar">
+            <button class="btn primary" id="saveSnapshotBtn" type="button">Snapshot Kaydet</button>
+          </div>
+        </div>
+        <div id="scenarioCard" class="stack"></div>
+      </aside>
+
+      <article class="card panel split-left">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">Kaydedilmiş Senaryolar</h2>
+            <div class="section-desc">Admin tarafında saklanan snapshot'lar. Silme işlemi yalnızca bu yerel arşiv üzerinde çalışır.</div>
+          </div>
+          <div class="toolbar">
+            <button class="btn" id="restoreLastBtn" type="button">Son Snapshot'ı Gör</button>
+            <button class="btn danger" id="clearSnapshotsBtn" type="button">Tümünü Sil</button>
+          </div>
+        </div>
+        <div id="snapshotList" class="stack"></div>
+      </article>
+
+      <article class="card panel split-right">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">Admin Oturumu</h2>
+            <div class="section-desc">Basit RBAC: yalnızca admin girişi bu ekrana erişebilir.</div>
+          </div>
+        </div>
+        <div id="sessionDetails" class="stack"></div>
+      </article>
+    </section>
+  </main>
+
+  <section id="loginShell" class="login-screen">
+    <div class="login-card">
+      <div class="eyebrow"><span class="dot"></span> Yönetim Paneli</div>
+      <h1>Admin Panel Girişi</h1>
+      <p>Bu ekran yalnızca yönetim erişimi içindir. Basit RBAC için admin hesabıyla giriş yapıp web paneline ulaşabilirsin.</p>
+      <form id="adminLoginForm">
+        <div class="field">
+          <label for="adminUsername">Kullanıcı adı</label>
+          <input id="adminUsername" type="text" value="admin" autocomplete="username"/>
+        </div>
+        <div class="field">
+          <label for="adminPassword">Parola</label>
+          <input id="adminPassword" type="password" value="admin123" autocomplete="current-password"/>
+        </div>
+        <div class="login-actions">
+          <button class="btn primary" type="submit">Giriş Yap</button>
+          <a class="btn ghost" href="/login">Normal girişe dön</a>
+        </div>
+      </form>
+      <div class="hint">Varsayılan demo erişimi: admin / admin123. Giriş bilgileri tarayıcıda saklanır; backend kullanıcı kayıtlarına dokunulmaz.</div>
+      <div id="loginStatus" class="status-line"><span class="spinner"></span><span>Admin oturumu kontrol ediliyor...</span></div>
+    </div>
+  </section>
+
+  <script>
+    const SESSION_KEY = 'koru-web-session';
+    const SNAPSHOT_KEY = 'koru-admin-scenarios';
+
+    const state = {
+      scenario: null,
+      riskPoints: [],
+      snapshots: [],
+      filteredRiskPoints: [],
+    };
+
+    const elements = {
+      appShell: document.getElementById('appShell'),
+      loginShell: document.getElementById('loginShell'),
+      sessionBadge: document.getElementById('sessionBadge'),
+      loginStatus: document.getElementById('loginStatus'),
+      sessionDetails: document.getElementById('sessionDetails'),
+      kpiRiskPoints: document.getElementById('kpiRiskPoints'),
+      kpiScenarioState: document.getElementById('kpiScenarioState'),
+      kpiScenarioHint: document.getElementById('kpiScenarioHint'),
+      kpiSnapshots: document.getElementById('kpiSnapshots'),
+      kpiStatus: document.getElementById('kpiStatus'),
+      kpiStatusNote: document.getElementById('kpiStatusNote'),
+      riskSummary: document.getElementById('riskSummary'),
+      riskTable: document.getElementById('riskTable'),
+      scenarioCard: document.getElementById('scenarioCard'),
+      snapshotList: document.getElementById('snapshotList'),
+      riskSearch: document.getElementById('riskSearch'),
+      adminLoginForm: document.getElementById('adminLoginForm'),
+      adminUsername: document.getElementById('adminUsername'),
+      adminPassword: document.getElementById('adminPassword'),
+      refreshBtn: document.getElementById('refreshBtn'),
+      reloadRiskBtn: document.getElementById('reloadRiskBtn'),
+      saveSnapshotBtn: document.getElementById('saveSnapshotBtn'),
+      restoreLastBtn: document.getElementById('restoreLastBtn'),
+      clearSnapshotsBtn: document.getElementById('clearSnapshotsBtn'),
+      logoutBtn: document.getElementById('logoutBtn'),
+    };
+
+    function readSession() {
+      try {
+        return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function writeSession(session) {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    }
+
+    function clearSession() {
+      localStorage.removeItem(SESSION_KEY);
+    }
+
+    function loadSnapshots() {
+      try {
+        return JSON.parse(localStorage.getItem(SNAPSHOT_KEY) || '[]');
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function saveSnapshots() {
+      localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(state.snapshots));
+    }
+
+    function setStatus(title, note) {
+      elements.kpiStatus.textContent = title;
+      elements.kpiStatusNote.textContent = note;
+    }
+
+    function formatDate(value) {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return value || '-';
+      }
+      return date.toLocaleString('tr-TR');
+    }
+
+    function formatNumber(value, digits = 0) {
+      const number = Number(value);
+      if (Number.isNaN(number)) {
+        return value ?? '-';
+      }
+      return number.toLocaleString('tr-TR', {
+        maximumFractionDigits: digits,
+        minimumFractionDigits: digits,
+      });
+    }
+
+    function getRiskClass(feature) {
+      return feature?.properties?.risk_class || feature?.risk_class || 'UNKNOWN';
+    }
+
+    function riskTagClass(riskClass) {
+      if (riskClass === 'HIGH_RISK') return 'high';
+      if (riskClass === 'MEDIUM_RISK') return 'medium';
+      if (riskClass === 'LOW_RISK') return 'low';
+      if (riskClass === 'SAFE_UNBURNABLE') return 'safe';
+      return '';
+    }
+
+    function summarizeScenario(scenario) {
+      if (!scenario) {
+        return null;
+      }
+      const keys = [
+        'success',
+        'pipeline_ready',
+        'pipeline_done',
+        'sa_ready',
+        'ga_ready',
+        'pipeline_points',
+        'stations',
+        'status',
+        'message',
+        'error',
+      ];
+      const summary = {};
+      for (const key of keys) {
+        if (scenario[key] !== undefined) {
+          summary[key] = scenario[key];
+        }
+      }
+      return summary;
+    }
+
+    function renderSessionDetails(session) {
+      if (!session) {
+        elements.sessionDetails.innerHTML = '<div class="empty">Aktif admin oturumu yok.</div>';
+        return;
+      }
+
+      elements.sessionDetails.innerHTML = `
+        <div class="scenario-item">
+          <div class="scenario-top">
+            <div>
+              <div class="scenario-name">${session.username || 'admin'}</div>
+              <div class="scenario-meta">Rol: ${session.role || 'admin'} · Oturum: ${formatDate(session.loggedAt)}</div>
+            </div>
+            <span class="tag safe">Aktif</span>
+          </div>
+          <div class="kv">
+            <div><label>Kullanıcı</label><strong>${session.username || '-'}</strong></div>
+            <div><label>Rol</label><strong>${session.role || '-'}</strong></div>
+            <div><label>Kaynak</label><strong>${session.source || 'web'}</strong></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderScenarioCard() {
+      const scenario = state.scenario;
+      if (!scenario) {
+        elements.scenarioCard.innerHTML = '<div class="empty">Senaryo verisi yüklenemedi.</div>';
+        elements.kpiScenarioState.textContent = '--';
+        elements.kpiScenarioHint.textContent = 'API yanıtı bulunamadı.';
+        return;
+      }
+
+      const activeFlags = [scenario.pipeline_ready, scenario.pipeline_done, scenario.sa_ready, scenario.ga_ready]
+        .filter(Boolean)
+        .length;
+      const headline = scenario.message || scenario.status || (scenario.success ? 'Senaryo hazır' : 'Senaryo eksik');
+      const summary = summarizeScenario(scenario) || {};
+      const summaryPairs = Object.entries(summary)
+        .map(([key, value]) => {
+          const printable = Array.isArray(value) ? value.length : (typeof value === 'object' && value !== null ? JSON.stringify(value) : value);
+          return `<div><label>${key.replaceAll('_', ' ')}</label><strong>${printable}</strong></div>`;
+        })
+        .join('');
+
+      elements.kpiScenarioState.textContent = scenario.success === false ? 'Kapalı' : 'Hazır';
+      elements.kpiScenarioHint.textContent = `${activeFlags} aktif bileşen · son güncelleme ${formatDate(scenario.updated_at || scenario.generated_at || Date.now())}`;
+
+      elements.scenarioCard.innerHTML = `
+        <div class="scenario-item">
+          <div class="scenario-top">
+            <div>
+              <div class="scenario-name">Mevcut durum</div>
+              <div class="scenario-meta">${headline}</div>
+            </div>
+            <span class="tag ${scenario.success === false ? 'medium' : 'safe'}">${scenario.success === false ? 'Beklemede' : 'Aktif'}</span>
+          </div>
+          <div class="kv">${summaryPairs || '<div><label>Durum</label><strong>Boş yanıt</strong></div>'}</div>
+          <div class="scenario-meta mono">${JSON.stringify(scenario, null, 2)}</div>
+        </div>
+      `;
+    }
+
+    function renderRiskSummary() {
+      const stats = {
+        total: state.riskPoints.length,
+        high: state.riskPoints.filter((item) => getRiskClass(item) === 'HIGH_RISK').length,
+        medium: state.riskPoints.filter((item) => getRiskClass(item) === 'MEDIUM_RISK').length,
+        safe: state.riskPoints.filter((item) => getRiskClass(item) === 'SAFE_UNBURNABLE').length,
+      };
+
+      elements.kpiRiskPoints.textContent = formatNumber(stats.total);
+      elements.riskSummary.innerHTML = `
+        <div><label>Toplam</label><strong>${stats.total}</strong></div>
+        <div><label>Yüksek Risk</label><strong>${stats.high}</strong></div>
+        <div><label>Orta/Güvenli</label><strong>${stats.medium + stats.safe}</strong></div>
+      `;
+    }
+
+    function renderRiskTable() {
+      const query = elements.riskSearch.value.trim().toLowerCase();
+      const filtered = state.riskPoints.filter((feature) => {
+        if (!query) return true;
+        const riskClass = getRiskClass(feature).toLowerCase();
+        const coords = feature?.geometry?.coordinates || [];
+        return riskClass.includes(query) || JSON.stringify(coords).toLowerCase().includes(query);
+      });
+      state.filteredRiskPoints = filtered;
+
+      if (!filtered.length) {
+        elements.riskTable.innerHTML = '<tr><td colspan="5"><div class="empty">Risk noktası bulunamadı.</div></td></tr>';
+        return;
+      }
+
+      elements.riskTable.innerHTML = filtered.slice(0, 50).map((feature, index) => {
+        const coords = feature?.geometry?.coordinates || [];
+        const props = feature?.properties || {};
+        const riskClass = getRiskClass(feature);
+        const score = props.combined_risk_score ?? props.high_fire_probability ?? props.fire_probability ?? '-';
+        return `
+          <tr>
+            <td class="mono">${index + 1}</td>
+            <td><span class="tag ${riskTagClass(riskClass)}">${riskClass}</span></td>
+            <td class="mono">${coords.length ? `${formatNumber(coords[1], 4)}, ${formatNumber(coords[0], 4)}` : '-'}</td>
+            <td class="mono">${formatNumber(score, 4)}</td>
+            <td>${props.color ? `<span class="tag">${props.color}</span>` : '<span class="tag">Live</span>'}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderSnapshots() {
+      elements.kpiSnapshots.textContent = String(state.snapshots.length);
+
+      if (!state.snapshots.length) {
+        elements.snapshotList.innerHTML = '<div class="empty">Henüz kaydedilmiş snapshot yok.</div>';
+        return;
+      }
+
+      elements.snapshotList.innerHTML = state.snapshots.map((snapshot, index) => {
+        const data = snapshot.data || {};
+        const title = snapshot.title || `Snapshot ${index + 1}`;
+        const info = summarizeScenario(data) || {};
+        const pairs = Object.entries(info).slice(0, 4).map(([key, value]) => `<div><label>${key.replaceAll('_', ' ')}</label><strong>${Array.isArray(value) ? value.length : (typeof value === 'object' && value !== null ? JSON.stringify(value) : value)}</strong></div>`).join('');
+
+        return `
+          <div class="scenario-item">
+            <div class="scenario-top">
+              <div>
+                <div class="scenario-name">${title}</div>
+                <div class="scenario-meta">Kaydedilme: ${formatDate(snapshot.createdAt)}</div>
+              </div>
+              <div class="toolbar">
+                <button class="btn ghost" type="button" data-action="restore" data-id="${snapshot.id}">Görüntüle</button>
+                <button class="btn danger" type="button" data-action="delete" data-id="${snapshot.id}">Sil</button>
+              </div>
+            </div>
+            <div class="kv">${pairs || '<div><label>Bilgi</label><strong>Özet yok</strong></div>'}</div>
+            <div class="scenario-meta mono">${JSON.stringify(data, null, 2)}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateStatusLine(message, loading = false) {
+      elements.loginStatus.innerHTML = `${loading ? '<span class="spinner"></span>' : '<span class="dot"></span>'}<span>${message}</span>`;
+    }
+
+    async function fetchJson(url) {
+      const response = await fetch(url, { headers: { Accept: 'application/json' } });
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || `Request failed: ${response.status}`);
+      }
+      return response.json();
+    }
+
+    async function loadDashboardData() {
+      if (location.protocol === 'file:') {
+        setStatus('Backend gerekli', 'Admin verileri için sayfayı web sunucusu üzerinden aç.');
+        return;
+      }
+
+      setStatus('Yükleniyor', 'Veriler backend üzerinden okunuyor.');
+      elements.kpiStatus.textContent = 'Yükleniyor';
+      elements.kpiStatusNote.textContent = 'Risk ve senaryo verileri alınıyor...';
+
+      try {
+        const [scenario, riskResponse] = await Promise.all([
+          fetchJson('/api/optimize/scenario'),
+          fetchJson('/api/fire-risk/points?limit=200&offset=0'),
+        ]);
+
+        state.scenario = scenario;
+        state.riskPoints = Array.isArray(riskResponse.features) ? riskResponse.features : [];
+        renderScenarioCard();
+        renderRiskSummary();
+        renderRiskTable();
+        state.snapshots = loadSnapshots();
+        renderSnapshots();
+        renderSessionDetails(readSession());
+        setStatus('Hazır', 'Yönetim paneli başarılı şekilde güncellendi.');
+      } catch (error) {
+        console.error(error);
+        state.scenario = null;
+        state.riskPoints = [];
+        state.filteredRiskPoints = [];
+        renderScenarioCard();
+        renderRiskSummary();
+        renderRiskTable();
+        renderSnapshots();
+        setStatus('Hata', error.message || 'Veri alınamadı');
+      }
+    }
+
+    function ensureAdminAccess() {
+      const session = readSession();
+      const isAdmin = session && session.role === 'admin';
+
+      if (isAdmin) {
+        elements.loginShell.classList.add('hidden');
+        elements.appShell.classList.remove('hidden');
+        elements.sessionBadge.textContent = `${session.username || 'admin'} · yönetici`;
+        elements.adminUsername.value = session.username || 'admin';
+        renderSessionDetails(session);
+        state.snapshots = loadSnapshots();
+        renderSnapshots();
+        return true;
+      }
+
+      elements.appShell.classList.add('hidden');
+      elements.loginShell.classList.remove('hidden');
+      updateStatusLine('Admin oturumu gerekli.', false);
+      return false;
+    }
+
+    function openSnapshotById(snapshotId) {
+      const snapshot = state.snapshots.find((item) => item.id === snapshotId);
+      if (!snapshot) {
+        return;
+      }
+      state.scenario = snapshot.data;
+      renderScenarioCard();
+      elements.kpiScenarioHint.textContent = `Snapshot görüntüleniyor: ${snapshot.title}`;
+      elements.kpiStatus.textContent = 'Snapshot';
+      elements.kpiStatusNote.textContent = `Kayıtlı senaryo ${formatDate(snapshot.createdAt)} tarihinde oluşturuldu.`;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function deleteSnapshotById(snapshotId) {
+      state.snapshots = state.snapshots.filter((item) => item.id !== snapshotId);
+      saveSnapshots();
+      renderSnapshots();
+      elements.kpiStatus.textContent = 'Silindi';
+      elements.kpiStatusNote.textContent = 'Seçili snapshot yerel arşivden kaldırıldı.';
+    }
+
+    elements.adminLoginForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const username = elements.adminUsername.value.trim();
+      const password = elements.adminPassword.value;
+
+      if (username !== 'admin' || password !== 'admin123') {
+        updateStatusLine('Geçersiz admin bilgisi.', false);
+        elements.adminPassword.focus();
+        return;
+      }
+
+      const session = {
+        username,
+        role: 'admin',
+        source: 'web',
+        loggedAt: new Date().toISOString(),
+      };
+      writeSession(session);
+      updateStatusLine('Giriş başarılı. Panel hazırlanıyor...', true);
+      ensureAdminAccess();
+      loadDashboardData();
+    });
+
+    elements.refreshBtn.addEventListener('click', loadDashboardData);
+    elements.reloadRiskBtn.addEventListener('click', async () => {
+      try {
+        const riskResponse = await fetchJson('/api/fire-risk/points?limit=200&offset=0');
+        state.riskPoints = Array.isArray(riskResponse.features) ? riskResponse.features : [];
+        renderRiskSummary();
+        renderRiskTable();
+        setStatus('Risk noktaları yenilendi', 'Risk listesi güncel backend verisiyle değiştirildi.');
+      } catch (error) {
+        setStatus('Hata', error.message || 'Risk noktaları yenilenemedi');
+      }
+    });
+
+    elements.riskSearch.addEventListener('input', renderRiskTable);
+
+    elements.saveSnapshotBtn.addEventListener('click', () => {
+      if (!state.scenario) {
+        setStatus('Kayıt yok', 'Önce senaryo verisi yüklenmeli.');
+        return;
+      }
+
+      const snapshot = {
+        id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+        title: `Snapshot ${state.snapshots.length + 1}`,
+        createdAt: new Date().toISOString(),
+        data: state.scenario,
+      };
+
+      state.snapshots = [snapshot, ...state.snapshots].slice(0, 20);
+      saveSnapshots();
+      renderSnapshots();
+      setStatus('Snapshot kaydedildi', 'Mevcut senaryo yerel arşive eklendi.');
+    });
+
+    elements.restoreLastBtn.addEventListener('click', () => {
+      const latest = state.snapshots[0];
+      if (!latest) {
+        setStatus('Kayıt yok', 'Görüntülenecek snapshot bulunamadı.');
+        return;
+      }
+      openSnapshotById(latest.id);
+    });
+
+    elements.clearSnapshotsBtn.addEventListener('click', () => {
+      state.snapshots = [];
+      saveSnapshots();
+      renderSnapshots();
+      setStatus('Arşiv temizlendi', 'Kaydedilen tüm snapshot' + "'" + 'lar silindi.');
+    });
+
+    elements.logoutBtn.addEventListener('click', () => {
+      clearSession();
+      ensureAdminAccess();
+      updateStatusLine('Çıkış yapıldı.', false);
+    });
+
+    elements.snapshotList.addEventListener('click', (event) => {
+      const target = event.target.closest('button[data-action]');
+      if (!target) {
+        return;
+      }
+
+      const snapshotId = target.getAttribute('data-id');
+      const action = target.getAttribute('data-action');
+
+      if (action === 'restore') {
+        openSnapshotById(snapshotId);
+      }
+
+      if (action === 'delete') {
+        deleteSnapshotById(snapshotId);
+      }
+    });
+
+    ensureAdminAccess();
+    const hasAdminAccess = ensureAdminAccess();
+    if (hasAdminAccess) {
+      state.snapshots = loadSnapshots();
+      renderSnapshots();
+      loadDashboardData();
+    }
+  </script>
+</body>
+</html>

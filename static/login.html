@@ -38,38 +38,6 @@
 
     /* Ambient background layers */
     .bg-orb {
-      position:fixed;
-      border-radius:50%;
-      filter:blur(80px);
-      pointer-events:none;
-      z-index:0;
-    }
-    .bg-orb-1 {
-      width:600px; height:600px;
-      background:radial-gradient(circle, rgba(30,80,20,0.35) 0%, transparent 70%);
-      top:-150px; left:-100px;
-    }
-    .bg-orb-2 {
-      width:400px; height:400px;
-      background:radial-gradient(circle, rgba(245,158,11,0.08) 0%, transparent 70%);
-      bottom:-80px; right:-60px;
-    }
-    .bg-orb-3 {
-      width:300px; height:300px;
-      background:radial-gradient(circle, rgba(20,60,15,0.4) 0%, transparent 70%);
-      top:40%; left:50%;
-      transform:translate(-50%,-50%);
-    }
-
-    /* Grid lines */
-    .bg-grid {
-      position:fixed;
-      inset:0;
-      background-image:
-        linear-gradient(rgba(74,124,58,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(74,124,58,0.04) 1px, transparent 1px);
-      background-size:48px 48px;
-      z-index:0;
     }
 
     /* Card */
@@ -140,6 +108,105 @@
       height:1px;
       background:var(--border);
       margin-bottom:28px;
+    }
+
+    .auth-toggle {
+      display:grid;
+      grid-template-columns:repeat(2, 1fr);
+      gap:10px;
+      margin-bottom:20px;
+    }
+    .auth-toggle-btn {
+      height:42px;
+      border:1px solid var(--border);
+      border-radius:12px;
+      background:rgba(6,18,9,0.62);
+      color:var(--text-2);
+      font-family:'Inter', sans-serif;
+      font-size:13px;
+      font-weight:700;
+      letter-spacing:.8px;
+      text-transform:uppercase;
+      cursor:pointer;
+      transition:all .2s;
+    }
+    .auth-toggle-btn.active {
+      border-color:var(--border-hi);
+      color:#111;
+      background:linear-gradient(135deg, #D97706 0%, var(--accent) 50%, #D97706 100%);
+      box-shadow:0 4px 18px rgba(245,158,11,0.2);
+    }
+
+    .auth-form {
+      display:none;
+    }
+    .auth-form.active {
+      display:block;
+    }
+
+    .hidden-ui {
+      display:none !important;
+    }
+
+    .helper-note {
+      margin-top:14px;
+      padding:12px 14px;
+      border:1px solid rgba(74,124,58,0.16);
+      border-radius:12px;
+      background:rgba(6,18,9,0.42);
+      color:var(--text-muted);
+      font-size:12px;
+      line-height:1.55;
+    }
+
+    .form-message {
+      min-height:18px;
+      margin-top:12px;
+      font-size:12px;
+      line-height:1.45;
+      color:var(--danger);
+    }
+
+    .form-message.success {
+      color:#22c55e;
+    }
+
+    .field-grid {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+
+    .signup-role {
+      display:grid;
+      gap:8px;
+      margin-bottom:16px;
+    }
+
+    .signup-role label {
+      font-size:11px;
+      font-weight:600;
+      letter-spacing:1.2px;
+      text-transform:uppercase;
+      color:var(--text-2);
+    }
+
+    .signup-role select {
+      width:100%;
+      height:46px;
+      background:rgba(6,18,9,0.7);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:0 14px;
+      color:var(--text);
+      font-family:'Inter', sans-serif;
+      font-size:14px;
+      outline:none;
+      transition:border-color .2s, box-shadow .2s;
+    }
+    .signup-role select:focus {
+      border-color:var(--border-hi);
+      box-shadow:0 0 0 3px rgba(245,158,11,0.08), 0 0 16px rgba(74,124,58,0.15);
     }
 
     /* Form */
@@ -322,19 +389,24 @@
     </div>
     <div class="divider"></div>
 
-    <form onsubmit="handleLogin(event)">
+    <div class="auth-toggle" role="tablist" aria-label="Kimlik işlemleri">
+      <button type="button" class="auth-toggle-btn active" id="loginTabBtn">Giriş Yap</button>
+      <button type="button" class="auth-toggle-btn" id="signupTabBtn">Kayıt Ol</button>
+    </div>
+
+    <form id="loginForm" class="auth-form active" onsubmit="handleLogin(event)" novalidate>
       <div class="field">
         <label for="username">Kullanıcı Adı</label>
         <div class="field-wrap">
           <span class="field-icon">👤</span>
-          <input type="text" id="username" placeholder="kullanici@izmir.bel.tr" autocomplete="username"/>
+          <input type="text" id="username" placeholder="kullanici@izmir.bel.tr" autocomplete="username" required/>
         </div>
       </div>
       <div class="field">
         <label for="password">Şifre</label>
         <div class="field-wrap">
           <span class="field-icon">🔒</span>
-          <input type="password" id="password" placeholder="••••••••" autocomplete="current-password"/>
+          <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" required/>
         </div>
       </div>
 
@@ -346,6 +418,48 @@
       </div>
 
       <button type="submit" class="btn-submit">Giriş Yap</button>
+      <div id="loginMessage" class="form-message" aria-live="polite"></div>
+      <div class="helper-note">Zaten kayıtlı bir hesabın varsa giriş yap. Kayıt sekmesinden yeni hesap oluşturabilirsin.</div>
+    </form>
+
+    <form id="signupForm" class="auth-form" onsubmit="handleSignup(event)" novalidate>
+      <div class="signup-role hidden-ui">
+        <label for="signupRole">Hesap Türü</label>
+        <select id="signupRole" required>
+          <option value="user">Kullanıcı</option>
+          <option value="firefighter">İtfaiye Personeli</option>
+        </select>
+      </div>
+
+      <div class="field-grid">
+        <div class="field">
+          <label for="signupUsername">Kullanıcı Adı</label>
+          <div class="field-wrap">
+            <span class="field-icon">👤</span>
+            <input type="text" id="signupUsername" placeholder="yeni_kullanici" autocomplete="username" required/>
+          </div>
+        </div>
+        <div class="field">
+          <label for="signupPassword">Şifre</label>
+          <div class="field-wrap">
+            <span class="field-icon">🔒</span>
+            <input type="password" id="signupPassword" placeholder="••••••••" autocomplete="new-password" required/>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="signupConfirmPassword">Şifre Tekrarı</label>
+        <div class="field-wrap">
+          <span class="field-icon">🔒</span>
+          <input type="password" id="signupConfirmPassword" placeholder="••••••••" autocomplete="new-password" required/>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-submit">Kayıt Ol</button>
+      <div id="signupMessage" class="form-message" aria-live="polite"></div>
+      <div class="helper-note">Kayıt işlemi sadece normal kullanıcı hesabı oluşturur. Admin ve itfaiye hesapları şimdilik bu panelden açılmaz.</div>
+      <div class="helper-note hidden-ui">İtfaiye hesabı açma seçeneği ileride tekrar açılmak üzere burada saklanır.</div>
     </form>
 
     <div class="status-bar">
@@ -360,18 +474,181 @@
   </div>
 
   <script>
-    function handleLogin(e) {
+    const loginTabBtn = document.getElementById('loginTabBtn');
+    const signupTabBtn = document.getElementById('signupTabBtn');
+    const loginForm = document.getElementById('loginForm');
+    const signupForm = document.getElementById('signupForm');
+    const loginMessage = document.getElementById('loginMessage');
+    const signupMessage = document.getElementById('signupMessage');
+
+    function showMessage(messageEl, message, kind = 'error') {
+      messageEl.textContent = message || '';
+      messageEl.classList.toggle('success', kind === 'success');
+    }
+
+    function clearMessage(messageEl) {
+      showMessage(messageEl, '', 'error');
+    }
+
+    function normalizeAuthMessage(message) {
+      const text = (message || '').toLowerCase();
+      if (
+        text.includes('password must be at least 6 characters') ||
+        text.includes('şifre en az 6 karakter olmalı') ||
+        text.includes('invalid credentials')
+      ) {
+        return 'Kullanıcı adı veya şifre hatalı.';
+      }
+
+      return message || 'Kullanıcı adı veya şifre hatalı.';
+    }
+
+    function switchTab(tab) {
+      const isLogin = tab === 'login';
+      loginTabBtn.classList.toggle('active', isLogin);
+      signupTabBtn.classList.toggle('active', !isLogin);
+      loginForm.classList.toggle('active', isLogin);
+      signupForm.classList.toggle('active', !isLogin);
+    }
+
+    loginTabBtn.addEventListener('click', () => switchTab('login'));
+    signupTabBtn.addEventListener('click', () => switchTab('signup'));
+
+    async function handleLogin(e) {
       e.preventDefault();
+      clearMessage(loginMessage);
+
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+
+      if (!username || !password) {
+        showMessage(loginMessage, 'Kullanıcı adı ve şifre zorunlu.');
+        return;
+      }
+
       const btn = e.target.querySelector('.btn-submit');
+
       btn.textContent = '⏳ Doğrulanıyor...';
       btn.disabled = true;
-      setTimeout(() => {
+
+      try {
+        const response = await fetch('/auth/user/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({ username, password }),
+        });
+
+        if (!response.ok) {
+          let message = 'Kullanıcı adı veya şifre hatalı.';
+          try {
+            const errorBody = await response.json();
+            message = normalizeAuthMessage(errorBody.detail || message);
+          } catch (error) {
+            const errorText = await response.text();
+            if (errorText) {
+              message = normalizeAuthMessage(errorText);
+            }
+          }
+          throw new Error(message);
+        }
+
+        const data = await response.json();
+        if (!data.access_token) {
+          throw new Error('Token alınamadı.');
+        }
+
+        sessionStorage.setItem('access_token', data.access_token);
+        sessionStorage.setItem('username', username);
+
         btn.textContent = '✓ Giriş Yapıldı';
         btn.style.background = 'linear-gradient(135deg, #16a34a, #22c55e)';
+        showMessage(loginMessage, 'Giriş başarılı. Yönlendiriliyorsun...', 'success');
         setTimeout(() => {
           window.location.href = '/welcome';
         }, 700);
-      }, 1000);
+      } catch (error) {
+        showMessage(loginMessage, error.message || 'Kullanıcı adı veya şifre hatalı.');
+        btn.textContent = 'Giriş Yap';
+        btn.disabled = false;
+      }
+    }
+
+    async function handleSignup(e) {
+      e.preventDefault();
+      clearMessage(signupMessage);
+
+      const username = document.getElementById('signupUsername').value.trim();
+      const password = document.getElementById('signupPassword').value;
+      const confirmPassword = document.getElementById('signupConfirmPassword').value;
+
+      if (!username || !password || !confirmPassword) {
+        showMessage(signupMessage, 'Tüm alanları doldur.');
+        return;
+      }
+
+      if (password.length < 6) {
+        showMessage(signupMessage, 'Şifre en az 6 karakter olmalı.');
+        return;
+      }
+
+      const button = e.target.querySelector('.btn-submit');
+      const role = document.getElementById('signupRole')?.value || 'user';
+
+      if (password !== confirmPassword) {
+        showMessage(signupMessage, 'Şifreler eşleşmiyor.');
+        return;
+      }
+
+      button.textContent = '⏳ Kayıt Olunuyor...';
+      button.disabled = true;
+
+      try {
+        const response = await fetch('/auth/user/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({ username, password }),
+        });
+
+        if (!response.ok) {
+          let message = 'Kayıt başarısız.';
+          try {
+            const errorBody = await response.json();
+            message = errorBody.detail || message;
+          } catch (error) {
+            const errorText = await response.text();
+            if (errorText) {
+              message = errorText;
+            }
+          }
+          throw new Error(message);
+        }
+
+        const data = await response.json();
+        if (!data.access_token) {
+          throw new Error('Token alınamadı.');
+        }
+
+        sessionStorage.setItem('access_token', data.access_token);
+        sessionStorage.setItem('username', username);
+        sessionStorage.setItem('role', role);
+
+        button.textContent = '✓ Kayıt Tamamlandı';
+        button.style.background = 'linear-gradient(135deg, #16a34a, #22c55e)';
+        showMessage(signupMessage, 'Kayıt başarılı. Yönlendiriliyorsun...', 'success');
+        setTimeout(() => {
+          window.location.href = '/welcome';
+        }, 700);
+      } catch (error) {
+        showMessage(signupMessage, error.message || 'Kayıt başarısız.');
+        button.textContent = 'Kayıt Ol';
+        button.disabled = false;
+      }
     }
   </script>
 </body>
