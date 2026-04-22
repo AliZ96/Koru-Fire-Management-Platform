@@ -1,15 +1,8 @@
-<<<<<<< S10.5-deployment-preparation
-=======
 import logging
 import time
-from fastapi import FastAPI, Request
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-from fastapi.middleware.cors import CORSMiddleware
->>>>>>> main
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -28,6 +21,7 @@ from app.api.routers.routing import router as routing_router
 from app.core.config import settings
 from app.core.database import engine
 from app.db.base import Base
+from app.scenario.router import router as scenario_router
 
 
 def create_app() -> FastAPI:
@@ -88,6 +82,7 @@ def create_app() -> FastAPI:
     app.include_router(routing_router)
     app.include_router(mobile_ui_router)
     app.include_router(accessibility_router)
+    app.include_router(scenario_router)
 
     static_path = Path(__file__).resolve().parent.parent / "static"
 
