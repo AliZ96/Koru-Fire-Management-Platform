@@ -187,7 +187,7 @@
       <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
         <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M9 20l-5.447-2.724A2 2 0 013 15.382V5.618a2 2 0 011.106-1.789L9 1m0 19l6-3m-6 3V1m6 16l4.553 2.276A2 2 0 0021 17.382V7.618a2 2 0 00-.894-1.664L15 2m0 15V2m0 0L9 1"/></svg></div>
         <span class="acc-label">Erişim & Müdahale</span>
-        <span class="acc-count">4</span>
+        <span class="acc-count">7</span>
         <span class="acc-arrow">▼</span>
       </div>
       <div class="acc-body">
@@ -196,6 +196,15 @@
           <button id="btnFireStations" class="btn btn-outline">İtfaiye İstasyonları</button>
           <button id="btnProximity" class="btn btn-outline">Kaynak Yakınlık</button>
           <button id="btnIntegrated" class="btn btn-outline">Entegre Katman</button>
+          <button id="btnRouteSA" class="btn btn-outline">SA Rotaları</button>
+          <button id="btnRouteGA" class="btn btn-outline">GA Rotaları</button>
+          <button id="btnRouteClear" class="btn">Rotaları Temizle</button>
+        </div>
+        <div class="row">
+          <label for="routeSelect">Seçili Rota</label>
+          <select id="routeSelect" style="min-width:220px;">
+            <option value="">Tümü (highlight kapalı)</option>
+          </select>
         </div>
       </div>
     </div>
@@ -1422,6 +1431,215 @@
     let integratedLegendCtl = null;
     let pipelineLayer = null;
     let pipelineLegendCtl = null;
+    let optimizationRouteLayers = [];
+    let routeLegendCtl = null;
+    let routeIndex = [];
+    let selectedRouteId = '';
+    let lastOptimizationScenarioKey = null;
+
+    function getAlgoColor(algo) {
+      return algo === 'GA' ? '#2563eb' : '#f97316';
+    }
+
+    function routeStyle(feature) {
+      const props = feature.properties || {};
+      const selected = selectedRouteId && selectedRouteId === props.route_id;
+      return {
+        color: props.base_color || '#6b7280',
+        weight: selectedRouteId ? (selected ? 6 : 2) : 3,
+        opacity: selectedRouteId ? (selected ? 0.95 : 0.35) : 0.85,
+      };
+    }
+
+    function clearOptimizationRoutes() {
+      optimizationRouteLayers.forEach(layer => {
+        try { map.removeLayer(layer); } catch (e) {}
+      });
+      optimizationRouteLayers = [];
+      routeIndex = [];
+      selectedRouteId = '';
+
+      const routeSelect = document.getElementById('routeSelect');
+      if (routeSelect) {
+        routeSelect.innerHTML = '<option value="">Tümü (highlight kapalı)</option>';
+      }
+
+      if (routeLegendCtl) {
+        try { routeLegendCtl.remove(); } catch (e) {}
+        routeLegendCtl = null;
+      }
+    }
+
+    function rebuildRouteSelect() {
+      const routeSelect = document.getElementById('routeSelect');
+      if (!routeSelect) return;
+      routeSelect.innerHTML = '<option value="">Tümü (highlight kapalı)</option>';
+      routeIndex.forEach(route => {
+        const opt = document.createElement('option');
+        opt.value = route.route_id;
+        opt.textContent = `[${route.algorithm}] Istasyon ${route.station_id} • ${Number(route.distance || 0).toFixed(2)} km`;
+        routeSelect.appendChild(opt);
+      });
+      routeSelect.value = selectedRouteId || '';
+    }
+
+    function refreshRouteStyles() {
+      optimizationRouteLayers.forEach(layer => {
+        try { layer.setStyle(routeStyle); } catch (e) {}
+      });
+    }
+
+    function ensureRouteLegend() {
+      if (routeLegendCtl) return;
+      routeLegendCtl = L.control({ position: 'bottomleft' });
+      routeLegendCtl.onAdd = function() {
+        const div = L.DomUtil.create('div', 'legend');
+        div.style.backgroundColor = 'white';
+        div.style.padding = '10px';
+        div.style.borderRadius = '5px';
+        div.style.boxShadow = '0 0 15px rgba(0,0,0,0.2)';
+        div.style.fontSize = '12px';
+        div.innerHTML =
+          '<b>Rota Katmani</b>' +
+          '<div class="row"><span class="sw" style="background:#f97316"></span>SA</div>' +
+          '<div class="row"><span class="sw" style="background:#2563eb"></span>GA</div>';
+        return div;
+      };
+      routeLegendCtl.addTo(map);
+    }
+
+    async function ensureOptimizationScenario() {
+      const nInput = document.getElementById('pipelineN');
+      const kInput = document.getElementById('pipelineK');
+      const n = Math.max(1, parseInt(nInput?.value || '20', 10) || 20);
+      const k = Math.max(1, parseInt(kInput?.value || '4', 10) || 4);
+      const key = `${n}-${k}`;
+      if (lastOptimizationScenarioKey === key) {
+        return { n, k };
+      }
+
+      const info = document.getElementById('info');
+      info.textContent = `Pipeline calisiyor (n=${n}, k=${k})...`;
+      setStatus(`Pipeline calisiyor (n=${n}, k=${k})...`);
+
+      const pipeRes = await fetch('/api/optimize/pipeline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ n, k }),
+      });
+      if (!pipeRes.ok) throw new Error('Pipeline API hatasi: ' + pipeRes.status);
+      const pipeData = await pipeRes.json();
+      if (!pipeData.success) throw new Error(pipeData.error || 'Pipeline basarisiz');
+
+      info.textContent = 'SA/GA optimizasyonu calisiyor...';
+      setStatus('SA/GA optimizasyonu calisiyor...');
+      const runRes = await fetch('/api/optimize/run', { method: 'POST' });
+      if (!runRes.ok) throw new Error('Optimize run API hatasi: ' + runRes.status);
+      const runData = await runRes.json();
+      if (!runData.success) throw new Error(runData.error || 'SA/GA basarisiz');
+
+      lastOptimizationScenarioKey = key;
+      return { n, k };
+    }
+
+    async function loadOptimizationRoutes(algorithm) {
+      const info = document.getElementById('info');
+      const algo = String(algorithm || '').toUpperCase();
+      if (algo !== 'SA' && algo !== 'GA') return;
+
+      try {
+        const { k } = await ensureOptimizationScenario();
+
+        optimizationRouteLayers = optimizationRouteLayers.filter(layer => {
+          if (layer && layer._algorithm === algo) {
+            try { map.removeLayer(layer); } catch (e) {}
+            return false;
+          }
+          return true;
+        });
+        routeIndex = routeIndex.filter(r => r.algorithm !== algo);
+
+        info.textContent = `${algo} rotalari yukleniyor...`;
+        setStatus(`${algo} rotalari yukleniyor...`);
+        const res = await fetch(`/api/optimize/${algo.toLowerCase()}`);
+        if (!res.ok) throw new Error('API hatasi: ' + res.status);
+        const data = await res.json();
+        const stations = Array.isArray(data.stations) ? data.stations : [];
+        if (!stations.length) throw new Error('Rota bulunamadi');
+
+        if (!map.getPane('routePane')) {
+          map.createPane('routePane');
+          map.getPane('routePane').style.zIndex = 780;
+        }
+
+        const features = [];
+        stations.forEach(station => {
+          const vehicles = Array.isArray(station.vehicles) ? station.vehicles : [];
+          const lineParts = [];
+          vehicles.forEach(v => {
+            const points = Array.isArray(v.polyline) ? v.polyline : [];
+            const coords = points
+              .filter(p => Array.isArray(p) && p.length >= 2)
+              .map(p => [Number(p[1]), Number(p[0])]);
+            if (coords.length >= 2) lineParts.push(coords);
+          });
+          if (!lineParts.length) return;
+
+          const routeId = `${algo}-${station.station_id}`;
+          routeIndex.push({
+            route_id: routeId,
+            algorithm: algo,
+            station_id: station.station_id,
+            distance: station.total_distance || 0,
+          });
+          features.push({
+            type: 'Feature',
+            geometry: { type: 'MultiLineString', coordinates: lineParts },
+            properties: {
+              route_id: routeId,
+              algorithm: algo,
+              station_id: station.station_id,
+              station_name: station.station_name || `Station ${station.station_id}`,
+              distance: station.total_distance || 0,
+              vehicle_count: vehicles.length || 1,
+              fire_point_count: Array.isArray(station.assigned_fire_points) ? station.assigned_fire_points.length : 0,
+              cluster_target: k,
+              base_color: getAlgoColor(algo),
+            }
+          });
+        });
+
+        if (!features.length) throw new Error('Polyline cizilemedi');
+
+        const layer = L.geoJSON({ type: 'FeatureCollection', features }, {
+          pane: 'routePane',
+          style: routeStyle,
+          onEachFeature: (feature, routeLayer) => {
+            const p = feature.properties || {};
+            routeLayer.bindPopup(
+              `<b>${p.algorithm} Rota</b><br>` +
+              `<strong>Istasyon:</strong> ${p.station_name} (${p.station_id})<br>` +
+              `<strong>Arac sayisi:</strong> ${p.vehicle_count}<br>` +
+              `<strong>Atanan nokta:</strong> ${p.fire_point_count}<br>` +
+              `<strong>Toplam mesafe:</strong> ${Number(p.distance || 0).toFixed(2)} km<br>` +
+              `<strong>Hedef kume:</strong> ${p.cluster_target}`
+            );
+          }
+        }).addTo(map);
+
+        layer._algorithm = algo;
+        optimizationRouteLayers.push(layer);
+        ensureRouteLegend();
+        rebuildRouteSelect();
+        refreshRouteStyles();
+
+        info.textContent = `${algo} rotalari aktif (${features.length} rota)`;
+        setStatus(`${algo} rotalari aktif (${features.length} rota)`);
+      } catch (e) {
+        info.textContent = `${algo} rota hatasi: ${e.message}`;
+        console.error(`${algo} route error:`, e);
+      }
+    }
 
     async function loadPipelineLayer() {
       const info = document.getElementById('info');
@@ -1434,20 +1652,21 @@
         const n = Math.max(1, parseInt(nInput?.value || '20', 10) || 20);
         const k = Math.max(1, parseInt(kInput?.value || '4', 10) || 4);
 
-        const response = await fetch(`/api/pipeline/run?n=${n}&k=${k}`);
+        await ensureOptimizationScenario();
+
+        const response = await fetch('/api/optimize/scenario');
         if (!response.ok) throw new Error('API hatası: ' + response.status);
+        const scenario = await response.json();
 
-        const geoJson = await response.json();
-
-        if (!geoJson.features || geoJson.features.length === 0) {
-          info.textContent = 'Pipeline sonucu verisi bulunamadı';
+        const pipelinePoints = Array.isArray(scenario.pipeline_points) ? scenario.pipeline_points : [];
+        const stations = Array.isArray(scenario.stations) ? scenario.stations : [];
+        if (!pipelinePoints.length) {
+          info.textContent = 'Pipeline noktaları bulunamadı';
           return;
         }
 
-        const meta = geoJson.meta || {};
-        const nSamples = meta.risk_sample_features ?? meta.total_points ?? meta.selected_points ?? 0;
-        const nCentroids = meta.centroid_features ?? meta.total_clusters ?? meta.clusters ?? 0;
-        console.log('Pipeline (k-means.py): örnek nokta', nSamples, 'merkez', nCentroids);
+        const stationById = {};
+        stations.forEach(s => { stationById[String(s.id)] = s; });
 
         if (pipelineLayer) {
           try { map.removeLayer(pipelineLayer); } catch (e) {}
@@ -1458,37 +1677,46 @@
           map.getPane('pipelinePane').style.zIndex = 760;
         }
 
-        const palette = [
-          '#e41a1c', '#377eb8', '#4daf4a', '#984ea3',
-          '#ff7f00', '#ffff33', '#a65628', '#f781bf', '#999999'
-        ];
-        const clusterColors = {};
-        let colorIndex = 0;
+        const pointFeatures = pipelinePoints.map(p => ({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [Number(p.lon), Number(p.lat)] },
+          properties: {
+            type: 'fire_point',
+            id: p.id,
+            risk_class: p.risk,
+            demand: p.demand,
+            fire_station_id: p.fire_station_id,
+            station_distance_km: p.station_distance_km,
+          }
+        }));
+        const usedStationIds = new Set(pipelinePoints.map(p => String(p.fire_station_id)));
+        const stationFeatures = Array.from(usedStationIds)
+          .map(id => stationById[id])
+          .filter(Boolean)
+          .map(s => ({
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [Number(s.lon), Number(s.lat)] },
+            properties: {
+              type: 'fire_station',
+              id: s.id,
+              name: s.name || `Station ${s.id}`
+            }
+          }));
+
+        const geoJson = {
+          type: 'FeatureCollection',
+          features: [...pointFeatures, ...stationFeatures],
+        };
 
         pipelineLayer = L.geoJSON(geoJson, {
           pane: 'pipelinePane',
           pointToLayer: (feature, latlng) => {
             const props = feature.properties || {};
-            const ft = props.type || (props.kind === 'cluster_centroid' ? 'cluster_center' : 'fire_point');
-            const clusterKey = props.cluster_id != null ? String(props.cluster_id) : 'default';
-            if (!clusterColors[clusterKey]) {
-              clusterColors[clusterKey] = palette[colorIndex % palette.length];
-              colorIndex += 1;
-            }
-            const color = clusterColors[clusterKey];
-            if (ft === 'cluster_center') {
-              return L.circleMarker(latlng, {
-                radius: 11,
-                color: '#1a1a1a',
-                weight: 3,
-                fillColor: color,
-                fillOpacity: 0.95,
-                opacity: 1
-              });
-            }
+            const ft = props.type || 'fire_point';
+            const risk = String(props.risk_class || '').toUpperCase();
+            const color = risk === 'HIGH' ? '#dc2626' : '#f59e0b';
             if (ft === 'fire_station') {
-              // Kare "kutucuk" marker: circle yerine divIcon kullanıyoruz
-              const sizePx = 22; // biraz daha büyütüldü
+              const sizePx = 18;
               return L.marker(latlng, {
                 icon: L.divIcon({
                   className: 'fireStationSquareIcon',
@@ -1517,56 +1745,23 @@
           },
           onEachFeature: (feature, layer) => {
             const props = feature.properties || {};
-            const ft = props.type || (props.kind === 'cluster_centroid' ? 'cluster_center' : 'fire_point');
-            const clusterId = props.cluster_id != null ? props.cluster_id : 'N/A';
+            const ft = props.type || 'fire_point';
 
             let popupContent;
-            if (ft === 'cluster_center') {
-              const stName = props.station_name || 'Bilinmiyor';
-              const distSt = props.station_distance_km != null
-                ? Number(props.station_distance_km).toFixed(2) + ' km'
-                : '—';
-              const hi = props.high_count != null ? props.high_count : '—';
-              const lo = props.low_count != null ? props.low_count : '—';
-              const rl = props.risk_level || '—';
-              const dist = feature.geometry && feature.geometry.coordinates
-                ? `(${feature.geometry.coordinates[1].toFixed(4)}, ${feature.geometry.coordinates[0].toFixed(4)})`
-                : '—';
-              popupContent = `
-              <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 12px; min-width: 240px;">
-                <div style="font-weight: 700; font-size: 14px; margin-bottom: 6px;">
-                  ⊕ Küme merkezi (K-Means)
-                </div>
-                <div><strong>Küme:</strong> ${clusterId}</div>
-                <div><strong>Merkez:</strong> ${dist}</div>
-                <div><strong>İtfaiye mesafesi (merkez–istasyon):</strong> ${distSt}</div>
-                <div><strong>Nokta:</strong> ${props.total_points != null ? props.total_points : '—'} (${hi} HIGH, ${lo} LOW) → ${rl}</div>
-                <div style="border-top:1px solid #ddd; padding-top:6px; margin-top:6px;">
-                  <div style="font-weight:600; color:#C41E3A;">🚒 ${stName}</div>
-                  <div style="font-size:11px; color:#666;">${props.station_district || ''}</div>
-                </div>
-              </div>
-            `;
-            } else if (ft === 'fire_station') {
-              const distKm = props.distance_km != null
-                ? Number(props.distance_km).toFixed(2) + ' km'
-                : '—';
+            if (ft === 'fire_station') {
               popupContent = `
               <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 12px; min-width: 220px;">
                 <div style="font-weight: 700; font-size: 14px; margin-bottom: 6px;">
-                  🚒 Atanan itfaiye (konum)
+                  🚒 Atanan itfaiye
                 </div>
                 <div><strong>${props.name || 'Bilinmiyor'}</strong></div>
-                <div style="font-size:11px;">${props.district || ''}</div>
-                <div style="margin-top:6px;"><strong>Küme:</strong> ${clusterId}</div>
-                <div><strong>Merkez–istasyon:</strong> ${distKm}</div>
-                <div><strong>Kümede nokta:</strong> ${props.total_points != null ? props.total_points : '—'} (HIGH ${props.high_count != null ? props.high_count : '—'})</div>
+                <div style="margin-top:6px;"><strong>İstasyon ID:</strong> ${props.id}</div>
               </div>
             `;
             } else {
               const riskClass = props.risk_class || 'N/A';
               const demand = props.demand != null ? props.demand : 1;
-              const stLabel = props.fire_station_name || ('İstasyon #' + (props.fire_station_id != null ? props.fire_station_id : ''));
+              const stLabel = 'İstasyon #' + (props.fire_station_id != null ? props.fire_station_id : '');
               const distanceKm = (props.station_distance_km != null)
                 ? Number(props.station_distance_km).toFixed(1) + ' km'
                 : 'N/A';
@@ -1579,7 +1774,7 @@
                   <div><strong>ID:</strong> ${props.id != null ? props.id : '—'}</div>
                   <div><strong>Risk:</strong> ${riskClass}</div>
                   <div><strong>Demand:</strong> ${demand}</div>
-                  <div><strong>Küme:</strong> ${clusterId}</div>
+                  <div><strong>n/k:</strong> ${n}/${k}</div>
                 </div>
                 <div style="border-top:1px solid #ddd; padding-top:6px; margin-top:4px;">
                   <div style="font-weight:600; margin-bottom:4px; color:#C41E3A;">🚒 ${stLabel}</div>
@@ -1590,57 +1785,6 @@
             }
 
             layer.bindPopup(popupContent);
-
-            // Hover tooltip: fire_point üzerinde id + lat/lon görünsün
-            if (ft === 'fire_point') {
-              const coords = feature.geometry && feature.geometry.coordinates ? feature.geometry.coordinates : null; // [lon, lat]
-              const lon = coords ? coords[0] : null;
-              const lat = coords ? coords[1] : null;
-              const idText = props.id != null ? props.id : '—';
-              const latText = lat != null ? Number(lat).toFixed(4) : '—';
-              const lonText = lon != null ? Number(lon).toFixed(4) : '—';
-              const hoverHtml = `
-                <div style="
-                  background: rgba(255,255,255,0.96);
-                  border: 2px solid #ff2d2d;
-                  border-radius: 6px;
-                  padding: 6px 8px;
-                  font-size: 12px;
-                  color: #111;
-                  line-height: 1.2;
-                  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-                ">
-                  <div style="font-weight:700; color:#b30000; margin-bottom:3px;">Fire Point</div>
-                  <div><strong>ID:</strong> ${idText}</div>
-                  <div><strong>Lat:</strong> ${latText}</div>
-                  <div><strong>Lon:</strong> ${lonText}</div>
-                </div>
-              `;
-
-              layer.bindTooltip(hoverHtml, {
-                direction: 'top',
-                sticky: true,
-                opacity: 1,
-                offset: [0, -10],
-              });
-
-              // Hover olduğunda noktayı belirgin yap
-              const baseRadius = 4;
-              const hoverRadius = 7;
-              const c = clusterColors[String(clusterId)] || color;
-              layer.on('mouseover', () => {
-                try {
-                  layer.setRadius(hoverRadius);
-                  layer.setStyle({ weight: 2, color: '#111', fillOpacity: 1 });
-                } catch (e) {}
-              });
-              layer.on('mouseout', () => {
-                try {
-                  layer.setRadius(baseRadius);
-                  layer.setStyle({ weight: 1, color: c, fillOpacity: 0.85 });
-                } catch (e) {}
-              });
-            }
           }
         }).addTo(map);
 
@@ -1654,27 +1798,16 @@
           div.style.padding = '8px';
           div.style.borderRadius = '5px';
           div.style.fontSize = '11px';
-
-          const clusterEntries = Object.keys(clusterColors);
-          let html = '<div class="legend-title">📦 Pipeline (k-means.py)</div>';
-          html += '<div class="legend-note">● renkli küçük = risk noktası<br/>⬤ kalın = küme merkezi<br/>○ beyaz = atanmış itfaiye</div>';
-          html += '<div class="legend-subtitle">Renkler (küme)</div>';
-          clusterEntries.slice(0, 8).forEach(cid => {
-            const c = clusterColors[cid];
-            html += `<div class="row"><span class="sw" style="background:${c}; width:12px; height:12px; display:inline-block; margin-right:5px; border-radius:50%; border:1px solid #333;"></span>${cid}</div>`;
-          });
-          if (clusterEntries.length > 8) {
-            html += `<div class="legend-note">+ ${clusterEntries.length - 8} daha...</div>`;
-          }
-
+          let html = '<div class="legend-title">📦 Pipeline (Optimization)</div>';
+          html += '<div class="legend-note">Kirmizi = HIGH, Turuncu = LOW<br/>Kirmizi kare = atanan itfaiye</div>';
           div.innerHTML = html;
           return div;
         };
         pipelineLegendCtl.addTo(map);
 
         allActiveLayers.push(pipelineLayer);
-        info.textContent = `Pipeline: ${nSamples} örnek nokta + ${nCentroids} küme merkezi`;
-        setStatus(`Pipeline: ${nSamples} örnek nokta + ${nCentroids} küme merkezi`);
+        info.textContent = `Pipeline: ${pipelinePoints.length} nokta + ${stationFeatures.length} istasyon (n=${n}, k=${k})`;
+        setStatus(`Pipeline aktif (${pipelinePoints.length} nokta)`);
       } catch (e) {
         info.textContent = 'Pipeline sonucu yükleme hatası: ' + e.message;
         console.error('Pipeline layer hatası:', e);
@@ -1912,6 +2045,7 @@
     }
 
     function resetMap(){
+      clearOptimizationRoutes();
       if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
       const btn = document.getElementById('btnLiveTracking');
       if (btn) {
@@ -2542,6 +2676,18 @@
     safeBind('btnFireStations', 'click', loadFireStations);
     safeBind('btnProximity', 'click', toggleProximityGrid);
     safeBind('btnIntegrated', 'click', toggleIntegratedLayer);
+    safeBind('btnRouteSA', 'click', () => loadOptimizationRoutes('SA'));
+    safeBind('btnRouteGA', 'click', () => loadOptimizationRoutes('GA'));
+    safeBind('btnRouteClear', 'click', () => {
+      clearOptimizationRoutes();
+      const info = document.getElementById('info');
+      if (info) info.textContent = 'Rota katmani temizlendi';
+      setStatus('Rota katmani temizlendi');
+    });
+    safeBind('routeSelect', 'change', (e) => {
+      selectedRouteId = e.target.value || '';
+      refreshRouteStyles();
+    });
     safeBind('btnFirePoints', 'click', toggleFirePoints);
     safeBind('btnPipeline', 'click', togglePipelineLayer);
     safeBind('btnBoundaryPoints', 'click', ()=>loadBoundaryPoints());
