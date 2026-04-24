@@ -223,10 +223,15 @@
   <script src="https://d3js.org/d3-contour.v2.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>
-    // TEST ICIN LOGIN KONTROLU GECICI OLARAK KAPATILDI
     (function checkLogin(){
-      const username = 'Test Kullanıcı';
-      const userType = 'admin';
+      const accessToken = sessionStorage.getItem('access_token');
+      if (!accessToken) {
+        window.location.replace('/login');
+        return;
+      }
+
+      const username = sessionStorage.getItem('username') || 'Kullanıcı';
+      const userType = sessionStorage.getItem('role') || 'user';
       const userDisplay = document.getElementById('userDisplay');
       const userDropdownMenu = document.getElementById('userDropdownMenu');
       const logoutLink = document.getElementById('logoutLink');
@@ -252,7 +257,10 @@
       if (logoutLink) {
         logoutLink.addEventListener('click', function(e) {
           e.preventDefault();
-          alert('Test modunda logout kapalı.');
+          sessionStorage.removeItem('access_token');
+          sessionStorage.removeItem('username');
+          sessionStorage.removeItem('role');
+          window.location.replace('/login');
         });
       }
 
