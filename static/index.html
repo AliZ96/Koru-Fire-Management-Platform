@@ -5,7 +5,7 @@
   <title>KORU Yangın Önleme Platformu</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"/>
-  <link rel="icon" type="image/png" href="/static/img/favicon.png"/>
+  <link rel="icon" type="image/svg+xml" href="/static/img/login-bg.svg"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
   <style>
     :root{ --bg: #050E07; --accent: #F59E0B; --green: #4A7C3A; --green-hi: #6AAD58; --text: #E2F0DA; --text2: #7BA368; --danger: #EF4444; --border: rgba(74,124,58,.18); }
@@ -104,7 +104,7 @@
   </style>
 </head>
 <body>
-  <div class="map-frame"><div id="map"></div><button id="panelToggle" class="panel-toggle" title="Kontrol Panelini Aç">⚙️</button></div>
+  <div class="map-frame"><div id="map"></div><button id="panelToggle" class="panel-toggle" title="Kontrol Panelini Aç">&#9776;</button></div>
   <div class="footer">
     <div class="contact">
       <span><strong>Telefon:</strong> <span class="copyable" data-copy="153"><span class="copy-val">153</span><button type="button" class="copy-btn" aria-label="Kopyala">Kopyala</button></span></span>
@@ -206,6 +206,30 @@
             <option value="">Tümü (highlight kapalı)</option>
           </select>
         </div>
+      </div>
+    </div>
+
+    <!-- Yangın Yayılım Takibi -->
+    <div class="acc open">
+      <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
+        <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M12 2c-2 3-5 6-5 10a5 5 0 0010 0C17 8 14 5 12 2z"/><path d="M9 16c.5 1.5 2 2 3 2s2.5-.5 3-2" opacity=".4"/></svg></div>
+        <span class="acc-label">Yangin Yayilim Takibi</span>
+        <span class="acc-count" id="spreadScenarioCount">0</span>
+        <span class="acc-arrow">▼</span>
+      </div>
+      <div class="acc-body" style="max-height:600px">
+        <div class="row" style="padding-top:4px">
+          <button id="btnAddFirePoint" class="btn btn-outline">Yangin Noktasi Ekle</button>
+          <button class="btn btn-outline" id="btnSpreadRefresh">Yenile</button>
+          <button class="btn btn-outline" onclick="clearAllSpreadScenarios()" style="color:var(--danger);border-color:var(--danger)">Sifirla</button>
+        </div>
+        <div class="row">
+          <button id="btnSaveMyLocation" class="btn btn-outline">Konumumu Kaydet</button>
+          <button id="btnRequestNotif" class="btn btn-outline">Bildirim Ac</button>
+        </div>
+        <div id="spreadScenarioList" style="font-size:11px;color:var(--text2);padding:4px 0 8px;">Henuz senaryo yok. Haritaya tiklayin.</div>
+        <div id="spreadInfo"></div>
+        <div id="spreadEtaBox"></div>
       </div>
     </div>
 
@@ -873,7 +897,7 @@
           onEachFeature: (feature, layer) => {
             const props = feature.properties;
             const name = props.name || 'Su Noktası';
-            const popup = `<div style="font-weight: bold; color: #64B5F6;">💧 ${name}</div><div style="font-size: 12px; margin-top: 4px;">Su Noktası</div>`;
+            const popup = `<div style="font-weight: bold; color: #64B5F6;">${name}</div><div style="font-size: 12px; margin-top: 4px;">Su Noktasi</div>`;
             layer.bindPopup(popup);
           }
         }).addTo(map);
@@ -941,7 +965,7 @@
         const filteredGj = { type: 'FeatureCollection', features: pointFeatures };
 
         const fireIcon = L.divIcon({
-          html: '<div style="width: 18px; height: 18px; border-radius: 50%; background: #e53935; display:flex; align-items:center; justify-content:center; color:white; font-size:12px; box-shadow:0 0 4px rgba(0,0,0,0.4);">🚒</div>',
+          html: '<div style="width: 18px; height: 18px; border-radius: 50%; background: #e53935; display:flex; align-items:center; justify-content:center; color:white; font-size:10px; font-weight:700; box-shadow:0 0 4px rgba(0,0,0,0.4);">IT</div>',
           iconSize: [18, 18],
           className: 'fire-station-marker'
         });
@@ -957,7 +981,7 @@
             const capacity = p.capacity_level ? `<div><strong>Kapasite:</strong> ${p.capacity_level}</div>` : '';
             const notes = p.notes ? `<div style="margin-top:4px;font-size:11px;color:#555;">${p.notes}</div>` : '';
             const popup = `
-              <div style="font-weight:600;color:#e53935;margin-bottom:4px;">🚒 ${name}</div>
+              <div style="font-weight:600;color:#e53935;margin-bottom:4px;">${name}</div>
               ${district}
               ${capacity}
               ${notes}
@@ -1026,7 +1050,7 @@
           onEachFeature: (feature, layer) => {
             const props = feature.properties;
             const name = props.name || props.ad || 'Göl/Gölet';
-            const popup = `<div style="font-weight: bold; color: #0D1B3D;">🌊 ${name}</div><div style="font-size: 12px; margin-top: 4px;">Göl/Gölet</div>`;
+            const popup = `<div style="font-weight: bold; color: #0D1B3D;">${name}</div><div style="font-size: 12px; margin-top: 4px;">Göl/Gölet</div>`;
             layer.bindPopup(popup);
           }
         }).addTo(map);
@@ -1224,7 +1248,7 @@
 
       if (btn.dataset.isLive === 'true') {
         btn.dataset.isLive = 'false';
-        btn.textContent = '🔴 Canlı Takip';
+        btn.textContent = 'Canli Takip';
         btn.style.filter = 'brightness(1)';
         if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
         if (firesLayer) map.removeLayer(firesLayer);
@@ -1233,7 +1257,7 @@
       }
 
       btn.dataset.isLive = 'true';
-      btn.textContent = '🟢 Canlı Takip';
+      btn.textContent = 'Canli Takip (Aktif)';
       btn.style.filter = 'brightness(1.2) drop-shadow(0 0 8px rgba(0,255,0,0.6))';
 
       await updateLiveData();
@@ -1253,7 +1277,7 @@
         try{ const b = firesLayer.getBounds(); if (b.isValid()) map.fitBounds(b.pad(0.2)); }catch(e){}
         const count = (geo.features||[]).length;
         const now = new Date().toLocaleTimeString('tr-TR');
-        info.textContent = `🟢 Canlı Yangınlar: ${count} | Güncelleme: ${now}`;
+        info.textContent = `Canli Yanginlar: ${count} | Güncelleme: ${now}`;
       }catch(e){ console.error(e); }
     }
 
@@ -1760,7 +1784,7 @@
               popupContent = `
               <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 12px; min-width: 220px;">
                 <div style="font-weight: 700; font-size: 14px; margin-bottom: 6px;">
-                  🚒 Atanan itfaiye
+                  Atanan itfaiye
                 </div>
                 <div><strong>${props.name || 'Bilinmiyor'}</strong></div>
                 <div style="margin-top:6px;"><strong>İstasyon ID:</strong> ${props.id}</div>
@@ -1776,7 +1800,7 @@
               popupContent = `
               <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 12px; min-width: 220px;">
                 <div style="font-weight: 700; font-size: 14px; margin-bottom: 6px;">
-                  🔗 Örnek risk noktası
+                  Örnek risk noktası
                 </div>
                 <div style="margin-bottom: 6px;">
                   <div><strong>ID:</strong> ${props.id != null ? props.id : '—'}</div>
@@ -1785,7 +1809,7 @@
                   <div><strong>n/k:</strong> ${n}/${k}</div>
                 </div>
                 <div style="border-top:1px solid #ddd; padding-top:6px; margin-top:4px;">
-                  <div style="font-weight:600; margin-bottom:4px; color:#C41E3A;">🚒 ${stLabel}</div>
+                  <div style="font-weight:600; margin-bottom:4px; color:#C41E3A;">${stLabel}</div>
                   <div style="font-size:11px; color:#666;">Mesafe: ${distanceKm}</div>
                 </div>
               </div>
@@ -1806,7 +1830,7 @@
           div.style.padding = '8px';
           div.style.borderRadius = '5px';
           div.style.fontSize = '11px';
-          let html = '<div class="legend-title">📦 Pipeline (Optimization)</div>';
+          let html = '<div class="legend-title">Pipeline (Optimization)</div>';
           html += '<div class="legend-note">Kirmizi = HIGH, Turuncu = LOW<br/>Kirmizi kare = atanan itfaiye</div>';
           div.innerHTML = html;
           return div;
@@ -2058,7 +2082,7 @@
       const btn = document.getElementById('btnLiveTracking');
       if (btn) {
         btn.dataset.isLive = 'false';
-        btn.textContent = '🔴 Canlı Takip';
+        btn.textContent = 'Canli Takip';
         btn.style.filter = 'brightness(1)';
       }
 
@@ -2171,13 +2195,13 @@
 
     function getAccessibilityIcon(level) {
       const icons = {
-        'EXCELLENT': '✅',
-        'GOOD': '👍',
-        'MODERATE': '⚠️',
-        'DIFFICULT': '⛔',
-        'RESTRICTED': '🚫'
+        'EXCELLENT': '',
+        'GOOD': '',
+        'MODERATE': '',
+        'DIFFICULT': '',
+        'RESTRICTED': ''
       };
-      return icons[level] || '❓';
+      return icons[level] || '';
     }
 
     async function loadAirAccessibility() {
@@ -2235,7 +2259,7 @@
                   <div><strong>Skor:</strong> ${props.score}/100</div>
                   <div><strong>Mesafe:</strong> ${props.distance_to_base_km} km</div>
                   <div><strong>Varış:</strong> ~${props.eta_minutes} dakika</div>
-                  <div><strong>Araç:</strong> ${props.aircraft_type === 'HELICOPTER' ? '🚁 Helikopter' : props.aircraft_type}</div>
+                  <div><strong>Araç:</strong> ${props.aircraft_type === 'HELICOPTER' ? 'Helikopter' : props.aircraft_type}</div>
                 </div>
               </div>
             `;
@@ -2249,12 +2273,12 @@
         legendCtl.onAdd = function() {
           const div = L.DomUtil.create('div', 'legend');
           div.innerHTML = `
-            <b>🚁 Hava Erişilebilirliği</b>
-            <div class="row"><span class="sw" style="background:#2ecc71"></span>✅ Mükemmel</div>
-            <div class="row"><span class="sw" style="background:#3498db"></span>👍 İyi</div>
-            <div class="row"><span class="sw" style="background:#f39c12"></span>⚠️ Orta</div>
-            <div class="row"><span class="sw" style="background:#e74c3c"></span>⛔ Zor</div>
-            <div class="row"><span class="sw" style="background:#8b0000"></span>🚫 Kısıtlı</div>
+            <b>Hava Erisilebilirligi</b>
+            <div class="row"><span class="sw" style="background:#2ecc71"></span>Mükemmel</div>
+            <div class="row"><span class="sw" style="background:#3498db"></span>İyi</div>
+            <div class="row"><span class="sw" style="background:#f39c12"></span>Orta</div>
+            <div class="row"><span class="sw" style="background:#e74c3c"></span>Zor</div>
+            <div class="row"><span class="sw" style="background:#8b0000"></span>Kısıtlı</div>
           `;
           return div;
         };
@@ -2362,26 +2386,26 @@
             const popupContent = `
               <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 12px; min-width: 220px;">
                 <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px; color: ${riskClass === 'HIGH_RISK' ? '#8b0000' : '#e74c3c'};">
-                  ${riskClass === 'HIGH_RISK' ? '🔥 Yüksek Risk' : '⚠️ Orta Risk'}
+                  ${riskClass === 'HIGH_RISK' ? 'Yüksek Risk' : 'Orta Risk'}
                 </div>
                 <div style="display: grid; gap: 6px; margin-bottom: 8px;">
                   <div><strong>Risk Skoru:</strong> ${riskScore}</div>
                   <div><strong>Nokta Sayısı:</strong> ${pointCount}</div>
                 </div>
                 <div style="border-top: 1px solid #ddd; padding-top: 8px; margin-top: 8px;">
-                  <div style="font-weight: 600; margin-bottom: 4px; color: #0277BD;">💧 En Yakın Su Kaynağı</div>
+                  <div style="font-weight: 600; margin-bottom: 4px; color: #0277BD;">En Yakın Su Kaynağı</div>
                   <div style="margin-left: 12px; margin-bottom: 6px;">
                     <div><strong>${waterName}</strong></div>
                     <div style="font-size: 11px; color: #666;">Mesafe: ${waterDist}</div>
                   </div>
-                  <div style="font-weight: 600; margin-bottom: 4px; color: #C41E3A;">🚒 En Yakın İtfaiye</div>
+                  <div style="font-weight: 600; margin-bottom: 4px; color: #C41E3A;">En Yakın İtfaiye</div>
                   <div style="margin-left: 12px;">
                     <div><strong>${fireStationName}</strong></div>
                     <div style="font-size: 11px; color: #666;">Mesafe: ${fireStationDist}</div>
                   </div>
                 </div>
                 <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd; font-size: 10px; color: #888;">
-                  💡 Bu bölge için en yakın müdahale kaynakları gösteriliyor
+                  Bu bölge için en yakın müdahale kaynakları gösteriliyor
                 </div>
               </div>
             `;
@@ -2423,12 +2447,12 @@
           div.style.boxShadow = '0 0 15px rgba(0,0,0,0.2)';
           div.style.fontSize = '12px';
 
-          div.innerHTML = '<b>📍 Kaynak Yakınlık Haritası</b><br>' +
+          div.innerHTML = '<b>Kaynak Yakınlık Haritası</b><br>' +
             '<div style="margin-top: 6px;">' +
             '<div class="row"><span class="sw" style="background:#8b0000; width: 14px; height: 14px; display: inline-block; margin-right: 6px; border: 1px solid #333;"></span>Yüksek Risk</div>' +
             '<div class="row"><span class="sw" style="background:#e74c3c; width: 14px; height: 14px; display: inline-block; margin-right: 6px; border: 1px solid #333;"></span>Orta Risk</div>' +
             '<div style="margin-top: 8px; font-size: 11px; color: #666; line-height: 1.4;">' +
-            '💡 <strong>Nasıl kullanılır:</strong><br>' +
+            '<strong>Nasıl kullanılır:</strong><br>' +
             '• Her kare bir risk bölgesidir<br>' +
             '• Kareye tıklayınca veya üzerine gelince popup açılır<br>' +
             '• Popup\'ta en yakın su kaynağı ve itfaiye bilgileri görünür<br>' +
@@ -2571,26 +2595,26 @@
             const popupContent = `
               <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 12px; min-width: 240px;">
                 <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px; color: ${riskClass === 'HIGH_RISK' ? '#8b0000' : '#e74c3c'};">
-                  ${riskClass === 'HIGH_RISK' ? '🔥 Yüksek Risk' : '⚠️ Orta Risk'}
+                  ${riskClass === 'HIGH_RISK' ? 'Yüksek Risk' : 'Orta Risk'}
                 </div>
                 <div style="display: grid; gap: 4px; margin-bottom: 8px;">
                   <div><strong>Risk Skoru:</strong> ${riskScore}</div>
                   <div><strong>Nokta Sayısı:</strong> ${pointCount}</div>
                 </div>
                 <div style="border-top: 1px solid #ddd; padding-top: 6px; margin-top: 4px;">
-                  <div style="font-weight: 600; margin-bottom: 4px; color: #0277BD;">💧 En Yakın Su Kaynağı</div>
+                  <div style="font-weight: 600; margin-bottom: 4px; color: #0277BD;">En Yakın Su Kaynağı</div>
                   <div style="margin-left: 12px; margin-bottom: 4px;">
                     <div><strong>${waterName}</strong></div>
                     <div style="font-size: 11px; color: #666;">Mesafe: ${waterDist}</div>
                   </div>
-                  <div style="font-weight: 600; margin-bottom: 4px; color: #C41E3A;">🚒 En Yakın İtfaiye</div>
+                  <div style="font-weight: 600; margin-bottom: 4px; color: #C41E3A;">En Yakın İtfaiye</div>
                   <div style="margin-left: 12px;">
                     <div><strong>${fireStationName}</strong></div>
                     <div style="font-size: 11px; color: #666;">Mesafe: ${fireStationDist}</div>
                   </div>
                 </div>
                 <div style="border-top: 1px solid #ddd; padding-top: 6px; margin-top: 6px;">
-                  <div style="font-weight: 600; margin-bottom: 4px; color: #2c3e50;">🚁 Hava Erişilebilirliği</div>
+                  <div style="font-weight: 600; margin-bottom: 4px; color: #2c3e50;">Hava Erişilebilirliği</div>
                   <div style="margin-left: 12px; margin-bottom: 4px;">
                     <div><strong>Seviye:</strong> ${airLevelLabel}${airScore ? ' (' + airScore + '/100)' : ''}</div>
                     <div style="font-size: 11px; color: #666;">En Yakın Üs: ${airBase}</div>
@@ -2598,7 +2622,7 @@
                   </div>
                 </div>
                 <div style="margin-top: 6px; padding-top: 4px; border-top: 1px solid #eee; font-size: 10px; color: #888;">
-                  💡 Bu grid hücresi için risk, kaynak yakınlığı ve hava erişimi birlikte gösteriliyor.
+                  Bu grid hücresi için risk, kaynak yakınlığı ve hava erişimi birlikte gösteriliyor.
                 </div>
               </div>
             `;
@@ -2625,7 +2649,7 @@
           div.style.fontSize = '12px';
 
           div.innerHTML =
-            '<b>🗺️ Entegre Katman</b><br>' +
+            '<b>Entegre Katman</b><br>' +
             '<div style="margin-top:6px;">' +
             '<div class="row"><span class="sw" style="background:#8b0000; width:14px; height:14px; display:inline-block; margin-right:6px; border:1px solid #333;"></span>Yüksek Risk</div>' +
             '<div class="row"><span class="sw" style="background:#e74c3c; width:14px; height:14px; display:inline-block; margin-right:6px; border:1px solid #333;"></span>Orta Risk</div>' +
@@ -2704,8 +2728,615 @@
     safeBind('btnReset', 'click', resetMap);
     safeBind('btnWind', 'click', loadWindAtCenter);
     safeBind('btnSpread', 'click', drawSpread);
+    safeBind('btnAddFirePoint', 'click', toggleSpreadAddMode);
+    safeBind('btnSpreadRefresh', 'click', loadSpreadScenarios);
+    safeBind('btnSaveMyLocation', 'click', saveMySpreadLocation);
+    safeBind('btnRequestNotif', 'click', requestSpreadNotifPermission);
 
     map.on('moveend zoomend', ()=>{ if (riskActive) loadRiskForView(); });
+
+    // ═══════════════════════════════════════════════════════════════
+    //  YANGÍN YAYILIM TAKIBI — Fire Spread Live Tracking
+    // ═══════════════════════════════════════════════════════════════
+
+    let _spreadOverlayLayer = null;
+    let _spreadOriginMarker = null;
+    let _pendingSpreadOriginMarker = null;
+    let _spreadScenarioMarkersLayer = null;
+    let _spreadHomeLink = null;
+    let _spreadWindArrow = null;
+    let _activeSpreadId = null;
+    let _spreadWS = null;
+    let _spreadPulseTimer = null;
+    let _spreadAddMode = false;
+    let _mySpreadLocation = null; // {lat, lon}
+    let _spreadAutoFocusPending = false;
+    let _lastSpreadData = null;
+
+    // Inject SVG hatch pattern into Leaflet overlay pane once it exists
+    function _ensureHatchPattern() {
+      const svgEl = document.querySelector('.leaflet-overlay-pane > svg');
+      if (!svgEl || svgEl.querySelector('#koruFireHatch')) return;
+      const ns = 'http://www.w3.org/2000/svg';
+      let defs = svgEl.querySelector('defs');
+      if (!defs) { defs = document.createElementNS(ns, 'defs'); svgEl.insertBefore(defs, svgEl.firstChild); }
+      defs.innerHTML += `<pattern id="koruFireHatch" x="0" y="0" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <rect width="12" height="12" fill="rgba(255,80,0,0.18)"/>
+        <line x1="0" y1="6" x2="12" y2="6" stroke="#FF4500" stroke-width="2.5" opacity="0.65"/>
+      </pattern>`;
+    }
+
+    function _clearSpreadLayer() {
+      if (_spreadOverlayLayer) { try { map.removeLayer(_spreadOverlayLayer); } catch(e){} _spreadOverlayLayer = null; }
+      if (_spreadOriginMarker) { try { map.removeLayer(_spreadOriginMarker); } catch(e){} _spreadOriginMarker = null; }
+      if (_pendingSpreadOriginMarker) { try { map.removeLayer(_pendingSpreadOriginMarker); } catch(e){} _pendingSpreadOriginMarker = null; }
+      if (_spreadHomeLink) { try { map.removeLayer(_spreadHomeLink); } catch(e){} _spreadHomeLink = null; }
+      if (_spreadWindArrow) { try { map.removeLayer(_spreadWindArrow); } catch(e){} _spreadWindArrow = null; }
+      if (_spreadWS) { try { _spreadWS.close(); } catch(e){} _spreadWS = null; }
+      if (_spreadPulseTimer) { clearInterval(_spreadPulseTimer); _spreadPulseTimer = null; }
+      _spreadAutoFocusPending = false;
+      _lastSpreadData = null;
+      _activeSpreadId = null;
+      document.getElementById('spreadInfo').innerHTML = '';
+      document.getElementById('spreadEtaBox').innerHTML = '';
+      _renderMyLocationMarker();
+    }
+
+    function _renderSpreadPolygon(feature) {
+      if (_spreadOverlayLayer) { try { map.removeLayer(_spreadOverlayLayer); } catch(e){} }
+      if (_spreadPulseTimer) { clearInterval(_spreadPulseTimer); }
+
+      const coords = feature.geometry.coordinates[0].map(([lon, lat]) => [lat, lon]);
+      if (!coords.length) return;
+
+      _spreadOverlayLayer = L.polygon(coords, {
+        color: '#CC3300',
+        weight: 2,
+        dashArray: '8, 4',
+        opacity: 1,
+        fillColor: '#FF4500',
+        fillOpacity: 0.30,
+        interactive: false,
+      }).addTo(map);
+
+      if (_spreadAutoFocusPending) {
+        try {
+          const b = _spreadOverlayLayer.getBounds();
+          if (b.isValid()) map.fitBounds(b.pad(0.25));
+        } catch(e) {}
+        _spreadAutoFocusPending = false;
+      }
+
+      // Gentle fill pulse
+      let op = 0.30, dir = -1;
+      _spreadPulseTimer = setInterval(() => {
+        op += dir * 0.03;
+        if (op <= 0.12) dir = 1;
+        if (op >= 0.35) dir = -1;
+        if (_spreadOverlayLayer) try { _spreadOverlayLayer.setStyle({ fillOpacity: op }); } catch(e) {}
+      }, 130);
+    }
+
+    function _renderOriginMarker(lat, lon) {
+      if (!lat || !lon) return;
+      if (_pendingSpreadOriginMarker) { try { map.removeLayer(_pendingSpreadOriginMarker); } catch(e){} _pendingSpreadOriginMarker = null; }
+      if (_spreadOriginMarker) { try { map.removeLayer(_spreadOriginMarker); } catch(e){} }
+      _spreadOriginMarker = L.circleMarker([lat, lon], {
+        radius: 10,
+        color: '#CC0000',
+        weight: 3,
+        fillColor: '#FF2200',
+        fillOpacity: 1,
+      }).bindPopup('<b>Yangin Baslangic Noktasi</b>').addTo(map);
+    }
+
+    function _renderPendingSpreadOrigin(lat, lon, label) {
+      if (!lat || !lon) return;
+      if (_pendingSpreadOriginMarker) { try { map.removeLayer(_pendingSpreadOriginMarker); } catch(e){} }
+      _pendingSpreadOriginMarker = L.circleMarker([lat, lon], {
+        radius: 9,
+        color: '#FF8800',
+        weight: 3,
+        fillColor: '#FFD54F',
+        fillOpacity: 0.95,
+      }).bindPopup(`<b>${label || 'Yangin noktasi kaydediliyor...'}</b>`).addTo(map);
+      try { _pendingSpreadOriginMarker.openPopup(); } catch(e) {}
+    }
+
+    function _renderSpreadScenarioMarkers(scenarios) {
+      if (_spreadScenarioMarkersLayer) {
+        try { map.removeLayer(_spreadScenarioMarkersLayer); } catch(e) {}
+        _spreadScenarioMarkersLayer = null;
+      }
+
+      const layers = (scenarios || []).map((s) => {
+        const lat = Number(s.origin_lat);
+        const lon = Number(s.origin_lon);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+
+        const isTracked = _activeSpreadId === s.id;
+        const isActive = s.status === 'active';
+        const color = isTracked ? '#CC0000' : (isActive ? '#FF8800' : '#6B7280');
+        const fillColor = isTracked ? '#FF2200' : (isActive ? '#FFD54F' : '#9CA3AF');
+        const radius = isTracked ? 8 : 6;
+
+        return L.circleMarker([lat, lon], {
+          radius,
+          color,
+          weight: 2,
+          fillColor,
+          fillOpacity: 0.95,
+        }).bindPopup(
+          `<b>${s.name || 'Yangin Senaryosu'}</b><br>` +
+          `${lat.toFixed(4)}, ${lon.toFixed(4)}<br>` +
+          `Durum: ${isActive ? 'Aktif' : 'Durdu'}`
+        );
+      }).filter(Boolean);
+
+      if (!layers.length) return;
+      _spreadScenarioMarkersLayer = L.featureGroup(layers).addTo(map);
+    }
+
+    function _getHomeRiskState(etaMin, distKm) {
+      if (etaMin === 0) {
+        return {
+          level: 'critical',
+          label: 'Kritik Risk',
+          markerColor: '#B71C1C',
+          fillColor: '#E53935',
+          lineColor: '#C62828',
+        };
+      }
+      if (etaMin !== null && etaMin !== undefined && etaMin <= 90) {
+        return {
+          level: 'risk',
+          label: 'Yüksek Risk',
+          markerColor: '#C62828',
+          fillColor: '#EF5350',
+          lineColor: '#E53935',
+        };
+      }
+      if (etaMin !== null && etaMin !== undefined && etaMin <= 240) {
+        return {
+          level: 'watch',
+          label: 'Orta Risk',
+          markerColor: '#F9A825',
+          fillColor: '#FFD54F',
+          lineColor: '#FBC02D',
+        };
+      }
+      return {
+        level: 'safe',
+        label: 'Düşük Risk',
+        markerColor: '#2E7D32',
+        fillColor: '#66BB6A',
+        lineColor: '#43A047',
+      };
+    }
+
+    function _renderMyLocationMarker(riskState, meta) {
+      if (!_mySpreadLocation) return;
+      const state = riskState || {
+        level: 'saved',
+        label: 'Konum Kaydedildi',
+        markerColor: '#1E88E5',
+        fillColor: '#42A5F5',
+      };
+      const distanceText = meta?.distKm != null ? `${meta.distKm.toFixed(1)} km` : '—';
+      const etaText = state.level === 'saved'
+        ? 'ETA yangin takibinde hesaplanir'
+        : (state.level === 'safe'
+          ? 'Ulaşım beklenmiyor'
+          : (meta?.etaMin === 0
+            ? 'Yangın ev noktasına ulaştı'
+            : (meta?.etaMin != null ? `Yaklaşık ${meta.etaMin.toFixed(0)} dk` : 'Ulaşım beklenmiyor')));
+
+      if (window._myLocMarker) {
+        try { map.removeLayer(window._myLocMarker); } catch(e) {}
+      }
+
+      window._myLocMarker = L.circleMarker([_mySpreadLocation.lat, _mySpreadLocation.lon], {
+        radius: 9,
+        color: state.markerColor,
+        weight: 3,
+        fillColor: state.fillColor,
+        fillOpacity: 0.92,
+      }).bindPopup(
+        `<b>Ev Noktası</b><br>` +
+        `<strong style="color:${state.markerColor}">${state.label}</strong><br>` +
+        `Mesafe: ${distanceText}<br>` +
+        `Tahmini Süre: ${etaText}`
+      ).addTo(map);
+    }
+
+    function _renderHomeLink(origin, riskState, meta) {
+      if (_spreadHomeLink) {
+        try { map.removeLayer(_spreadHomeLink); } catch(e) {}
+        _spreadHomeLink = null;
+      }
+      if (!_mySpreadLocation || !origin) return;
+
+      const etaText = meta?.etaMin === 0
+        ? 'Yangın ev noktasında'
+        : (riskState.level === 'safe'
+          ? 'Ulaşım beklenmiyor'
+          : (meta?.etaMin != null ? `~${meta.etaMin.toFixed(0)} dk` : 'Ulaşım beklenmiyor'));
+      const distText = meta?.distKm != null ? `${meta.distKm.toFixed(1)} km` : '—';
+      const dashArray = riskState.level === 'safe' ? '10, 10' : (riskState.level === 'watch' ? '12, 8' : null);
+
+      _spreadHomeLink = L.polyline([
+        [origin.lat, origin.lon],
+        [_mySpreadLocation.lat, _mySpreadLocation.lon],
+      ], {
+        color: riskState.lineColor,
+        weight: riskState.level === 'risk' || riskState.level === 'critical' ? 4 : 3,
+        opacity: 0.85,
+        dashArray,
+      }).bindTooltip(
+        `Ev hattı · ${riskState.label}<br>Mesafe: ${distText}<br>Tahmini Süre: ${etaText}`,
+        { sticky: true }
+      ).addTo(map);
+    }
+
+    function _renderWindArrow(lat, lon, windDir, windSpeedMs) {
+      if (!lat || !lon) return;
+      if (_spreadWindArrow) { try { map.removeLayer(_spreadWindArrow); } catch(e){} }
+      // Arrow length scales with wind speed, roughly 0.01-0.05 degrees
+      const len = Math.min(0.06, Math.max(0.01, windSpeedMs * 0.003));
+      const rad = windDir * Math.PI / 180;
+      const endLat = lat + len * Math.cos(rad);
+      const endLon = lon + len * Math.sin(rad);
+      _spreadWindArrow = L.polyline([[lat, lon], [endLat, endLon]], {
+        color: '#FF8800',
+        weight: 3,
+        opacity: 0.85,
+      }).bindTooltip(
+        `Ruzgar yonu: ${windDir.toFixed(0)} derece  |  Hiz: ${(windSpeedMs * 3.6).toFixed(1)} km/s`,
+        { sticky: true }
+      ).addTo(map);
+    }
+
+    function _updateSpreadInfoPanel(data) {
+      const el = document.getElementById('spreadInfo');
+      if (!el) return;
+      const w = data.weather;
+      const windKmh = (w.wind_speed_ms * 3.6).toFixed(1);
+      const props = data.spread_polygon?.properties || {};
+      const rateKmh = props.spread_rate_ms != null
+        ? (props.spread_rate_ms * 3.6).toFixed(2) : '-';
+      el.innerHTML = `<div style="background:rgba(200,40,0,0.08);border:1px solid rgba(200,40,0,0.3);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--text);margin-bottom:6px;line-height:1.7">
+        <div style="font-weight:700;color:#FF4400;font-size:12px;margin-bottom:3px">${data.scenario_name}</div>
+        <div>Simulasyon suresi: <strong>${(data.elapsed_minutes ?? 0).toFixed(0)} dakika</strong></div>
+        <div>On cephe mesafesi: <strong>${props.front_radius_km != null ? props.front_radius_km.toFixed(2) + ' km' : '-'}</strong></div>
+        <div>Hesaplanan yayilim hizi: <strong>${rateKmh} km/sa</strong></div>
+        <hr style="border:none;border-top:1px solid rgba(200,40,0,0.15);margin:4px 0">
+        <div style="font-weight:600;color:var(--text2);font-size:10px;margin-bottom:2px">Canli hava durumu (OpenMeteo)</div>
+        <div>Ruzgar: <strong>${windKmh} km/sa &nbsp; ${w.wind_dir_deg?.toFixed(0) ?? '-'}&deg;</strong></div>
+        <div>Nem: <strong>${w.humidity != null ? w.humidity.toFixed(0) + '%' : '-'}</strong>  &nbsp;  Sicaklik: <strong>${w.temperature_c != null ? w.temperature_c.toFixed(1) + '&deg;C' : '-'}</strong></div>
+      </div>`;
+    }
+
+    function _updateEtaBox(etaMin, distKm) {
+      const el = document.getElementById('spreadEtaBox');
+      if (!el) return;
+      if (etaMin === null && distKm == null) { el.innerHTML = ''; return; }
+      const state = _getHomeRiskState(etaMin, distKm);
+      let color = state.lineColor;
+      let msg;
+      if (state.level === 'critical') {
+        msg = 'TEHLIKE: Yangın ev noktasına ulaşmış görünüyor!';
+      } else if (state.level === 'risk') {
+        msg = `Ev noktası <strong>yüksek riskte</strong>. Tahmini süre: <strong>${etaMin.toFixed(0)} dakika</strong>`;
+      } else if (state.level === 'watch') {
+        msg = `Ev noktası <strong>izleme alanında</strong>. Tahmini süre: <strong>${etaMin.toFixed(0)} dakika</strong>`;
+      } else {
+        msg = `Ev noktası <strong>şimdilik güvenli</strong>. Mesafe: <strong>${distKm != null ? distKm.toFixed(1) : '-'} km</strong>`;
+      }
+      el.innerHTML = `<div style="background:${color}18;border:1px solid ${color}50;border-radius:6px;padding:7px 10px;font-size:11px;color:var(--text)">${msg}</div>`;
+    }
+
+    function _calcEtaFromSpreadData(data, userLat, userLon) {
+      if (!data || !data.origin) return null;
+      const R = 6371;
+      const toR = x => x * Math.PI / 180;
+      const dLat = toR(userLat - data.origin.lat), dLon = toR(userLon - data.origin.lon);
+      const a = Math.sin(dLat/2)**2 + Math.cos(toR(data.origin.lat))*Math.cos(toR(userLat))*Math.sin(dLon/2)**2;
+      const distKm = 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const distM = distKm * 1000;
+
+      const wDir = data.weather.wind_dir_deg;
+      const wSpd = data.weather.wind_speed_ms;
+      const hum = data.weather.humidity ?? 50;
+      const temp = data.weather.temperature_c ?? 25;
+
+      const dx = Math.sin(toR(userLon - data.origin.lon)) * Math.cos(toR(userLat));
+      const dy = Math.cos(toR(data.origin.lat)) * Math.sin(toR(userLat))
+               - Math.sin(toR(data.origin.lat)) * Math.cos(toR(userLat)) * Math.cos(toR(userLon - data.origin.lon));
+      const bearing = (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360;
+      const angleDiff = Math.abs(((bearing - wDir + 180) % 360) - 180);
+
+      // Must match fire_spread_engine.py constants exactly
+      const base = 0.15;
+      const wf = 1.0 + wSpd * 0.22;
+      const hf = Math.max(0.08, (100 - Math.min(hum, 100)) / 100);
+      const tf = 1.0 + Math.max(0, temp - 20) * 0.015;
+      const rateMs = base * wf * hf * tf;
+
+      const cosF = Math.cos(angleDiff * Math.PI / 180);
+      const dirR = cosF >= 0 ? rateMs * (cosF * 0.88 + 0.12) : rateMs * (Math.abs(cosF) * 0.04 + 0.08);
+      const reach = dirR * (data.elapsed_minutes ?? 0) * 60;
+
+      if (distM <= reach) return { eta: 0, distKm };
+      if (dirR < 1e-6) return { eta: null, distKm };
+      return { eta: (distM - reach) / dirR / 60, distKm };
+    }
+
+    function _showSpreadToast(msg, color) {
+      const div = document.createElement('div');
+      div.style.cssText = `position:fixed;top:82px;left:50%;transform:translateX(-50%);background:${color || '#c62828'};color:#fff;padding:11px 20px;border-radius:8px;z-index:99999;font-family:Inter,sans-serif;font-size:13px;font-weight:600;box-shadow:0 4px 18px rgba(0,0,0,.45);max-width:420px;text-align:center;pointer-events:none`;
+      div.textContent = msg;
+      document.body.appendChild(div);
+      setTimeout(() => { try { document.body.removeChild(div); } catch(e){} }, 7000);
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try { new Notification('KORU Yangın Uyarısı', { body: msg, icon: '/static/img/login-bg.svg' }); } catch(e){}
+      }
+    }
+
+    async function _readApiError(r) {
+      try {
+        const data = await r.json();
+        return data?.detail || data?.message || data?.error || `HTTP ${r.status}`;
+      } catch (e) {
+        try {
+          const text = await r.text();
+          return text || `HTTP ${r.status}`;
+        } catch (_) {
+          return `HTTP ${r.status}`;
+        }
+      }
+    }
+
+    function _renderSpreadState(data) {
+      if (!data?.spread_polygon || !data?.origin || !data?.weather) return false;
+      _lastSpreadData = data;
+      _renderSpreadPolygon(data.spread_polygon);
+      _renderOriginMarker(data.origin.lat, data.origin.lon);
+      _renderWindArrow(data.origin.lat, data.origin.lon, data.weather.wind_dir_deg, data.weather.wind_speed_ms);
+      _updateSpreadInfoPanel(data);
+      if (_mySpreadLocation) {
+        const res = _calcEtaFromSpreadData(data, _mySpreadLocation.lat, _mySpreadLocation.lon);
+        if (res) {
+          const homeRiskState = _getHomeRiskState(res.eta, res.distKm);
+          _renderMyLocationMarker(homeRiskState, { etaMin: res.eta, distKm: res.distKm });
+          _renderHomeLink(data.origin, homeRiskState, { etaMin: res.eta, distKm: res.distKm });
+          _updateEtaBox(res.eta, res.distKm);
+          if (res.eta !== null && res.eta < 30) {
+            _showSpreadToast(
+              res.eta === 0
+                ? 'TEHLIKE: Yangın konumunuza ulaştı! Tahliye edin!'
+                : `ACIL: Yangın ${res.eta.toFixed(0)} dk içinde konumunuza ulaşabilir!`,
+              res.eta < 10 ? '#b71c1c' : '#e53935'
+            );
+          }
+        } else {
+          _renderMyLocationMarker();
+          _updateEtaBox(null, null);
+        }
+      }
+      return true;
+    }
+
+    async function loadSpreadSnapshot(scenarioId) {
+      try {
+        const r = await fetch(`/api/fire-spread/scenarios/${scenarioId}/current`);
+        if (!r.ok) return false;
+        const data = await r.json();
+        return _renderSpreadState(data);
+      } catch (e) {
+        return false;
+      }
+    }
+
+    async function loadSpreadScenarios() {
+      const list = document.getElementById('spreadScenarioList');
+      const cnt = document.getElementById('spreadScenarioCount');
+      if (!list) return;
+      try {
+        const r = await fetch('/api/fire-spread/scenarios');
+        if (!r.ok) throw new Error('API hatası');
+        const scenarios = await r.json();
+        _renderSpreadScenarioMarkers(scenarios);
+        if (cnt) cnt.textContent = scenarios.filter(s => s.status === 'active').length;
+        if (scenarios.length === 0) {
+          if (_spreadScenarioMarkersLayer) {
+            try { map.removeLayer(_spreadScenarioMarkersLayer); } catch(e) {}
+            _spreadScenarioMarkersLayer = null;
+          }
+          list.innerHTML = '<div style="padding:4px 0;color:var(--text2)">Henüz senaryo yok. Haritaya tıklayın.</div>';
+          return;
+        }
+        list.innerHTML = scenarios.map(s => {
+          const elapsed = (s.elapsed_minutes || 0).toFixed(0);
+          const active = s.status === 'active';
+          return `<div style="display:flex;align-items:center;gap:5px;padding:5px 0;border-bottom:1px solid var(--border)">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11px;font-weight:700;color:${active ? '#FF5500' : 'var(--text2)'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</div>
+              <div style="font-size:10px;color:var(--text2)">${elapsed} dk · ${s.origin_lat?.toFixed(3)},${s.origin_lon?.toFixed(3)}</div>
+            </div>
+            <button class="btn btn-outline" onclick="trackSpreadScenario(${s.id})" style="font-size:10px;padding:2px 7px;height:24px">${_activeSpreadId === s.id ? 'Takip Ediliyor' : 'Takip'}</button>
+            ${active ? `<button class="btn" onclick="stopSpreadScenario(${s.id})" style="font-size:10px;padding:2px 7px;height:24px;color:var(--danger);border-color:var(--danger)">Dur</button>` : ''}
+          </div>`;
+        }).join('');
+      } catch (e) {
+        list.innerHTML = `<div style="color:var(--danger);font-size:11px">Yüklenemedi: ${e.message}</div>`;
+      }
+    }
+
+    async function createSpreadScenario(lat, lon) {
+      const name = `Yangın ${new Date().toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'})}`;
+      _renderPendingSpreadOrigin(lat, lon, 'Yangin noktasi kaydediliyor...');
+      setStatus('Senaryo oluşturuluyor...');
+      try {
+        const r = await fetch('/api/fire-spread/scenarios', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ name, lat, lon }),
+        });
+        if (!r.ok) throw new Error(await _readApiError(r));
+        const data = await r.json();
+        setStatus(`Senaryo oluşturuldu: ${name}`);
+        await loadSpreadScenarios();
+        await trackSpreadScenario(data.id, {lat, lon, name}, {autoFocus: false});
+      } catch(e) {
+        if (_pendingSpreadOriginMarker) { try { map.removeLayer(_pendingSpreadOriginMarker); } catch(err){} _pendingSpreadOriginMarker = null; }
+        setStatus('Senaryo oluşturulamadı: ' + e.message);
+      }
+    }
+
+    async function stopSpreadScenario(id) {
+      await fetch(`/api/fire-spread/scenarios/${id}/stop`, {method:'PATCH'});
+      if (_activeSpreadId === id) _clearSpreadLayer();
+      await loadSpreadScenarios();
+      setStatus('Senaryo durduruldu');
+    }
+
+    async function clearAllSpreadScenarios() {
+      try {
+        const res = await fetch('/api/fire-spread/scenarios');
+        if (!res.ok) return;
+        const scenarios = await res.json();
+        for (const s of scenarios) {
+          if (s.status === 'active') {
+            await fetch(`/api/fire-spread/scenarios/${s.id}/stop`, {method:'PATCH'});
+          }
+        }
+        _clearSpreadLayer();
+        _activeSpreadId = null;
+        await loadSpreadScenarios();
+        setStatus('Tum senaryolar sifirlandi');
+      } catch(e) {
+        setStatus('Sifirlama basarisiz');
+      }
+    }
+
+    async function trackSpreadScenario(scenarioId, fallbackState, options) {
+      if (_activeSpreadId === scenarioId) { _clearSpreadLayer(); await loadSpreadScenarios(); return; }
+      _clearSpreadLayer();
+      _activeSpreadId = scenarioId;
+      _spreadAutoFocusPending = options?.autoFocus !== false;
+      if (fallbackState?.lat != null && fallbackState?.lon != null) {
+        _renderPendingSpreadOrigin(fallbackState.lat, fallbackState.lon, 'Yangin noktasi eklendi, yayilim yukleniyor...');
+      }
+      await loadSpreadScenarios();
+      const hasInitialState = await loadSpreadSnapshot(scenarioId);
+
+      const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${wsProto}//${location.host}/api/fire-spread/ws/${scenarioId}`;
+      setStatus(hasInitialState ? 'Yangın yayılımı hazır, canlı bağlantı kuruluyor...' : 'Yangın yayılımı bağlanıyor...');
+
+      function connectWS() {
+        const ws = new WebSocket(wsUrl);
+        _spreadWS = ws;
+
+        ws.onopen = () => { setStatus('Yangın yayılımı canlı izleniyor'); };
+
+        ws.onmessage = (e) => {
+          const data = JSON.parse(e.data);
+          if (data.event === 'spread_update') {
+            _renderSpreadState(data);
+          } else if (data.event === 'heartbeat') {
+            ws.send('ping');
+          }
+        };
+
+        ws.onclose = () => {
+          if (_activeSpreadId === scenarioId) {
+            setStatus('Bağlantı kesildi, yeniden bağlanılıyor...');
+            setTimeout(() => { if (_activeSpreadId === scenarioId) connectWS(); }, 8000);
+          }
+        };
+      }
+
+      connectWS();
+    }
+
+    // Harita üzerinde "tıklayın" overlay talimatı
+    let _spreadHintEl = null;
+    function _showSpreadHint() {
+      if (_spreadHintEl) return;
+      _spreadHintEl = document.createElement('div');
+      _spreadHintEl.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(200,40,0,.88);color:#fff;padding:12px 22px;border-radius:10px;z-index:5000;font-family:Inter,sans-serif;font-size:14px;font-weight:700;pointer-events:none;text-align:center;box-shadow:0 4px 18px rgba(0,0,0,.4)';
+      _spreadHintEl.innerHTML = 'Yangin baslangic noktasini haritaya tiklayarak secin<br><span style="font-size:11px;font-weight:400;opacity:.85">ESC ile iptal</span>';
+      document.querySelector('.map-frame').appendChild(_spreadHintEl);
+    }
+    function _hideSpreadHint() {
+      if (_spreadHintEl) { try { _spreadHintEl.parentNode.removeChild(_spreadHintEl); } catch(e){} _spreadHintEl = null; }
+    }
+
+    function toggleSpreadAddMode() {
+      _spreadAddMode = !_spreadAddMode;
+      const btn = document.getElementById('btnAddFirePoint');
+      if (_spreadAddMode) {
+        closePanel();
+        if (btn) { btn.textContent = 'İptal'; btn.classList.add('btn-primary'); }
+        map.getContainer().style.cursor = 'crosshair';
+        _showSpreadHint();
+        setStatus('Haritaya tıklayarak yangın noktası ekleyin...');
+      } else {
+        if (btn) { btn.textContent = '+ Yangın Noktası Ekle'; btn.classList.remove('btn-primary'); }
+        map.getContainer().style.cursor = '';
+        _hideSpreadHint();
+        setStatus('');
+      }
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && _spreadAddMode) toggleSpreadAddMode();
+    });
+
+    map.on('click', function(e) {
+      if (!_spreadAddMode) return;
+      toggleSpreadAddMode();
+      createSpreadScenario(e.latlng.lat, e.latlng.lng);
+    });
+
+    async function saveMySpreadLocation() {
+      setStatus('Konum alınıyor...');
+      const pos = await getUserPosition();
+      if (!pos) { setStatus('Konum alınamadı'); return; }
+      _mySpreadLocation = { lat: pos.lat, lon: pos.lon };
+      localStorage.setItem('koru_spread_location', JSON.stringify(_mySpreadLocation));
+      _renderMyLocationMarker();
+      if (_lastSpreadData) _renderSpreadState(_lastSpreadData);
+      setStatus(`Konumunuz kaydedildi: ${pos.lat.toFixed(4)}, ${pos.lon.toFixed(4)}`);
+      // Also try to register server-side if token present
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        try {
+          await fetch('/api/fire-spread/my-location', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json', 'Authorization':'Bearer '+token},
+            body: JSON.stringify({ lat: pos.lat, lon: pos.lon }),
+          });
+        } catch(e) {}
+      }
+    }
+
+    function requestSpreadNotifPermission() {
+      if (!('Notification' in window)) { setStatus('Tarayıcınız bildirimleri desteklemiyor'); return; }
+      Notification.requestPermission().then(p => {
+        setStatus(p === 'granted' ? 'Bildirimler etkinleştirildi' : 'Bildirim izni reddedildi');
+      });
+    }
+
+    // Mock location: Konak / İzmir
+    try {
+      _mySpreadLocation = { lat: 38.4192, lon: 27.1287 };
+      localStorage.setItem('koru_spread_location', JSON.stringify(_mySpreadLocation));
+      _renderMyLocationMarker();
+    } catch(e) {}
+
+    loadSpreadScenarios();
   </script>
 </body>
 </html>

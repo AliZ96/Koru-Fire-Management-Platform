@@ -33,7 +33,10 @@ class GUID(TypeDecorator):
         return value if isinstance(value, uuid.UUID) else uuid.UUID(str(value))
 
 
-USING_SQLITE = (settings.DATABASE_URL or "").startswith("sqlite")
+# app/core/database.py, DATABASE_URL verilmediğinde SQLite fallback kullanıyor.
+# Model tipi seçimi de aynı davranışı izlemeli; aksi halde SQLite'ta Geography
+# seçilip startup sırasında tablo oluşturma tümüyle kırılıyor.
+USING_SQLITE = not settings.DATABASE_URL or settings.DATABASE_URL.startswith("sqlite")
 LOCATION_TYPE = String(64) if USING_SQLITE else Geography(geometry_type="POINT", srid=4326)
 
 

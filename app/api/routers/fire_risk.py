@@ -184,7 +184,7 @@ def load_risk_data():
 @router.get("/points")
 async def get_fire_risk_points(
     risk_class: Optional[str] = None,
-    limit: int = Query(10000, ge=1, le=50000),
+    limit: int = Query(10000, ge=0, le=50000),
     offset: int = Query(0, ge=0),
 ):
     """

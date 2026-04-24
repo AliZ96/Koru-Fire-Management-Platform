@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 import '../config/app_theme.dart';
 import '../models/fire_data.dart';
 import '../services/api_service.dart';
@@ -66,6 +68,17 @@ class _MapScreenState extends State<MapScreen> {
 
   // Legend type
   String? _activeLegend; // 'fire_risk', 'heatmap', null
+
+  // Fire spread tracking
+  List<Polygon> _spreadPolygons = [];
+  LatLng? _spreadOrigin;
+  int? _activeSpreadScenarioId;
+  WebSocketChannel? _spreadWsChannel;
+  StreamSubscription? _spreadWsSub;
+  String? _spreadAlertMsg;
+  String? _spreadAlertSeverity;
+  Map<String, dynamic>? _spreadWeather;
+  double? _spreadElapsed;
 
   late ApiService _api;
   Map<String, String> _copy = {};
@@ -273,12 +286,137 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void dispose() {
     _liveTimer?.cancel();
+    _spreadWsSub?.cancel();
+    _spreadWsChannel?.sink.close();
     _mapCtrl.dispose();
     super.dispose();
   }
 
   void _setStatus(String msg) {
     if (mounted) setState(() => _statusText = msg);
+  }
+
+  // ─── Fire Spread ──────────────────────────────────────────────────────────
+
+  void _connectSpreadWS(int scenarioId) {
+    _spreadWsSub?.cancel();
+    _spreadWsChannel?.sink.close();
+
+    final wsUrl = _api.getSpreadWsUrl(scenarioId);
+    try {
+      _spreadWsChannel = WebSocketChannel.connect(Uri.parse(wsUrl));
+      _spreadWsSub = _spreadWsChannel!.stream.listen(
+        (raw) {
+          final data = jsonDecode(raw as String) as Map<String, dynamic>;
+          if (data['event'] == 'spread_update') {
+            _onSpreadUpdate(data);
+          } else if (data['event'] == 'heartbeat') {
+            _spreadWsChannel?.sink.add('ping');
+          }
+        },
+        onDone: () {
+          if (_activeSpreadScenarioId == scenarioId && mounted) {
+            Future.delayed(const Duration(seconds: 8), () {
+              if (_activeSpreadScenarioId == scenarioId) _connectSpreadWS(scenarioId);
+            });
+          }
+        },
+        onError: (_) {},
+        cancelOnError: false,
+      );
+    } catch (_) {}
+  }
+
+  void _onSpreadUpdate(Map<String, dynamic> data) {
+    if (!mounted) return;
+
+    final feature = data['spread_polygon'] as Map<String, dynamic>?;
+    final origin = data['origin'] as Map<String, dynamic>?;
+    final weather = data['weather'] as Map<String, dynamic>?;
+    final alerts = data['alerts'] as List<dynamic>? ?? [];
+
+    List<Polygon> polys = [];
+    if (feature != null) {
+      final coords = (feature['geometry']?['coordinates']?[0] as List?)
+          ?.map((c) => LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble()))
+          .toList() ?? [];
+      if (coords.isNotEmpty) {
+        polys = [
+          Polygon(
+            points: coords,
+            color: const Color(0x50FF4500),
+            borderColor: const Color(0xFFFF4500),
+            borderStrokeWidth: 2.5,
+            isDotted: true,
+          ),
+        ];
+      }
+    }
+
+    String? alertMsg;
+    String? alertSev;
+    if (alerts.isNotEmpty) {
+      final worst = (alerts as List).reduce((a, b) {
+        const rank = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3};
+        return (rank[a['severity']] ?? 4) <= (rank[b['severity']] ?? 4) ? a : b;
+      });
+      alertMsg = worst['message'] as String?;
+      alertSev = worst['severity'] as String?;
+    }
+
+    setState(() {
+      _spreadPolygons = polys;
+      _spreadOrigin = origin != null
+          ? LatLng((origin['lat'] as num).toDouble(), (origin['lon'] as num).toDouble())
+          : null;
+      _spreadWeather = weather?.cast<String, dynamic>();
+      _spreadElapsed = (data['elapsed_minutes'] as num?)?.toDouble();
+      if (alertMsg != null) {
+        _spreadAlertMsg = alertMsg;
+        _spreadAlertSeverity = alertSev;
+      }
+    });
+  }
+
+  void _stopSpreadTracking() {
+    _spreadWsSub?.cancel();
+    _spreadWsChannel?.sink.close();
+    _spreadWsChannel = null;
+    _spreadWsSub = null;
+    if (mounted) {
+      setState(() {
+        _activeSpreadScenarioId = null;
+        _spreadPolygons = [];
+        _spreadOrigin = null;
+        _spreadAlertMsg = null;
+        _spreadWeather = null;
+        _spreadElapsed = null;
+      });
+    }
+  }
+
+  void _showSpreadScenarioSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF081510),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => _SpreadScenarioSheet(
+        api: _api,
+        activeScenarioId: _activeSpreadScenarioId,
+        onTrack: (id) {
+          Navigator.pop(ctx);
+          setState(() => _activeSpreadScenarioId = id);
+          _connectSpreadWS(id);
+          _setStatus('Yangın yayılımı takip ediliyor...');
+        },
+        onStop: (id) async {
+          await _api.stopSpreadScenario(id);
+          if (_activeSpreadScenarioId == id) _stopSpreadTracking();
+          Navigator.pop(ctx);
+        },
+      ),
+    );
   }
 
   // ─── Fire data loading ───────────────────────────────
@@ -890,8 +1028,57 @@ class _MapScreenState extends State<MapScreen> {
                       )
                       .toList(),
                 ),
+
+              // Fire spread polygon (live tracking)
+              if (_spreadPolygons.isNotEmpty)
+                PolygonLayer(polygons: _spreadPolygons),
+
+              // Fire spread origin marker
+              if (_spreadOrigin != null)
+                CircleLayer(circles: [
+                  CircleMarker(
+                    point: _spreadOrigin!,
+                    radius: 12,
+                    color: const Color(0xCCFF4500),
+                    borderColor: Colors.red,
+                    borderStrokeWidth: 3,
+                  ),
+                ]),
             ],
           ),
+
+          // Fire spread alert banner
+          if (_spreadAlertMsg != null)
+            Positioned(
+              top: 12,
+              left: 16,
+              right: 16,
+              child: GestureDetector(
+                onTap: () => setState(() => _spreadAlertMsg = null),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: _spreadAlertSeverity == 'critical'
+                        ? const Color(0xEEb71c1c)
+                        : _spreadAlertSeverity == 'high'
+                            ? const Color(0xEEe65100)
+                            : const Color(0xEE827717),
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 8)],
+                  ),
+                  child: Row(children: [
+                    const Text('🔥 ', style: TextStyle(fontSize: 16)),
+                    Expanded(
+                      child: Text(
+                        _spreadAlertMsg!,
+                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    const Text('✕', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                  ]),
+                ),
+              ),
+            ),
 
           // Loading overlay
           if (_loading)
@@ -1033,17 +1220,37 @@ class _MapScreenState extends State<MapScreen> {
         ),
       ),
 
-      // Floating action button for data visualization
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const DataVisualizationScreen()),
-          );
-        },
-        icon: const Icon(Icons.analytics),
-        label: const Text('Veriler'),
-        tooltip: 'Risk Zonları ve Erişilebilirlik Verilerini Görüntüle',
+      // FABs: analytics + fire spread
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            heroTag: 'fabSpread',
+            onPressed: _showSpreadScenarioSheet,
+            backgroundColor: _activeSpreadScenarioId != null
+                ? const Color(0xFFFF4500)
+                : const Color(0xFF2E4D28),
+            tooltip: 'Yangın Yayılım Takibi',
+            child: Icon(
+              _activeSpreadScenarioId != null ? Icons.whatshot : Icons.local_fire_department_outlined,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 10),
+          FloatingActionButton.extended(
+            heroTag: 'fabAnalytics',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const DataVisualizationScreen()),
+              );
+            },
+            icon: const Icon(Icons.analytics),
+            label: const Text('Veriler'),
+            tooltip: 'Risk Zonları ve Erişilebilirlik Verilerini Görüntüle',
+          ),
+        ],
       ),
     );
   }
@@ -1310,6 +1517,127 @@ class _MapScreenState extends State<MapScreen> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
       shape: Border(
         bottom: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+    );
+  }
+}
+
+// ─── Fire Spread Scenario Bottom Sheet ────────────────────────────────────────
+
+class _SpreadScenarioSheet extends StatefulWidget {
+  final ApiService api;
+  final int? activeScenarioId;
+  final void Function(int id) onTrack;
+  final void Function(int id) onStop;
+
+  const _SpreadScenarioSheet({
+    required this.api,
+    required this.activeScenarioId,
+    required this.onTrack,
+    required this.onStop,
+  });
+
+  @override
+  State<_SpreadScenarioSheet> createState() => _SpreadScenarioSheetState();
+}
+
+class _SpreadScenarioSheetState extends State<_SpreadScenarioSheet> {
+  List<dynamic> _scenarios = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final data = await widget.api.getSpreadScenarios();
+      if (mounted) setState(() { _scenarios = data; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '🔥 Yangın Yayılım Senaryoları',
+            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Aktif senaryoyu takip etmek için butona basın. Haritada canlı yayılım görüntülenir.',
+            style: TextStyle(color: Color(0xFF7BA368), fontSize: 11),
+          ),
+          const Divider(color: Color(0x30FFFFFF), height: 20),
+          if (_loading)
+            const Center(child: Padding(
+              padding: EdgeInsets.all(16),
+              child: CircularProgressIndicator(color: Color(0xFFFF4500)),
+            ))
+          else if (_scenarios.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Text(
+                'Henüz senaryo yok.\nSenaryolar web uygulaması üzerinden oluşturulabilir.',
+                style: TextStyle(color: Color(0xFF7BA368), fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            )
+          else
+            ...(_scenarios.map((s) {
+              final id = s['id'] as int;
+              final name = s['name'] as String? ?? 'Yangın';
+              final elapsed = (s['elapsed_minutes'] as num?)?.toStringAsFixed(0) ?? '0';
+              final active = s['status'] == 'active';
+              final tracking = widget.activeScenarioId == id;
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  Icons.local_fire_department,
+                  color: active ? const Color(0xFFFF4500) : Colors.grey,
+                  size: 28,
+                ),
+                title: Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                subtitle: Text('$elapsed dk geçti · ${s['origin_lat']?.toStringAsFixed(3)}, ${s['origin_lon']?.toStringAsFixed(3)}',
+                    style: const TextStyle(color: Color(0xFF7BA368), fontSize: 11)),
+                trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                  if (active)
+                    TextButton(
+                      onPressed: () => widget.onTrack(id),
+                      style: TextButton.styleFrom(
+                        backgroundColor: tracking ? const Color(0xFFFF4500) : const Color(0x30FF4500),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        minimumSize: Size.zero,
+                      ),
+                      child: Text(tracking ? '✓ Takip' : 'Takip Et', style: const TextStyle(fontSize: 11)),
+                    ),
+                  if (active) const SizedBox(width: 6),
+                  if (tracking)
+                    TextButton(
+                      onPressed: () => widget.onStop(id),
+                      style: TextButton.styleFrom(
+                        backgroundColor: const Color(0x30FF0000),
+                        foregroundColor: Colors.redAccent,
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        minimumSize: Size.zero,
+                      ),
+                      child: const Text('Durdur', style: TextStyle(fontSize: 11)),
+                    ),
+                ]),
+              );
+            }).toList()),
+          const SizedBox(height: 8),
+        ],
       ),
     );
   }
