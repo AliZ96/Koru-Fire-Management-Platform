@@ -1,7 +1,9 @@
 import csv
 import io
+import json
 import os
 import time
+from pathlib import Path
 from typing import Any, Dict
 
 import requests
@@ -13,6 +15,27 @@ _CACHE_TTL_SECONDS = int(os.getenv("FIRMS_CACHE_TTL_SECONDS", "120"))
 _firms_cache: Dict[str, Any] = {}
 
 
+def _fallback_firms_geojson(reason: str, status: int = 200) -> Dict[str, Any]:
+    """Return bundled fallback FIRMS data so demo flows stay stable offline."""
+    fallback_path = Path(__file__).resolve().parent.parent.parent / "data" / "firms.json"
+    if fallback_path.exists():
+        try:
+            with open(fallback_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict):
+                data.setdefault("meta", {})
+                data["meta"].update({"fallback": True, "reason": reason})
+                return data
+        except Exception:
+            pass
+
+    return {
+        "type": "FeatureCollection",
+        "features": [],
+        "meta": {"fallback": True, "reason": reason, "status": status},
+    }
+
+
 def fetch_firms_geojson(day_range: int = 3) -> Dict[str, Any]:
     """
     NASA FIRMS API'den Izmir bbox bölgesi için CSV verisini çekip GeoJSON FeatureCollection döndürür.
@@ -21,15 +44,15 @@ def fetch_firms_geojson(day_range: int = 3) -> Dict[str, Any]:
 
     # 1) Config doğrulama
     if not settings.MAP_KEY:
-        return {"error": "MAP_KEY not set (.env missing?)", "status": 500}
+        return _fallback_firms_geojson("MAP_KEY not set (.env missing?)")
 
     source = settings.SOURCE
     bbox = settings.IZMIR_BBOX
 
     if not source:
-        return {"error": "SOURCE not set (.env missing?)", "status": 500}
+        return _fallback_firms_geojson("SOURCE not set (.env missing?)")
     if not bbox:
-        return {"error": "IZMIR_BBOX not set (.env missing?)", "status": 500}
+        return _fallback_firms_geojson("IZMIR_BBOX not set (.env missing?)")
 
     # 2) URL oluşturma
     url = f"https://firms.modaps.eosdis.nasa.gov/api/area/csv/{settings.MAP_KEY}/{source}/{bbox}/{day_range}"
@@ -45,20 +68,15 @@ def fetch_firms_geojson(day_range: int = 3) -> Dict[str, Any]:
     try:
         r = requests.get(url, timeout=API_TIMEOUT)
     except requests.RequestException as e:
-        return {"error": f"Network error: {e}", "status": 502}
+        return _fallback_firms_geojson(f"Network error: {e}", status=502)
 
     # 4) Hata kodları
     if r.status_code == 401:
-        return {"error": "Unauthorized (401): MAP_KEY invalid or not permitted", "status": 401, "url": url}
+        return _fallback_firms_geojson("Unauthorized (401): MAP_KEY invalid or not permitted", status=401)
     if r.status_code == 404:
-        return {"error": "Not Found (404): Check SOURCE or endpoint", "status": 404, "url": url}
+        return _fallback_firms_geojson("Not Found (404): Check SOURCE or endpoint", status=404)
     if r.status_code >= 400:
-        return {
-            "error": f"FIRMS error {r.status_code}",
-            "status": r.status_code,
-            "preview": r.text[:200],
-            "url": url
-        }
+        return _fallback_firms_geojson(f"FIRMS error {r.status_code}", status=r.status_code)
 
     # 5) CSV -> GeoJSON
     reader = csv.DictReader(io.StringIO(r.text))

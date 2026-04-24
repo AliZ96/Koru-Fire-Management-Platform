@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import time
 from fastapi import FastAPI, Request
@@ -17,6 +18,7 @@ from app.api.routers.air_accessibility import router as air_accessibility_router
 from app.api.routers.auth import router as auth_router
 from app.api.routers.core import router as core_router
 from app.api.routers.fire_risk import router as fire_risk_router
+from app.api.routers.fire_spread import router as fire_spread_router
 from app.api.routers.health_router import router as health_router
 from app.api.routers.integrated_layer import router as integrated_layer_router
 from app.api.routers.mobile_ui import router as mobile_ui_router
@@ -26,6 +28,24 @@ from app.api.routers.routing import router as routing_router
 from app.core.config import settings
 from app.core.database import engine
 from app.db.base import Base
+from app.services.fire_monitor import monitor_loop
+
+
+def _ensure_database_tables() -> None:
+    failed_tables: list[tuple[str, str]] = []
+
+    for table in Base.metadata.sorted_tables:
+        try:
+            Base.metadata.create_all(bind=engine, tables=[table], checkfirst=True)
+        except Exception as exc:
+            failed_tables.append((table.name, str(exc)))
+
+    if failed_tables:
+        print("Database table creation completed with partial failures:")
+        for table_name, error in failed_tables:
+            print(f"  - {table_name}: {error}")
+    else:
+        print("Database tables checked/created successfully.")
 
 
 def create_app() -> FastAPI:
@@ -66,20 +86,21 @@ def create_app() -> FastAPI:
         return response
 
     @app.on_event("startup")
-    def on_startup():
+    async def on_startup():
         print(f"APP_ENV={settings.APP_ENV}")
         print(f"DATABASE_CONFIGURED={bool(settings.DATABASE_URL)}")
         print("METADATA TABLES:", Base.metadata.tables.keys())
         try:
-            Base.metadata.create_all(bind=engine)
-            print("Database tables checked/created successfully.")
+            _ensure_database_tables()
         except Exception as e:
             print(f"DB table creation skipped: {e}")
+        asyncio.create_task(monitor_loop())
 
     app.include_router(core_router)
     app.include_router(auth_router)
     app.include_router(health_router)
     app.include_router(fire_risk_router)
+    app.include_router(fire_spread_router)
     app.include_router(air_accessibility_router)
     app.include_router(resource_proximity_router)
     app.include_router(integrated_layer_router)

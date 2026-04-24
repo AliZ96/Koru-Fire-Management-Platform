@@ -265,6 +265,82 @@ class ApiService {
     return _decode(res);
   }
 
+  // ─── Fire Spread ──────────────────────────────────────
+
+  Future<List<dynamic>> getSpreadScenarios() async {
+    final res = await http
+        .get(Uri.parse('$baseUrl/api/fire-spread/scenarios'), headers: _headers)
+        .timeout(_kTimeout);
+    final body = jsonDecode(res.body);
+    return body as List<dynamic>;
+  }
+
+  Future<Map<String, dynamic>> createSpreadScenario({
+    required String name,
+    required double lat,
+    required double lon,
+  }) async {
+    final res = await http
+        .post(
+          Uri.parse('$baseUrl/api/fire-spread/scenarios'),
+          headers: _headers,
+          body: jsonEncode({'name': name, 'lat': lat, 'lon': lon}),
+        )
+        .timeout(_kTimeout);
+    return _decode(res);
+  }
+
+  Future<Map<String, dynamic>> getCurrentSpread(int scenarioId) async {
+    final res = await http
+        .get(
+          Uri.parse('$baseUrl/api/fire-spread/scenarios/$scenarioId/current'),
+          headers: _headers,
+        )
+        .timeout(_kTimeout);
+    return _decode(res);
+  }
+
+  Future<Map<String, dynamic>> stopSpreadScenario(int scenarioId) async {
+    final res = await http
+        .patch(
+          Uri.parse('$baseUrl/api/fire-spread/scenarios/$scenarioId/stop'),
+          headers: _headers,
+        )
+        .timeout(_kTimeout);
+    return _decode(res);
+  }
+
+  Future<Map<String, dynamic>> getSpreadEta({
+    required int scenarioId,
+    required double lat,
+    required double lon,
+  }) async {
+    final res = await http
+        .get(
+          Uri.parse('$baseUrl/api/fire-spread/scenarios/$scenarioId/eta?lat=$lat&lon=$lon'),
+          headers: _headers,
+        )
+        .timeout(_kTimeout);
+    return _decode(res);
+  }
+
+  Future<void> saveMySpreadLocation(double lat, double lon) async {
+    await http
+        .post(
+          Uri.parse('$baseUrl/api/fire-spread/my-location'),
+          headers: _headers,
+          body: jsonEncode({'lat': lat, 'lon': lon}),
+        )
+        .timeout(_kTimeout);
+  }
+
+  String getSpreadWsUrl(int scenarioId) {
+    final wsBase = baseUrl
+        .replaceFirst('https://', 'wss://')
+        .replaceFirst('http://', 'ws://');
+    return '$wsBase/api/fire-spread/ws/$scenarioId';
+  }
+
   // ─── Helpers ──────────────────────────────────────────
 
   Map<String, dynamic> _decode(http.Response res) {
