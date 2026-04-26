@@ -560,6 +560,33 @@
       return { auth, api };
     }
 
+    async function pingFirestoreUser({ idToken, uid, username, role = 'USER' }) {
+      const nowIso = new Date().toISOString();
+      const url = `https://firestore.googleapis.com/v1/projects/koru-41307/databases/(default)/documents/users/${uid}`;
+      const body = {
+        fields: {
+          username: { stringValue: username || uid },
+          password_hash: { stringValue: 'FIREBASE_AUTH_MANAGED' },
+          role: { stringValue: String(role || 'USER').toUpperCase() },
+          created_at: { timestampValue: nowIso },
+        },
+      };
+
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Firestore ping failed: ${errText || response.status}`);
+      }
+    }
+
     function switchTab(tab) {
       const isLogin = tab === 'login';
       loginTabBtn.classList.toggle('active', isLogin);
@@ -597,6 +624,12 @@
         const credential = await api.signInWithEmailAndPassword(auth, email, password);
         const token = await credential.user.getIdToken();
         const userName = credential.user.displayName || email;
+        await pingFirestoreUser({
+          idToken: token,
+          uid: credential.user.uid,
+          username: userName,
+          role: 'USER',
+        });
         sessionStorage.setItem('access_token', token);
         sessionStorage.setItem('username', userName);
         sessionStorage.setItem('email', email);
@@ -659,6 +692,12 @@
         const credential = await api.createUserWithEmailAndPassword(auth, email, password);
         await api.updateProfile(credential.user, { displayName: username });
         const token = await credential.user.getIdToken();
+        await pingFirestoreUser({
+          idToken: token,
+          uid: credential.user.uid,
+          username,
+          role: 'USER',
+        });
 
         sessionStorage.setItem('access_token', token);
         sessionStorage.setItem('username', username);

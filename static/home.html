@@ -836,6 +836,32 @@ async function getFirebaseAuthContext(){
   window.koruFirebaseAuthApi = api;
   return { auth, api };
 }
+async function pingFirestoreUser({ idToken, uid, username, role = 'USER' }) {
+  const nowIso = new Date().toISOString();
+  const url = `https://firestore.googleapis.com/v1/projects/koru-41307/databases/(default)/documents/users/${uid}`;
+  const body = {
+    fields: {
+      username: { stringValue: username || uid },
+      password_hash: { stringValue: 'FIREBASE_AUTH_MANAGED' },
+      role: { stringValue: String(role || 'USER').toUpperCase() },
+      created_at: { timestampValue: nowIso },
+    },
+  };
+
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Firestore ping failed: ${errText || response.status}`);
+  }
+}
 
 async function handleLogin(e){
   e.preventDefault();
@@ -859,6 +885,12 @@ async function handleLogin(e){
 
     const credential = await api.signInWithEmailAndPassword(auth, email, password);
     const token = await credential.user.getIdToken();
+    await pingFirestoreUser({
+      idToken: token,
+      uid: credential.user.uid,
+      username: credential.user.displayName || email,
+      role: 'USER',
+    });
     sessionStorage.setItem('access_token', token);
     sessionStorage.setItem('username', credential.user.displayName || email);
     sessionStorage.setItem('email', email);
@@ -898,6 +930,12 @@ async function handleSignup(e){
 
     const credential = await api.createUserWithEmailAndPassword(auth, email, password);
     const token = await credential.user.getIdToken();
+    await pingFirestoreUser({
+      idToken: token,
+      uid: credential.user.uid,
+      username: email,
+      role: 'USER',
+    });
     sessionStorage.setItem('access_token', token);
     sessionStorage.setItem('username', email);
     sessionStorage.setItem('email', email);
