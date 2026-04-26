@@ -156,6 +156,15 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
 .nav-cta{font-size:12px;font-weight:700;color:#0A0A0A;background:var(--accent);border:none;border-radius:10px;padding:8px 18px;cursor:pointer;font-family:var(--font);letter-spacing:.5px;transition:all .2s;box-shadow:0 2px 12px rgba(245,158,11,.3)}
 .nav-links a.nav-cta{color:#111111}
 .nav-cta:hover{box-shadow:0 4px 20px rgba(245,158,11,.5);transform:translateY(-1px)}
+.nav-cta.nav-cta-disabled{
+  background:#8e8e8e;
+  color:#2e2e2e;
+  box-shadow:none;
+  cursor:not-allowed;
+  opacity:.65;
+  pointer-events:none;
+}
+.nav-cta.nav-cta-disabled:hover{transform:none;box-shadow:none}
 .nav-mobile{display:none;background:none;border:none;cursor:pointer;flex-direction:column;gap:4px;padding:8px}
 .nav-mobile span{display:block;width:18px;height:2px;background:var(--text-dark2);border-radius:2px}
 @media(max-width:768px){.nav-links{display:none}.nav-mobile{display:flex}.nav{padding:0 20px}}
@@ -354,11 +363,6 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
 .auth-footer a{color:var(--accent);cursor:pointer;text-decoration:none;font-weight:600}
 .auth-footer a:hover{text-decoration:underline}
 
-/* Hamburger button next to Explore Map in nav */
-.nav-hamburger{width:32px;height:32px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;background:rgba(74,124,58,.1);border:1px solid rgba(74,124,58,.25);border-radius:8px;cursor:pointer;padding:0;transition:all .2s;flex-shrink:0}
-.nav-hamburger span{display:block;width:14px;height:1.5px;background:var(--text-dark2);border-radius:2px;transition:all .2s}
-.nav-hamburger:hover{background:rgba(74,124,58,.2);border-color:rgba(74,124,58,.4)}
-.nav-hamburger:hover span{background:var(--text-dark)}
 </style>
 </head>
 <body>
@@ -380,8 +384,7 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
     <a href="#solution">Solution</a>
     <a href="#features">Features</a>
     <a href="#impact">Impact</a>
-    <a href="/app" class="nav-cta">Explore Map →</a>
-    <button class="nav-hamburger" onclick="openAuth(event)" aria-label="Login"><span></span><span></span><span></span></button>
+    <a href="#" class="nav-cta" id="exploreMapBtn">Login</a>
   </div>
   <button class="nav-mobile" id="navMobile" aria-label="Menu">
     <span></span><span></span><span></span>
@@ -402,7 +405,7 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
         <h1 class="hero-title">6,800 Fires. 80,000 Hectares.<br/><span class="accent">One Platform to Fight Back.</span></h1>
         <p class="hero-sub">KORU combines machine learning, GIS analytics, and metaheuristic route optimization to predict wildfire risk zones and generate strategic response plans — before the first flame ignites.</p>
         <div class="hero-ctas">
-          <a href="/app"><button class="btn-primary">Explore the System →</button></a>
+          <a href="/app"><button class="btn-primary">Login</button></a>
           <a href="#features"><button class="btn-secondary">▶ View Demo</button></a>
         </div>
       </div>
@@ -742,12 +745,12 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
     <!-- LOGIN FORM -->
     <form class="auth-form" id="formLogin" onsubmit="handleLogin(event)">
       <div class="auth-field">
-        <label>E-posta</label>
-        <input type="email" placeholder="ornek@izmir.bel.tr" required/>
+        <label>Kullanıcı Adı</label>
+        <input type="text" id="loginUsername" placeholder="ali" required/>
       </div>
       <div class="auth-field">
         <label>Şifre</label>
-        <input type="password" placeholder="••••••••" required/>
+        <input type="password" id="loginPassword" placeholder="12345" required/>
       </div>
       <button type="submit" class="auth-submit">Giriş Yap →</button>
       <div class="auth-footer">Hesabınız yok mu? <a onclick="switchTab('signup')">Kayıt olun</a></div>
@@ -783,10 +786,42 @@ function switchTab(tab){
   document.getElementById('formLogin').hidden=(tab!=='login');
   document.getElementById('formSignup').hidden=(tab!=='signup');
 }
-function handleLogin(e){e.preventDefault();window.location.href='/welcome';}
+function setExploreMapEnabled(enabled){
+  const exploreMapBtn = document.getElementById('exploreMapBtn');
+  if (!exploreMapBtn) return;
+  exploreMapBtn.classList.toggle('nav-cta-disabled', !enabled);
+  exploreMapBtn.setAttribute('aria-disabled', String(!enabled));
+  if (enabled) {
+    exploreMapBtn.removeAttribute('tabindex');
+  } else {
+    exploreMapBtn.setAttribute('tabindex', '-1');
+  }
+}
+
+function handleLogin(e){
+  e.preventDefault();
+  const username = document.getElementById('loginUsername')?.value?.trim() || '';
+  const password = document.getElementById('loginPassword')?.value || '';
+
+  if (username === 'ali' && password === '12345') {
+    setExploreMapEnabled(true);
+    closeAuth();
+    return;
+  }
+
+  alert('Test girisi icin kullanici adi: ali, sifre: 12345');
+  setExploreMapEnabled(false);
+}
 function handleSignup(e){e.preventDefault();window.location.href='/welcome';}
 document.getElementById('authOverlay').addEventListener('click',function(e){if(e.target===this)closeAuth();});
 window.addEventListener('keydown',function(e){if(e.key==='Escape')closeAuth();});
+const exploreMapBtn = document.getElementById('exploreMapBtn');
+if (exploreMapBtn) {
+  exploreMapBtn.addEventListener('click', function (e) {
+    e.preventDefault();
+    openAuth(e);
+  });
+}
 
 // Scroll reveal
 const reveals = document.querySelectorAll('.reveal');
