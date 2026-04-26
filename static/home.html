@@ -745,12 +745,12 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
     <!-- LOGIN FORM -->
     <form class="auth-form" id="formLogin" onsubmit="handleLogin(event)">
       <div class="auth-field">
-        <label>Kullanıcı Adı</label>
-        <input type="text" id="loginUsername" placeholder="ali" required/>
+        <label>E-posta</label>
+        <input type="email" id="loginEmail" placeholder="kullanici@izmir.bel.tr" required/>
       </div>
       <div class="auth-field">
         <label>Şifre</label>
-        <input type="password" id="loginPassword" placeholder="12345" required/>
+        <input type="password" id="loginPassword" placeholder="••••••••" required/>
       </div>
       <button type="submit" class="auth-submit">Giriş Yap →</button>
       <div class="auth-footer">Hesabınız yok mu? <a onclick="switchTab('signup')">Kayıt olun</a></div>
@@ -758,16 +758,12 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
     <!-- SIGNUP FORM -->
     <form class="auth-form" id="formSignup" hidden onsubmit="handleSignup(event)">
       <div class="auth-field">
-        <label>Ad Soyad</label>
-        <input type="text" placeholder="Ali Yılmaz" required/>
-      </div>
-      <div class="auth-field">
         <label>E-posta</label>
-        <input type="email" placeholder="ornek@izmir.bel.tr" required/>
+        <input type="email" id="signupEmail" placeholder="ornek@izmir.bel.tr" required/>
       </div>
       <div class="auth-field">
         <label>Şifre</label>
-        <input type="password" placeholder="••••••••" required/>
+        <input type="password" id="signupPassword" placeholder="••••••••" required/>
       </div>
       <button type="submit" class="auth-submit">Kayıt Ol →</button>
       <div class="auth-footer">Zaten hesabınız var mı? <a onclick="switchTab('login')">Giriş yapın</a></div>
@@ -798,24 +794,122 @@ function setExploreMapEnabled(enabled){
     exploreMapBtn.setAttribute('tabindex', '-1');
   }
 }
+function normalizeAuthMessage(message){
+  const text = (message || '').toLowerCase();
+  if (text.includes('email-already-in-use')) return 'Bu e-posta zaten kayıtlı.';
+  if (text.includes('invalid-email')) return 'Geçerli bir e-posta adresi gir.';
+  if (text.includes('weak-password') || text.includes('password')) return 'Şifre en az 6 karakter olmalı.';
+  if (text.includes('user-not-found') || text.includes('wrong-password') || text.includes('invalid-credential')) {
+    return 'E-posta veya şifre hatalı.';
+  }
+  return message || 'İşlem başarısız.';
+}
+async function getFirebaseAuthContext(){
+  if (window.koruFirebaseAuth && window.koruFirebaseAuthApi) {
+    return {
+      auth: window.koruFirebaseAuth,
+      api: window.koruFirebaseAuthApi,
+    };
+  }
 
-function handleLogin(e){
+  const firebaseConfig = {
+    apiKey: "AIzaSyDXEK8vjmKNKKkYG4ZtoLcGG0gDqN1bVEs",
+    authDomain: "koru-41307.firebaseapp.com",
+    projectId: "koru-41307",
+    storageBucket: "koru-41307.firebasestorage.app",
+    messagingSenderId: "580787181791",
+    appId: "1:580787181791:web:25488833ab906df012716a",
+    measurementId: "G-SHBNJ75VGD",
+  };
+
+  const appMod = await import("https://www.gstatic.com/firebasejs/11.7.1/firebase-app.js");
+  const authMod = await import("https://www.gstatic.com/firebasejs/11.7.1/firebase-auth.js");
+  const app = appMod.getApps().length ? appMod.getApp() : appMod.initializeApp(firebaseConfig);
+  const auth = authMod.getAuth(app);
+  const api = {
+    createUserWithEmailAndPassword: authMod.createUserWithEmailAndPassword,
+    signInWithEmailAndPassword: authMod.signInWithEmailAndPassword,
+    updateProfile: authMod.updateProfile,
+  };
+
+  window.koruFirebaseAuth = auth;
+  window.koruFirebaseAuthApi = api;
+  return { auth, api };
+}
+
+async function handleLogin(e){
   e.preventDefault();
-  const username = document.getElementById('loginUsername')?.value?.trim() || '';
+  const email = document.getElementById('loginEmail')?.value?.trim().toLowerCase() || '';
   const password = document.getElementById('loginPassword')?.value || '';
+  const button = e.target.querySelector('.auth-submit');
 
-  if (username === 'ali' && password === '12345') {
-    sessionStorage.setItem('access_token', 'demo-token-ali');
-    sessionStorage.setItem('username', 'ali');
-    sessionStorage.setItem('role', 'admin');
-    closeAuth();
-    window.location.href = '/app';
+  if (!email || !password) {
+    alert('E-posta ve şifre zorunlu.');
     return;
   }
 
-  alert('Test girisi icin kullanici adi: ali, sifre: 12345');
+  button.textContent = '⏳ Giriş Yapılıyor...';
+  button.disabled = true;
+
+  try {
+    const { auth, api } = await getFirebaseAuthContext();
+    if (!auth || !api) {
+      throw new Error('Firebase bağlantısı hazır değil. Sayfayı yenileyin.');
+    }
+
+    const credential = await api.signInWithEmailAndPassword(auth, email, password);
+    const token = await credential.user.getIdToken();
+    sessionStorage.setItem('access_token', token);
+    sessionStorage.setItem('username', credential.user.displayName || email);
+    sessionStorage.setItem('email', email);
+    sessionStorage.setItem('role', 'user');
+    closeAuth();
+    window.location.href = '/welcome';
+  } catch (error) {
+    alert(normalizeAuthMessage(error.message));
+    button.textContent = 'Giriş Yap →';
+    button.disabled = false;
+  }
 }
-function handleSignup(e){e.preventDefault();window.location.href='/welcome';}
+async function handleSignup(e){
+  e.preventDefault();
+  const email = document.getElementById('signupEmail')?.value?.trim().toLowerCase() || '';
+  const password = document.getElementById('signupPassword')?.value || '';
+  const button = e.target.querySelector('.auth-submit');
+
+  if (!email || !password) {
+    alert('E-posta ve şifre zorunlu.');
+    return;
+  }
+
+  if (password.length < 6) {
+    alert('Şifre en az 6 karakter olmalı.');
+    return;
+  }
+
+  button.textContent = '⏳ Kayıt Olunuyor...';
+  button.disabled = true;
+
+  try {
+    const { auth, api } = await getFirebaseAuthContext();
+    if (!auth || !api) {
+      throw new Error('Firebase bağlantısı hazır değil. Sayfayı yenileyin.');
+    }
+
+    const credential = await api.createUserWithEmailAndPassword(auth, email, password);
+    const token = await credential.user.getIdToken();
+    sessionStorage.setItem('access_token', token);
+    sessionStorage.setItem('username', email);
+    sessionStorage.setItem('email', email);
+    sessionStorage.setItem('role', 'user');
+    closeAuth();
+    window.location.href = '/welcome';
+  } catch (error) {
+    alert(normalizeAuthMessage(error.message));
+    button.textContent = 'Kayıt Ol →';
+    button.disabled = false;
+  }
+}
 document.getElementById('authOverlay').addEventListener('click',function(e){if(e.target===this)closeAuth();});
 window.addEventListener('keydown',function(e){if(e.key==='Escape')closeAuth();});
 document.querySelectorAll('.js-open-auth').forEach((btn) => {
