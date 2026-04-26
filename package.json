@@ -1,0 +1,28 @@
+{
+  "name": "koru",
+  "version": "1.0.0",
+  "description": "KORU is an integrated, AI-driven system designed to combat the escalating frequency and intensity of wildfires in Türkiye, particularly focusing on the İzmir region. The system leverages historical fire data and detailed geospatial analysis to identify high-risk zones and determine the most efficient response strategies.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AliZ96/koru.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/AliZ96/koru/issues"
+  },
+  "homepage": "https://github.com/AliZ96/koru#readme",
+  "dependencies": {
+    "firebase": "^12.12.1"
+  }
+}

@@ -384,7 +384,7 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
     <a href="#solution">Solution</a>
     <a href="#features">Features</a>
     <a href="#impact">Impact</a>
-    <a href="#" class="nav-cta" id="exploreMapBtn">Login</a>
+    <a href="#" class="nav-cta js-open-auth" id="exploreMapBtn">Login</a>
   </div>
   <button class="nav-mobile" id="navMobile" aria-label="Menu">
     <span></span><span></span><span></span>
@@ -405,7 +405,7 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
         <h1 class="hero-title">6,800 Fires. 80,000 Hectares.<br/><span class="accent">One Platform to Fight Back.</span></h1>
         <p class="hero-sub">KORU combines machine learning, GIS analytics, and metaheuristic route optimization to predict wildfire risk zones and generate strategic response plans — before the first flame ignites.</p>
         <div class="hero-ctas">
-          <a href="/app"><button class="btn-primary">Login</button></a>
+          <a href="#" class="js-open-auth"><button class="btn-primary">Login</button></a>
           <a href="#features"><button class="btn-secondary">▶ View Demo</button></a>
         </div>
       </div>
@@ -776,9 +776,10 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
 </div>
 
 <!-- ═══════ SCRIPTS ═══════ -->
+<script type="module" src="./firebase-init.js"></script>
 <script>
 // Auth modal
-function openAuth(e){if(e)e.preventDefault();document.getElementById('authOverlay').classList.add('open');document.body.style.overflow='hidden';}
+function openAuth(e){if(e)e.preventDefault();switchTab('login');document.getElementById('authOverlay').classList.add('open');document.body.style.overflow='hidden';}
 function closeAuth(){document.getElementById('authOverlay').classList.remove('open');document.body.style.overflow='';}
 function switchTab(tab){
   document.getElementById('tabLogin').classList.toggle('active',tab==='login');
@@ -804,24 +805,25 @@ function handleLogin(e){
   const password = document.getElementById('loginPassword')?.value || '';
 
   if (username === 'ali' && password === '12345') {
-    setExploreMapEnabled(true);
+    sessionStorage.setItem('access_token', 'demo-token-ali');
+    sessionStorage.setItem('username', 'ali');
+    sessionStorage.setItem('role', 'admin');
     closeAuth();
+    window.location.href = '/app';
     return;
   }
 
   alert('Test girisi icin kullanici adi: ali, sifre: 12345');
-  setExploreMapEnabled(false);
 }
 function handleSignup(e){e.preventDefault();window.location.href='/welcome';}
 document.getElementById('authOverlay').addEventListener('click',function(e){if(e.target===this)closeAuth();});
 window.addEventListener('keydown',function(e){if(e.key==='Escape')closeAuth();});
-const exploreMapBtn = document.getElementById('exploreMapBtn');
-if (exploreMapBtn) {
-  exploreMapBtn.addEventListener('click', function (e) {
+document.querySelectorAll('.js-open-auth').forEach((btn) => {
+  btn.addEventListener('click', function (e) {
     e.preventDefault();
     openAuth(e);
   });
-}
+});
 
 // Scroll reveal
 const reveals = document.querySelectorAll('.reveal');
