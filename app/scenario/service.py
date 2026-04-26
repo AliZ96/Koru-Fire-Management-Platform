@@ -61,6 +61,7 @@ def build_and_save(name: str) -> dict:
 
     high_count = sum(1 for p in points if p["risk_class"] == "HIGH")
     stations = list({p["fire_station_id"] for p in points})
+    critical_clusters = sum(1 for c in clusters if c.get("risk_level") in ("HIGH", "CRITICAL"))
 
     scenario = {
         "scenario_id": 1,
@@ -71,6 +72,8 @@ def build_and_save(name: str) -> dict:
             "high_count": high_count,
             "low_count": len(points) - high_count,
             "total_stations": len(stations),
+            "total_clusters": len(clusters),
+            "critical_clusters": critical_clusters,
         },
         "points": points,
         "clusters": clusters,
