@@ -396,10 +396,10 @@
 
     <form id="loginForm" class="auth-form active" onsubmit="handleLogin(event)" novalidate>
       <div class="field">
-        <label for="username">Kullanıcı Adı</label>
+        <label for="loginEmail">E-posta</label>
         <div class="field-wrap">
-          <span class="field-icon">👤</span>
-          <input type="text" id="username" placeholder="kullanici@izmir.bel.tr" autocomplete="username" required/>
+          <span class="field-icon">✉️</span>
+          <input type="email" id="loginEmail" placeholder="kullanici@izmir.bel.tr" autocomplete="email" required/>
         </div>
       </div>
       <div class="field">
@@ -440,6 +440,16 @@
           </div>
         </div>
         <div class="field">
+          <label for="signupEmail">E-posta</label>
+          <div class="field-wrap">
+            <span class="field-icon">✉️</span>
+            <input type="email" id="signupEmail" placeholder="kullanici@izmir.bel.tr" autocomplete="email" required/>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-grid">
+        <div class="field">
           <label for="signupPassword">Şifre</label>
           <div class="field-wrap">
             <span class="field-icon">🔒</span>
@@ -473,6 +483,7 @@
     <span>Canlı İzleme</span>
   </div>
 
+  <script type="module" src="./firebase-init.js"></script>
   <script>
     const loginTabBtn = document.getElementById('loginTabBtn');
     const signupTabBtn = document.getElementById('signupTabBtn');
@@ -500,7 +511,80 @@
         return 'Kullanıcı adı veya şifre hatalı.';
       }
 
+      if (text.includes('email-already-in-use')) {
+        return 'Bu e-posta adresi zaten kayıtlı.';
+      }
+
+      if (text.includes('invalid-email')) {
+        return 'Geçerli bir e-posta adresi gir.';
+      }
+
+      if (text.includes('user-not-found') || text.includes('wrong-password') || text.includes('invalid-credential')) {
+        return 'E-posta veya şifre hatalı.';
+      }
+
       return message || 'Kullanıcı adı veya şifre hatalı.';
+    }
+
+    async function getFirebaseAuthContext() {
+      if (window.koruFirebaseAuth && window.koruFirebaseAuthApi) {
+        return {
+          auth: window.koruFirebaseAuth,
+          api: window.koruFirebaseAuthApi,
+        };
+      }
+
+      // Fallback: initialize Firebase directly if shared module is unavailable.
+      const firebaseConfig = {
+        apiKey: "AIzaSyDXEK8vjmKNKKkYG4ZtoLcGG0gDqN1bVEs",
+        authDomain: "koru-41307.firebaseapp.com",
+        projectId: "koru-41307",
+        storageBucket: "koru-41307.firebasestorage.app",
+        messagingSenderId: "580787181791",
+        appId: "1:580787181791:web:25488833ab906df012716a",
+        measurementId: "G-SHBNJ75VGD",
+      };
+
+      const appMod = await import("https://www.gstatic.com/firebasejs/11.7.1/firebase-app.js");
+      const authMod = await import("https://www.gstatic.com/firebasejs/11.7.1/firebase-auth.js");
+      const app = appMod.getApps().length ? appMod.getApp() : appMod.initializeApp(firebaseConfig);
+      const auth = authMod.getAuth(app);
+      const api = {
+        createUserWithEmailAndPassword: authMod.createUserWithEmailAndPassword,
+        signInWithEmailAndPassword: authMod.signInWithEmailAndPassword,
+        updateProfile: authMod.updateProfile,
+      };
+
+      window.koruFirebaseAuth = auth;
+      window.koruFirebaseAuthApi = api;
+      return { auth, api };
+    }
+
+    async function pingFirestoreUser({ idToken, uid, username, role = 'USER' }) {
+      const nowIso = new Date().toISOString();
+      const url = `https://firestore.googleapis.com/v1/projects/koru-41307/databases/(default)/documents/users/${uid}`;
+      const body = {
+        fields: {
+          username: { stringValue: username || uid },
+          password_hash: { stringValue: 'FIREBASE_AUTH_MANAGED' },
+          role: { stringValue: String(role || 'USER').toUpperCase() },
+          created_at: { timestampValue: nowIso },
+        },
+      };
+
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Firestore ping failed: ${errText || response.status}`);
+      }
     }
 
     function switchTab(tab) {
@@ -518,11 +602,11 @@
       e.preventDefault();
       clearMessage(loginMessage);
 
-      const username = document.getElementById('username').value.trim();
+      const email = document.getElementById('loginEmail').value.trim().toLowerCase();
       const password = document.getElementById('password').value;
 
-      if (!username || !password) {
-        showMessage(loginMessage, 'Kullanıcı adı ve şifre zorunlu.');
+      if (!email || !password) {
+        showMessage(loginMessage, 'E-posta ve şifre zorunlu.');
         return;
       }
 
@@ -532,45 +616,33 @@
       btn.disabled = true;
 
       try {
-        const response = await fetch('/auth/user/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          body: JSON.stringify({ username, password }),
+        const { auth, api } = await getFirebaseAuthContext();
+        if (!auth || !api) {
+          throw new Error('Firebase bağlantısı hazır değil. Sayfayı yenileyip tekrar dene.');
+        }
+
+        const credential = await api.signInWithEmailAndPassword(auth, email, password);
+        const token = await credential.user.getIdToken();
+        const userName = credential.user.displayName || email;
+        await pingFirestoreUser({
+          idToken: token,
+          uid: credential.user.uid,
+          username: userName,
+          role: 'USER',
         });
+        sessionStorage.setItem('access_token', token);
+        sessionStorage.setItem('username', userName);
+        sessionStorage.setItem('email', email);
+        sessionStorage.setItem('role', 'user');
 
-        if (!response.ok) {
-          let message = 'Kullanıcı adı veya şifre hatalı.';
-          try {
-            const errorBody = await response.json();
-            message = normalizeAuthMessage(errorBody.detail || message);
-          } catch (error) {
-            const errorText = await response.text();
-            if (errorText) {
-              message = normalizeAuthMessage(errorText);
-            }
-          }
-          throw new Error(message);
-        }
-
-        const data = await response.json();
-        if (!data.access_token) {
-          throw new Error('Token alınamadı.');
-        }
-
-        sessionStorage.setItem('access_token', data.access_token);
-        sessionStorage.setItem('username', username);
-
-        btn.textContent = '✓ Giriş Yapıldı';
+        btn.textContent = '✓ Firebase Giriş Başarılı';
         btn.style.background = 'linear-gradient(135deg, #16a34a, #22c55e)';
-        showMessage(loginMessage, 'Giriş başarılı. Yönlendiriliyorsun...', 'success');
+        showMessage(loginMessage, 'Firebase ile giriş başarılı. Yönlendiriliyorsun...', 'success');
         setTimeout(() => {
           window.location.href = '/welcome';
         }, 700);
       } catch (error) {
-        showMessage(loginMessage, error.message || 'Kullanıcı adı veya şifre hatalı.');
+        showMessage(loginMessage, normalizeAuthMessage(error.message || 'E-posta veya şifre hatalı.'));
         btn.textContent = 'Giriş Yap';
         btn.disabled = false;
       }
@@ -581,11 +653,17 @@
       clearMessage(signupMessage);
 
       const username = document.getElementById('signupUsername').value.trim();
+      const email = document.getElementById('signupEmail').value.trim().toLowerCase();
       const password = document.getElementById('signupPassword').value;
       const confirmPassword = document.getElementById('signupConfirmPassword').value;
 
-      if (!username || !password || !confirmPassword) {
+      if (!username || !email || !password || !confirmPassword) {
         showMessage(signupMessage, 'Tüm alanları doldur.');
+        return;
+      }
+
+      if (!email.includes('@')) {
+        showMessage(signupMessage, 'Geçerli bir e-posta adresi gir.');
         return;
       }
 
@@ -606,46 +684,34 @@
       button.disabled = true;
 
       try {
-        const response = await fetch('/auth/user/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          body: JSON.stringify({ username, password }),
+        const { auth, api } = await getFirebaseAuthContext();
+        if (!auth || !api) {
+          throw new Error('Firebase bağlantısı hazır değil. Sayfayı yenileyip tekrar dene.');
+        }
+
+        const credential = await api.createUserWithEmailAndPassword(auth, email, password);
+        await api.updateProfile(credential.user, { displayName: username });
+        const token = await credential.user.getIdToken();
+        await pingFirestoreUser({
+          idToken: token,
+          uid: credential.user.uid,
+          username,
+          role: 'USER',
         });
 
-        if (!response.ok) {
-          let message = 'Kayıt başarısız.';
-          try {
-            const errorBody = await response.json();
-            message = errorBody.detail || message;
-          } catch (error) {
-            const errorText = await response.text();
-            if (errorText) {
-              message = errorText;
-            }
-          }
-          throw new Error(message);
-        }
-
-        const data = await response.json();
-        if (!data.access_token) {
-          throw new Error('Token alınamadı.');
-        }
-
-        sessionStorage.setItem('access_token', data.access_token);
+        sessionStorage.setItem('access_token', token);
         sessionStorage.setItem('username', username);
         sessionStorage.setItem('role', role);
+        sessionStorage.setItem('email', email);
 
-        button.textContent = '✓ Kayıt Tamamlandı';
+        button.textContent = '✓ Firebase Kayıt Tamamlandı';
         button.style.background = 'linear-gradient(135deg, #16a34a, #22c55e)';
-        showMessage(signupMessage, 'Kayıt başarılı. Yönlendiriliyorsun...', 'success');
+        showMessage(signupMessage, 'Kullanıcı Firebase Authentication içinde oluşturuldu. Yönlendiriliyorsun...', 'success');
         setTimeout(() => {
           window.location.href = '/welcome';
         }, 700);
       } catch (error) {
-        showMessage(signupMessage, error.message || 'Kayıt başarısız.');
+        showMessage(signupMessage, normalizeAuthMessage(error.message || 'Kayıt başarısız.'));
         button.textContent = 'Kayıt Ol';
         button.disabled = false;
       }

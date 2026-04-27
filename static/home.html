@@ -156,6 +156,15 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
 .nav-cta{font-size:12px;font-weight:700;color:#0A0A0A;background:var(--accent);border:none;border-radius:10px;padding:8px 18px;cursor:pointer;font-family:var(--font);letter-spacing:.5px;transition:all .2s;box-shadow:0 2px 12px rgba(245,158,11,.3)}
 .nav-links a.nav-cta{color:#111111}
 .nav-cta:hover{box-shadow:0 4px 20px rgba(245,158,11,.5);transform:translateY(-1px)}
+.nav-cta.nav-cta-disabled{
+  background:#8e8e8e;
+  color:#2e2e2e;
+  box-shadow:none;
+  cursor:not-allowed;
+  opacity:.65;
+  pointer-events:none;
+}
+.nav-cta.nav-cta-disabled:hover{transform:none;box-shadow:none}
 .nav-mobile{display:none;background:none;border:none;cursor:pointer;flex-direction:column;gap:4px;padding:8px}
 .nav-mobile span{display:block;width:18px;height:2px;background:var(--text-dark2);border-radius:2px}
 @media(max-width:768px){.nav-links{display:none}.nav-mobile{display:flex}.nav{padding:0 20px}}
@@ -354,11 +363,6 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
 .auth-footer a{color:var(--accent);cursor:pointer;text-decoration:none;font-weight:600}
 .auth-footer a:hover{text-decoration:underline}
 
-/* Hamburger button next to Explore Map in nav */
-.nav-hamburger{width:32px;height:32px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;background:rgba(74,124,58,.1);border:1px solid rgba(74,124,58,.25);border-radius:8px;cursor:pointer;padding:0;transition:all .2s;flex-shrink:0}
-.nav-hamburger span{display:block;width:14px;height:1.5px;background:var(--text-dark2);border-radius:2px;transition:all .2s}
-.nav-hamburger:hover{background:rgba(74,124,58,.2);border-color:rgba(74,124,58,.4)}
-.nav-hamburger:hover span{background:var(--text-dark)}
 </style>
 </head>
 <body>
@@ -380,8 +384,7 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
     <a href="#solution">Solution</a>
     <a href="#features">Features</a>
     <a href="#impact">Impact</a>
-    <a href="/app" class="nav-cta">Explore Map →</a>
-    <button class="nav-hamburger" onclick="openAuth(event)" aria-label="Login"><span></span><span></span><span></span></button>
+    <a href="#" class="nav-cta js-open-auth" id="exploreMapBtn">Login</a>
   </div>
   <button class="nav-mobile" id="navMobile" aria-label="Menu">
     <span></span><span></span><span></span>
@@ -402,7 +405,7 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
         <h1 class="hero-title">6,800 Fires. 80,000 Hectares.<br/><span class="accent">One Platform to Fight Back.</span></h1>
         <p class="hero-sub">KORU combines machine learning, GIS analytics, and metaheuristic route optimization to predict wildfire risk zones and generate strategic response plans — before the first flame ignites.</p>
         <div class="hero-ctas">
-          <a href="/app"><button class="btn-primary">Explore the System →</button></a>
+          <a href="#" class="js-open-auth"><button class="btn-primary">Login</button></a>
           <a href="#features"><button class="btn-secondary">▶ View Demo</button></a>
         </div>
       </div>
@@ -743,11 +746,11 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
     <form class="auth-form" id="formLogin" onsubmit="handleLogin(event)">
       <div class="auth-field">
         <label>E-posta</label>
-        <input type="email" placeholder="ornek@izmir.bel.tr" required/>
+        <input type="email" id="loginEmail" placeholder="kullanici@izmir.bel.tr" required/>
       </div>
       <div class="auth-field">
         <label>Şifre</label>
-        <input type="password" placeholder="••••••••" required/>
+        <input type="password" id="loginPassword" placeholder="••••••••" required/>
       </div>
       <button type="submit" class="auth-submit">Giriş Yap →</button>
       <div class="auth-footer">Hesabınız yok mu? <a onclick="switchTab('signup')">Kayıt olun</a></div>
@@ -755,16 +758,12 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
     <!-- SIGNUP FORM -->
     <form class="auth-form" id="formSignup" hidden onsubmit="handleSignup(event)">
       <div class="auth-field">
-        <label>Ad Soyad</label>
-        <input type="text" placeholder="Ali Yılmaz" required/>
-      </div>
-      <div class="auth-field">
         <label>E-posta</label>
-        <input type="email" placeholder="ornek@izmir.bel.tr" required/>
+        <input type="email" id="signupEmail" placeholder="ornek@izmir.bel.tr" required/>
       </div>
       <div class="auth-field">
         <label>Şifre</label>
-        <input type="password" placeholder="••••••••" required/>
+        <input type="password" id="signupPassword" placeholder="••••••••" required/>
       </div>
       <button type="submit" class="auth-submit">Kayıt Ol →</button>
       <div class="auth-footer">Zaten hesabınız var mı? <a onclick="switchTab('login')">Giriş yapın</a></div>
@@ -773,9 +772,10 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
 </div>
 
 <!-- ═══════ SCRIPTS ═══════ -->
+<script type="module" src="./firebase-init.js"></script>
 <script>
 // Auth modal
-function openAuth(e){if(e)e.preventDefault();document.getElementById('authOverlay').classList.add('open');document.body.style.overflow='hidden';}
+function openAuth(e){if(e)e.preventDefault();switchTab('login');document.getElementById('authOverlay').classList.add('open');document.body.style.overflow='hidden';}
 function closeAuth(){document.getElementById('authOverlay').classList.remove('open');document.body.style.overflow='';}
 function switchTab(tab){
   document.getElementById('tabLogin').classList.toggle('active',tab==='login');
@@ -783,10 +783,179 @@ function switchTab(tab){
   document.getElementById('formLogin').hidden=(tab!=='login');
   document.getElementById('formSignup').hidden=(tab!=='signup');
 }
-function handleLogin(e){e.preventDefault();window.location.href='/welcome';}
-function handleSignup(e){e.preventDefault();window.location.href='/welcome';}
+function setExploreMapEnabled(enabled){
+  const exploreMapBtn = document.getElementById('exploreMapBtn');
+  if (!exploreMapBtn) return;
+  exploreMapBtn.classList.toggle('nav-cta-disabled', !enabled);
+  exploreMapBtn.setAttribute('aria-disabled', String(!enabled));
+  if (enabled) {
+    exploreMapBtn.removeAttribute('tabindex');
+  } else {
+    exploreMapBtn.setAttribute('tabindex', '-1');
+  }
+}
+function normalizeAuthMessage(message){
+  const text = (message || '').toLowerCase();
+  if (text.includes('email-already-in-use')) return 'Bu e-posta zaten kayıtlı.';
+  if (text.includes('invalid-email')) return 'Geçerli bir e-posta adresi gir.';
+  if (text.includes('weak-password') || text.includes('password')) return 'Şifre en az 6 karakter olmalı.';
+  if (text.includes('user-not-found') || text.includes('wrong-password') || text.includes('invalid-credential')) {
+    return 'E-posta veya şifre hatalı.';
+  }
+  return message || 'İşlem başarısız.';
+}
+async function getFirebaseAuthContext(){
+  if (window.koruFirebaseAuth && window.koruFirebaseAuthApi) {
+    return {
+      auth: window.koruFirebaseAuth,
+      api: window.koruFirebaseAuthApi,
+    };
+  }
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDXEK8vjmKNKKkYG4ZtoLcGG0gDqN1bVEs",
+    authDomain: "koru-41307.firebaseapp.com",
+    projectId: "koru-41307",
+    storageBucket: "koru-41307.firebasestorage.app",
+    messagingSenderId: "580787181791",
+    appId: "1:580787181791:web:25488833ab906df012716a",
+    measurementId: "G-SHBNJ75VGD",
+  };
+
+  const appMod = await import("https://www.gstatic.com/firebasejs/11.7.1/firebase-app.js");
+  const authMod = await import("https://www.gstatic.com/firebasejs/11.7.1/firebase-auth.js");
+  const app = appMod.getApps().length ? appMod.getApp() : appMod.initializeApp(firebaseConfig);
+  const auth = authMod.getAuth(app);
+  const api = {
+    createUserWithEmailAndPassword: authMod.createUserWithEmailAndPassword,
+    signInWithEmailAndPassword: authMod.signInWithEmailAndPassword,
+    updateProfile: authMod.updateProfile,
+  };
+
+  window.koruFirebaseAuth = auth;
+  window.koruFirebaseAuthApi = api;
+  return { auth, api };
+}
+async function pingFirestoreUser({ idToken, uid, username, role = 'USER' }) {
+  const nowIso = new Date().toISOString();
+  const url = `https://firestore.googleapis.com/v1/projects/koru-41307/databases/(default)/documents/users/${uid}`;
+  const body = {
+    fields: {
+      username: { stringValue: username || uid },
+      password_hash: { stringValue: 'FIREBASE_AUTH_MANAGED' },
+      role: { stringValue: String(role || 'USER').toUpperCase() },
+      created_at: { timestampValue: nowIso },
+    },
+  };
+
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Firestore ping failed: ${errText || response.status}`);
+  }
+}
+
+async function handleLogin(e){
+  e.preventDefault();
+  const email = document.getElementById('loginEmail')?.value?.trim().toLowerCase() || '';
+  const password = document.getElementById('loginPassword')?.value || '';
+  const button = e.target.querySelector('.auth-submit');
+
+  if (!email || !password) {
+    alert('E-posta ve şifre zorunlu.');
+    return;
+  }
+
+  button.textContent = '⏳ Giriş Yapılıyor...';
+  button.disabled = true;
+
+  try {
+    const { auth, api } = await getFirebaseAuthContext();
+    if (!auth || !api) {
+      throw new Error('Firebase bağlantısı hazır değil. Sayfayı yenileyin.');
+    }
+
+    const credential = await api.signInWithEmailAndPassword(auth, email, password);
+    const token = await credential.user.getIdToken();
+    await pingFirestoreUser({
+      idToken: token,
+      uid: credential.user.uid,
+      username: credential.user.displayName || email,
+      role: 'USER',
+    });
+    sessionStorage.setItem('access_token', token);
+    sessionStorage.setItem('username', credential.user.displayName || email);
+    sessionStorage.setItem('email', email);
+    sessionStorage.setItem('role', 'user');
+    closeAuth();
+    window.location.href = '/welcome';
+  } catch (error) {
+    alert(normalizeAuthMessage(error.message));
+    button.textContent = 'Giriş Yap →';
+    button.disabled = false;
+  }
+}
+async function handleSignup(e){
+  e.preventDefault();
+  const email = document.getElementById('signupEmail')?.value?.trim().toLowerCase() || '';
+  const password = document.getElementById('signupPassword')?.value || '';
+  const button = e.target.querySelector('.auth-submit');
+
+  if (!email || !password) {
+    alert('E-posta ve şifre zorunlu.');
+    return;
+  }
+
+  if (password.length < 6) {
+    alert('Şifre en az 6 karakter olmalı.');
+    return;
+  }
+
+  button.textContent = '⏳ Kayıt Olunuyor...';
+  button.disabled = true;
+
+  try {
+    const { auth, api } = await getFirebaseAuthContext();
+    if (!auth || !api) {
+      throw new Error('Firebase bağlantısı hazır değil. Sayfayı yenileyin.');
+    }
+
+    const credential = await api.createUserWithEmailAndPassword(auth, email, password);
+    const token = await credential.user.getIdToken();
+    await pingFirestoreUser({
+      idToken: token,
+      uid: credential.user.uid,
+      username: email,
+      role: 'USER',
+    });
+    sessionStorage.setItem('access_token', token);
+    sessionStorage.setItem('username', email);
+    sessionStorage.setItem('email', email);
+    sessionStorage.setItem('role', 'user');
+    closeAuth();
+    window.location.href = '/welcome';
+  } catch (error) {
+    alert(normalizeAuthMessage(error.message));
+    button.textContent = 'Kayıt Ol →';
+    button.disabled = false;
+  }
+}
 document.getElementById('authOverlay').addEventListener('click',function(e){if(e.target===this)closeAuth();});
 window.addEventListener('keydown',function(e){if(e.key==='Escape')closeAuth();});
+document.querySelectorAll('.js-open-auth').forEach((btn) => {
+  btn.addEventListener('click', function (e) {
+    e.preventDefault();
+    openAuth(e);
+  });
+});
 
 // Scroll reveal
 const reveals = document.querySelectorAll('.reveal');

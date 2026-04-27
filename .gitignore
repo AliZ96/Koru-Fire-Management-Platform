@@ -61,6 +61,8 @@ venv.bak/
 # ===============================
 .cache/
 *.cache
+node_modules/
+npm-debug.log*
 
 # ===============================
 # Optional Data (keep commented)
