@@ -181,11 +181,10 @@
     /* Cards */
     .cards {
       display:grid;
-      grid-template-columns:repeat(auto-fit, minmax(280px, 340px));
-      gap:20px;
-      justify-content:center;
-      width:100%;
-      max-width:740px;
+      grid-template-columns:repeat(5, 1fr);
+      gap:16px;
+      width:calc(100% - 48px);
+      max-width:1300px;
     }
     .card {
       position:relative;
@@ -233,6 +232,18 @@
     }
     .card--station .card-accent {
       background:linear-gradient(90deg, transparent, var(--green-hi), var(--accent), transparent);
+    }
+    .card--volunteer .card-accent {
+      background:linear-gradient(90deg, transparent, #22c55e, #86efac, transparent);
+    }
+    .card--sapling .card-accent {
+      background:linear-gradient(90deg, transparent, #84cc16, #f59e0b, transparent);
+    }
+    .card--afad .card-accent {
+      background:linear-gradient(90deg, transparent, #f97316, #ef4444, transparent);
+    }
+    .card--itfaiye .card-accent {
+      background:linear-gradient(90deg, transparent, #ef4444, #fb923c, transparent);
     }
 
     .card-icon {
@@ -335,10 +346,10 @@
 
   <!-- Top bar -->
   <header class="topbar">
-    <div class="topbar-brand">
+    <a href="/" class="topbar-brand" style="text-decoration:none;">
       <div class="topbar-icon">🌲</div>
       <span class="topbar-name">KORU</span>
-    </div>
+    </a>
     <div class="topbar-right">
       <div class="topbar-user">
         <span>👤</span>
@@ -363,7 +374,6 @@
       <!-- Card 1: Fire map -->
       <a href="/app" class="card card--fire">
         <div class="card-accent"></div>
-        <span class="card-icon">🔥</span>
         <div class="card-title">Canlı Yangın ve Risk Haritası</div>
         <div class="card-desc">NASA FIRMS verileriyle gerçek zamanlı aktif yangın noktaları, risk bölgeleri ve hava erişim katmanları.</div>
         <div class="card-badge">
@@ -372,15 +382,46 @@
         </div>
       </a>
 
-      <!-- Card 2: Fire station -->
-      <a href="#" class="card card--station card--coming" onclick="return false;">
+      <!-- Card 2: İzmir İtfaiye Gönüllü -->
+      <a href="https://itfaiye.izmir.bel.tr/tr/gonullu-itfaiyecilik/1088/11?AspxAutoDetectCookieSupport=1" class="card card--itfaiye" target="_blank" rel="noopener noreferrer">
         <div class="card-accent"></div>
-        <div class="soon-chip">Yakında</div>
-        <span class="card-icon">🚒</span>
-        <div class="card-title">İtfaiye Nerede?</div>
-        <div class="card-desc">En yakın itfaiye istasyonunu bulun, yanıt sürelerini ve güzergahları görüntüleyin.</div>
+        <div class="card-title">Gönüllü İtfaiyeci Ol</div>
+        <div class="card-desc">İzmir Büyükşehir İtfaiyesi gönüllü programına katılarak yangın söndürme ve kurtarma operasyonlarında aktif destek verin.</div>
         <div class="card-badge">
-          Yakında
+          Başvuru Yap
+          <span class="card-badge-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- Card 3: Forest fire volunteer -->
+      <a href="https://www.ogm.gov.tr/tr/orman-yanginlari-gonullusu" class="card card--volunteer" target="_blank" rel="noopener noreferrer">
+        <div class="card-accent"></div>
+        <div class="card-title">Orman Yangınları Gönüllüsü Ol</div>
+        <div class="card-desc">OGM gönüllülük programına katılarak yangın farkındalığı, önleme ve destek süreçlerinde aktif rol alın.</div>
+        <div class="card-badge">
+          Gönüllü Başvurusu
+          <span class="card-badge-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- Card 4: Sapling guidance -->
+      <a href="https://www.ogm.gov.tr/tr/nasil-fidan-alabilirim" class="card card--sapling" target="_blank" rel="noopener noreferrer">
+        <div class="card-accent"></div>
+        <div class="card-title">Nasıl Fidan Alabilirim?</div>
+        <div class="card-desc">Fidan temini ve dikim süreçleri için OGM'nin resmi rehberine giderek adım adım bilgi alın.</div>
+        <div class="card-badge">
+          Rehberi İncele
+          <span class="card-badge-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- Card 5: AFAD volunteer -->
+      <a href="https://gonullu.afad.gov.tr/" class="card card--afad" target="_blank" rel="noopener noreferrer">
+        <div class="card-accent"></div>
+        <div class="card-title">AFAD Gönüllüsü Ol</div>
+        <div class="card-desc">AFAD gönüllü sistemine kayıt olarak afet anında arama-kurtarma, lojistik ve destek faaliyetlerine katılın.</div>
+        <div class="card-badge">
+          Gönüllü Ol
           <span class="card-badge-arrow">→</span>
         </div>
       </a>
