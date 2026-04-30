@@ -1,6 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from jose import jwt as jose_jwt
+from pydantic import BaseModel
 
 from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse
+from app.core.security import create_access_token
 from app.services.auth_service import AuthService
 from app.core.security import get_current_user
 
