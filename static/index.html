@@ -229,7 +229,9 @@
           <input id="pipelineN" type="number" value="20" min="1" max="554" style="width:64px;" />
           <label for="pipelineK">k:</label>
           <input id="pipelineK" type="number" value="4" min="1" max="100" style="width:56px;" />
-          <button id="btnPipelinePDF" class="btn btn-outline" disabled title="Pipeline çalıştıktan sonra aktif olur">PDF İndir</button>
+          <button id="btnSavePipeline" class="btn btn-outline" title="Mevcut pipeline sonucunu kaydet">Pipeline Kaydet</button>
+          <button id="btnSaveScenario" class="btn btn-outline" title="Mevcut n/k sonucu için senaryo kaydet">Senaryo Kaydet</button>
+          <button id="btnPipelinePDF" class="btn btn-outline" disabled title="Kaydedilen senaryo için PDF indir">PDF İndir</button>
         </div>
       </div>
     </div>
@@ -1970,31 +1972,73 @@
       const runData = await runRes.json();
       if (!runData.success) throw new Error(runData.error || 'SA/GA basarisiz');
 
-      // Her yeni n/k kombinasyonunda yeni senaryo ID'si zorunlu olarak uretilmeli.
-      // Senaryo olusturma basarisiz olursa eski PDF ID'sine dusmeyelim.
-      lastCreatedScenarioId = null;
+      lastOptimizationScenarioKey = key;
+      return { n, k };
+    }
+
+    async function saveCurrentScenario() {
+      const info = document.getElementById('info');
+      const n = Math.max(1, parseInt(document.getElementById('pipelineN')?.value || '20', 10) || 20);
+      const k = Math.max(1, parseInt(document.getElementById('pipelineK')?.value || '4', 10) || 4);
       const accessToken = sessionStorage.getItem('access_token');
+      if (!accessToken) {
+        setStatus('Senaryo kaydetmek için giriş yapmalısın');
+        return;
+      }
+      if (info) info.textContent = 'Senaryo kaydediliyor...';
       const scenarioCreateRes = await fetch('/api/scenario/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(accessToken ? { 'Authorization': 'Bearer ' + accessToken } : {})
+          'Authorization': 'Bearer ' + accessToken,
         },
         body: JSON.stringify({ name: `Pipeline n=${n} k=${k}` }),
       });
       if (!scenarioCreateRes.ok) {
-        throw new Error('Senaryo olusturma API hatasi: ' + scenarioCreateRes.status);
+        throw new Error('Senaryo kaydetme API hatasi: ' + scenarioCreateRes.status);
       }
       const scenarioData = await scenarioCreateRes.json().catch(() => ({}));
-      if (scenarioData && scenarioData.scenario_id != null) {
-        lastCreatedScenarioId = scenarioData.scenario_id;
-      } else {
+      if (!scenarioData || scenarioData.scenario_id == null) {
         throw new Error('Senaryo ID donmedi');
       }
-
-      lastOptimizationScenarioKey = key;
+      lastCreatedScenarioId = scenarioData.scenario_id;
       enablePipelinePDF();
-      return { n, k };
+      setStatus(`Senaryo kaydedildi (#${lastCreatedScenarioId})`);
+      if (info) info.textContent = `Senaryo kaydedildi (#${lastCreatedScenarioId})`;
+    }
+
+    async function saveCurrentPipeline() {
+      const n = Math.max(1, parseInt(document.getElementById('pipelineN')?.value || '20', 10) || 20);
+      const k = Math.max(1, parseInt(document.getElementById('pipelineK')?.value || '4', 10) || 4);
+      const accessToken = sessionStorage.getItem('access_token');
+      if (!accessToken) {
+        setStatus('Pipeline kaydetmek için giriş yapmalısın');
+        return;
+      }
+      if (!window._lastPipelineSnapshot) {
+        await ensureOptimizationScenario();
+      }
+      const snap = window._lastPipelineSnapshot;
+      if (!snap) {
+        throw new Error('Pipeline snapshot hazir degil');
+      }
+      const res = await fetch('/api/pipelines', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + accessToken,
+        },
+        body: JSON.stringify({
+          name: `Pipeline Sonucu – n=${n} k=${k}`,
+          n,
+          k,
+          snapshot: snap,
+        }),
+      });
+      if (!res.ok) {
+        throw new Error('Pipeline kaydetme API hatasi: ' + res.status);
+      }
+      setStatus(`Pipeline kaydedildi (n=${n}, k=${k})`);
     }
 
     async function loadOptimizationRoutes(algorithm) {
@@ -2056,7 +2100,8 @@
               .filter(p => Array.isArray(p) && p.length >= 2)
               .map(p => [Number(p[1]), Number(p[0])]);
             if (rawCoords.length < 2) return;
-            const coords = smoothCoords(rawCoords, 3);
+            // Script/JSON tour noktalarına birebir uyum için smoothing kapatıldı.
+            const coords = rawCoords;
 
             const vColor = vehicleColors[vIdx] || vehicleColors[vehicleColors.length - 1];
             features.push({
@@ -3250,14 +3295,28 @@
     safeBind('btnIntegrated', 'click', toggleIntegratedLayer);
     safeBind('btnPipelinePDF', 'click', async () => {
       try {
-        await ensureOptimizationScenario();
         if (!lastCreatedScenarioId) {
-          setStatus('PDF indirmek icin once senaryo olustur');
+          setStatus('PDF icin once "Senaryo Kaydet" butonuna bas');
           return;
         }
         window.open(`/api/scenario/export/pdf/${lastCreatedScenarioId}`, '_blank');
       } catch (e) {
         setStatus(`PDF hazirlama hatasi: ${e.message || e}`);
+      }
+    });
+    safeBind('btnSaveScenario', 'click', async () => {
+      try {
+        await ensureOptimizationScenario();
+        await saveCurrentScenario();
+      } catch (e) {
+        setStatus(`Senaryo kaydetme hatasi: ${e.message || e}`);
+      }
+    });
+    safeBind('btnSavePipeline', 'click', async () => {
+      try {
+        await saveCurrentPipeline();
+      } catch (e) {
+        setStatus(`Pipeline kaydetme hatasi: ${e.message || e}`);
       }
     });
     safeBind('btnRouteSA', 'click', () => loadOptimizationRoutes('SA'));
@@ -4265,7 +4324,7 @@
           this.disabled = true;
           try {
             await apiFetch(`/api/pipelines/${id}`, { method: 'DELETE' });
-            _pipelineCache = _pipelineCache.filter(p => p.id !== Number(id));
+            _pipelineCache = _pipelineCache.filter(p => String(p.id) !== String(id));
             pmStatPipelines.textContent = _pipelineCache.length;
             renderPipelineList();
           } catch(e) {
@@ -4280,58 +4339,7 @@
     // ── Global: modal aç ──────────────────────────────────
     window.openProfileModal = openModal;
 
-    // ── PDF İndir butonunu pipeline DB'ye kaydet ───────────
-    // (Script sayfanın en altında olduğundan DOMContentLoaded gerekmez)
-    (function bindPipelineSave() {
-      const pdfBtn = document.getElementById('btnPipelinePDF');
-      if (pdfBtn) {
-        pdfBtn.addEventListener('click', async function() {
-          const nVal = parseInt(document.getElementById('pipelineN')?.value || '20');
-          const kVal = parseInt(document.getElementById('pipelineK')?.value || '4');
-          try {
-            await apiFetch('/api/pipelines', {
-              method: 'POST',
-              body: JSON.stringify({
-                name: `Pipeline Sonucu – n=${nVal} k=${kVal}`,
-                n: nVal,
-                k: kVal,
-                snapshot: window._lastPipelineSnapshot || null,
-              }),
-            });
-          } catch(e) {
-            console.warn('Pipeline kaydedilemedi:', e);
-          }
-        });
-      }
-
-      // ── Pipeline çalıştırma butonu: tamamlanınca otomatik kaydet ──
-      const pipelineBtn = document.getElementById('btnPipeline');
-      if (pipelineBtn) {
-        pipelineBtn.addEventListener('click', async function() {
-          // Pipeline yüklenmesi async — 2.5sn sonra snapshot hazır olur
-          setTimeout(async () => {
-            if (!window._lastPipelineSnapshot) return;
-            const snap = window._lastPipelineSnapshot;
-            const nVal = snap.n || parseInt(document.getElementById('pipelineN')?.value || '20');
-            const kVal = snap.k || parseInt(document.getElementById('pipelineK')?.value || '4');
-            try {
-              const saved = await apiFetch('/api/pipelines', {
-                method: 'POST',
-                body: JSON.stringify({
-                  name: `Pipeline Sonucu – n=${nVal} k=${kVal}`,
-                  n: nVal,
-                  k: kVal,
-                  snapshot: snap,
-                }),
-              });
-              if (saved) _pipelineCache.unshift(saved);
-            } catch(e) {
-              console.warn('Pipeline oto-kayıt başarısız:', e);
-            }
-          }, 2500);
-        });
-      }
-    })();
+    // Otomatik kayıt kaldırıldı: pipeline/senaryo yalnızca manuel butonlarla kaydedilir.
   })();
   </script>
 </body>
