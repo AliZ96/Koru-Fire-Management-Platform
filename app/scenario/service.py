@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import csv
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from app.services.firestore_store import FirestoreStore
+
 _SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "scripts" / "optimization"
 _SCENARIO_JSON = _SCRIPTS_DIR / "scenario.json"
+_COLLECTION = "scenarios"
 
 
 def _read_pipeline_csv() -> List[Dict[str, Any]]:
@@ -64,9 +67,9 @@ def build_and_save(name: str) -> dict:
     critical_clusters = sum(1 for c in clusters if c.get("risk_level") in ("HIGH", "CRITICAL"))
 
     scenario = {
-        "scenario_id": 1,
+        "scenario_id": f"scenario-{int(datetime.now(timezone.utc).timestamp())}",
         "name": name,
-        "created_at": datetime.utcnow().isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
         "summary": {
             "total_points": len(points),
             "high_count": high_count,
@@ -84,10 +87,18 @@ def build_and_save(name: str) -> dict:
     with open(_SCENARIO_JSON, "w", encoding="utf-8") as f:
         json.dump(scenario, f, ensure_ascii=False, indent=2)
 
+    store = FirestoreStore()
+    store.db.collection(_COLLECTION).document(str(scenario["scenario_id"])).set(scenario)
+
     return scenario
 
 
 def load_scenario(scenario_id: int) -> Optional[dict]:
+    store = FirestoreStore()
+    doc = store.db.collection(_COLLECTION).document(str(scenario_id)).get()
+    if doc.exists:
+        return doc.to_dict()
+
     if not _SCENARIO_JSON.exists():
         return None
     with open(_SCENARIO_JSON, "r", encoding="utf-8") as f:

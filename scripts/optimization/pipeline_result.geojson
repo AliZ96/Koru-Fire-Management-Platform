@@ -65,7 +65,55 @@
       "type": "Feature",
       "properties": {
         "type": "fire_point",
-        "id": 427,
+        "id": 551,
+        "risk_class": "LOW",
+        "cluster_id": 0,
+        "demand": 50,
+        "fire_station_id": 564,
+        "station_distance_km": 0.5227
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 129,
+        "risk_class": "LOW",
+        "cluster_id": 1,
+        "demand": 49,
+        "fire_station_id": 598,
+        "station_distance_km": 0.0291
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 33,
+        "risk_class": "LOW",
+        "cluster_id": 2,
+        "demand": 38,
+        "fire_station_id": 589,
+        "station_distance_km": 0.2322
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 223,
+        "risk_class": "LOW",
+        "cluster_id": 1,
+        "demand": 32,
+        "fire_station_id": 598,
+        "station_distance_km": 0.1412
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 289,
         "risk_class": "HIGH",
         "cluster_id": 3,
         "demand": 70,
