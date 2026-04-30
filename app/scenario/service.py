@@ -130,7 +130,23 @@ def load_scenario(scenario_id: int | str) -> Optional[dict]:
     store = FirestoreStore()
     doc = store.db.collection(_COLLECTION).document(str(scenario_id)).get()
     if doc.exists:
-        return doc.to_dict()
+        data = doc.to_dict() or {}
+        if data.get("sa_result") is None and data.get("sa_result_json"):
+            try:
+                data["sa_result"] = json.loads(data.get("sa_result_json") or "[]")
+            except Exception:
+                data["sa_result"] = None
+        if data.get("ga_result") is None and data.get("ga_result_json"):
+            try:
+                data["ga_result"] = json.loads(data.get("ga_result_json") or "[]")
+            except Exception:
+                data["ga_result"] = None
+        if data.get("pipeline_snapshot") is None and data.get("pipeline_snapshot_json"):
+            try:
+                data["pipeline_snapshot"] = json.loads(data.get("pipeline_snapshot_json") or "{}")
+            except Exception:
+                data["pipeline_snapshot"] = None
+        return data
 
     if not _SCENARIO_JSON.exists():
         return None
@@ -151,7 +167,18 @@ def patch_scenario(
     doc = ref.get()
     if not doc.exists:
         return None
-    ref.set(patch, merge=True)
+    safe_patch = dict(patch)
+    # Firestore nested entity/array kısıtlarına takılmaması için karmaşık payload'ları JSON olarak sakla.
+    if "sa_result" in safe_patch:
+        safe_patch["sa_result_json"] = json.dumps(safe_patch.get("sa_result"))
+        safe_patch.pop("sa_result", None)
+    if "ga_result" in safe_patch:
+        safe_patch["ga_result_json"] = json.dumps(safe_patch.get("ga_result"))
+        safe_patch.pop("ga_result", None)
+    if "pipeline_snapshot" in safe_patch:
+        safe_patch["pipeline_snapshot_json"] = json.dumps(safe_patch.get("pipeline_snapshot"))
+        safe_patch.pop("pipeline_snapshot", None)
+    ref.set(safe_patch, merge=True)
     updated = ref.get().to_dict() or {}
     return updated
 
