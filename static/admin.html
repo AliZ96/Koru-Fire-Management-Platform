@@ -1003,7 +1003,7 @@
       if (isAdmin) {
         elements.loginShell.classList.add('hidden');
         elements.appShell.classList.remove('hidden');
-        elements.sessionBadge.textContent = `${session.username || 'admin'} · yönetici`;
+        elements.sessionBadge.textContent = `${localStorage.getItem('koru_display_name') || session.username || 'admin'} · yönetici`;
         elements.adminUsername.value = session.username || 'admin';
         renderSessionDetails(session);
         state.snapshots = loadSnapshots();
