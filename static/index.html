@@ -803,10 +803,12 @@
       }
 
       try {
+        const accessToken = sessionStorage.getItem('access_token');
         const response = await fetch('/api/scenario/create', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...(accessToken ? { 'Authorization': 'Bearer ' + accessToken } : {})
           },
           body: JSON.stringify(payload)
         });
@@ -822,6 +824,10 @@
         }
 
         const scenarioId = data.scenario_id != null ? data.scenario_id : '-';
+        if (data.scenario_id != null) {
+          lastCreatedScenarioId = data.scenario_id;
+          enablePipelinePDF();
+        }
         const totalPoints = data.summary?.total_points != null ? data.summary.total_points : '-';
         const highCount = data.summary?.high_count != null ? data.summary.high_count : '-';
 
@@ -1808,6 +1814,7 @@
     let routeIndex = [];
     let selectedRouteId = '';
     let lastOptimizationScenarioKey = null;
+    let lastCreatedScenarioId = null;
 
     // SA: soğuk aile (mavi/cyan/yeşil) | GA: sıcak aile (turuncu/kırmızı/amber)
     const SA_VEHICLE_COLORS = ['#2563eb', '#06b6d4', '#10b981'];
@@ -1963,14 +1970,26 @@
       const runData = await runRes.json();
       if (!runData.success) throw new Error(runData.error || 'SA/GA basarisiz');
 
-      try {
-        await fetch('/api/scenario/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: `Pipeline n=${n} k=${k}` }),
-        });
-      } catch (e) {
-        console.warn('Senaryo olusturma hatasi:', e);
+      // Her yeni n/k kombinasyonunda yeni senaryo ID'si zorunlu olarak uretilmeli.
+      // Senaryo olusturma basarisiz olursa eski PDF ID'sine dusmeyelim.
+      lastCreatedScenarioId = null;
+      const accessToken = sessionStorage.getItem('access_token');
+      const scenarioCreateRes = await fetch('/api/scenario/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { 'Authorization': 'Bearer ' + accessToken } : {})
+        },
+        body: JSON.stringify({ name: `Pipeline n=${n} k=${k}` }),
+      });
+      if (!scenarioCreateRes.ok) {
+        throw new Error('Senaryo olusturma API hatasi: ' + scenarioCreateRes.status);
+      }
+      const scenarioData = await scenarioCreateRes.json().catch(() => ({}));
+      if (scenarioData && scenarioData.scenario_id != null) {
+        lastCreatedScenarioId = scenarioData.scenario_id;
+      } else {
+        throw new Error('Senaryo ID donmedi');
       }
 
       lastOptimizationScenarioKey = key;
@@ -3229,7 +3248,18 @@
     safeBind('btnFireStations', 'click', loadFireStations);
     safeBind('btnProximity', 'click', toggleProximityGrid);
     safeBind('btnIntegrated', 'click', toggleIntegratedLayer);
-    safeBind('btnPipelinePDF', 'click', () => { window.open('/api/scenario/export/pdf/1', '_blank'); });
+    safeBind('btnPipelinePDF', 'click', async () => {
+      try {
+        await ensureOptimizationScenario();
+        if (!lastCreatedScenarioId) {
+          setStatus('PDF indirmek icin once senaryo olustur');
+          return;
+        }
+        window.open(`/api/scenario/export/pdf/${lastCreatedScenarioId}`, '_blank');
+      } catch (e) {
+        setStatus(`PDF hazirlama hatasi: ${e.message || e}`);
+      }
+    });
     safeBind('btnRouteSA', 'click', () => loadOptimizationRoutes('SA'));
     safeBind('btnRouteGA', 'click', () => loadOptimizationRoutes('GA'));
     safeBind('btnRouteClear', 'click', () => {
@@ -3877,6 +3907,7 @@
       <div class="pm-tabs">
         <button class="pm-tab active" data-tab="info">👤 Profil</button>
         <button class="pm-tab" data-tab="pipelines">📋 Pipeline'larım</button>
+        <button class="pm-tab" data-tab="scenarios">🧭 Senaryolarım</button>
       </div>
       <div class="pm-body">
         <!-- Tab: Profil -->
@@ -3904,6 +3935,10 @@
                 <div class="pm-stat-lbl">Kayıtlı Pipeline</div>
               </div>
               <div class="pm-stat">
+                <div class="pm-stat-val" id="pmStatScenarios">0</div>
+                <div class="pm-stat-lbl">Kayıtlı Senaryo</div>
+              </div>
+              <div class="pm-stat">
                 <div class="pm-stat-val" id="pmStatLastRun">—</div>
                 <div class="pm-stat-lbl">Son Çalıştırma</div>
               </div>
@@ -3917,6 +3952,15 @@
             <div class="pm-section-title">Kaydedilen Pipeline Sonuçları</div>
             <div class="pm-pipeline-list" id="pmPipelineList">
               <div class="pm-empty"><div class="pm-empty-icon">📭</div>Henüz kaydedilen pipeline yok.<br>PDF İndir butonunu kullanarak pipeline'ları buraya kaydedin.</div>
+            </div>
+          </div>
+        </div>
+        <!-- Tab: Senaryolarım -->
+        <div id="pmTabScenarios" style="display:none">
+          <div class="pm-section">
+            <div class="pm-section-title">Kaydedilen Senaryolar</div>
+            <div class="pm-pipeline-list" id="pmScenarioList">
+              <div class="pm-empty"><div class="pm-empty-icon">📭</div>Henüz kaydedilen senaryo yok.</div>
             </div>
           </div>
         </div>
@@ -3988,10 +4032,13 @@
     const pmRoleInput = document.getElementById('pmRoleInput');
     const pmSaveBtn = document.getElementById('pmSaveBtn');
     const pmStatPipelines = document.getElementById('pmStatPipelines');
+    const pmStatScenarios = document.getElementById('pmStatScenarios');
     const pmStatLastRun = document.getElementById('pmStatLastRun');
     const pmPipelineList = document.getElementById('pmPipelineList');
+    const pmScenarioList = document.getElementById('pmScenarioList');
 
     let _pipelineCache = [];
+    let _scenarioCache = [];
 
     // ── Tab geçişi ─────────────────────────────────────────
     document.querySelectorAll('.pm-tab').forEach(btn => {
@@ -4001,7 +4048,9 @@
         const tab = this.dataset.tab;
         document.getElementById('pmTabInfo').style.display = tab === 'info' ? '' : 'none';
         document.getElementById('pmTabPipelines').style.display = tab === 'pipelines' ? '' : 'none';
+        document.getElementById('pmTabScenarios').style.display = tab === 'scenarios' ? '' : 'none';
         if (tab === 'pipelines') loadAndRenderPipelines();
+        if (tab === 'scenarios') loadAndRenderScenarios();
       });
     });
 
@@ -4025,9 +4074,11 @@
       document.querySelectorAll('.pm-tab')[0].classList.add('active');
       document.getElementById('pmTabInfo').style.display = '';
       document.getElementById('pmTabPipelines').style.display = 'none';
+      document.getElementById('pmTabScenarios').style.display = 'none';
 
       // İstatistikleri API'den çek
       loadAndRenderPipelines(true);
+      loadAndRenderScenarios(true);
 
       modal.classList.add('open');
       document.body.style.overflow = 'hidden';
@@ -4079,6 +4130,54 @@
           pmPipelineList.innerHTML = '<div class="pm-empty"><div class="pm-empty-icon">⚠️</div>Yüklenemedi. Oturum açık mı?</div>';
         }
       }
+    }
+
+    async function loadAndRenderScenarios(statsOnly = false) {
+      pmScenarioList.innerHTML = '<div class="pm-empty"><div class="pm-empty-icon">⏳</div>Yükleniyor...</div>';
+      try {
+        const data = await apiFetch('/api/scenario/mine');
+        _scenarioCache = data || [];
+        pmStatScenarios.textContent = _scenarioCache.length;
+        if (!statsOnly) renderScenarioList();
+      } catch (e) {
+        _scenarioCache = [];
+        pmStatScenarios.textContent = '0';
+        if (!statsOnly) {
+          pmScenarioList.innerHTML = '<div class="pm-empty"><div class="pm-empty-icon">⚠️</div>Yüklenemedi. Oturum açık mı?</div>';
+        }
+      }
+    }
+
+    function renderScenarioList() {
+      if (!_scenarioCache.length) {
+        pmScenarioList.innerHTML = '<div class="pm-empty"><div class="pm-empty-icon">📭</div>Henüz kaydedilen senaryo yok.</div>';
+        return;
+      }
+      pmScenarioList.innerHTML = '';
+      _scenarioCache.forEach(item => {
+        const sid = item.scenario_id;
+        const summary = item.summary || {};
+        const div = document.createElement('div');
+        div.className = 'pm-pipeline-item';
+        div.innerHTML =
+          '<div class="pm-pipeline-icon">🧭</div>' +
+          '<div class="pm-pipeline-info">' +
+            `<div class="pm-pipeline-name">${item.name || ('Senaryo #' + sid)}</div>` +
+            `<div class="pm-pipeline-meta">ID=${sid} • Nokta=${summary.total_points ?? '-'} • HIGH=${summary.high_count ?? '-'} • ${formatDate(item.created_at)}</div>` +
+          '</div>' +
+          '<div class="pm-pipeline-actions">' +
+            `<button class="pm-pipeline-btn pdf" title="PDF İndir">⬇ PDF</button>` +
+            `<button class="pm-pipeline-btn show" title="JSON Göster">🗂 JSON</button>` +
+          '</div>';
+
+        div.querySelector('.pdf').addEventListener('click', function() {
+          window.open(`/api/scenario/export/pdf/${sid}`, '_blank');
+        });
+        div.querySelector('.show').addEventListener('click', function() {
+          window.open(`/api/scenario/export/json/${sid}`, '_blank');
+        });
+        pmScenarioList.appendChild(div);
+      });
     }
 
     function renderPipelineList() {

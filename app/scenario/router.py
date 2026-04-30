@@ -4,10 +4,11 @@ import json
 import tempfile
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from fpdf import FPDF
 
+from app.core.security import get_current_user
 from app.scenario import service
 from app.scenario.schemaforscenario import ScenarioCreate
 
@@ -15,9 +16,13 @@ router = APIRouter(prefix="/api/scenario", tags=["scenario"])
 
 
 @router.post("/create")
-def create_scenario(payload: ScenarioCreate):
+def create_scenario(payload: ScenarioCreate, current_user: dict = Depends(get_current_user)):
     try:
-        scenario = service.build_and_save(payload.name)
+        scenario = service.build_and_save(
+            payload.name,
+            owner_username=str(current_user.get("sub") or ""),
+            owner_role=str(current_user.get("role") or "user"),
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -28,8 +33,16 @@ def create_scenario(payload: ScenarioCreate):
     }
 
 
+@router.get("/mine")
+def list_my_scenarios(current_user: dict = Depends(get_current_user)):
+    username = str(current_user.get("sub") or "")
+    if not username:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return service.list_user_scenarios(username=username, limit=100)
+
+
 @router.get("/get/{scenario_id}")
-def get_scenario(scenario_id: str):
+def get_scenario(scenario_id: int):
     scenario = service.load_scenario(scenario_id)
     if not scenario:
         raise HTTPException(status_code=404, detail="Senaryo bulunamadı")
@@ -37,7 +50,7 @@ def get_scenario(scenario_id: str):
 
 
 @router.get("/export/json/{scenario_id}")
-def export_json(scenario_id: str):
+def export_json(scenario_id: int):
     scenario = service.load_scenario(scenario_id)
     if not scenario:
         raise HTTPException(status_code=404, detail="Senaryo bulunamadı")
@@ -56,7 +69,7 @@ def export_json(scenario_id: str):
 
 
 @router.get("/export/pdf/{scenario_id}")
-def export_pdf(scenario_id: str):
+def export_pdf(scenario_id: int):
     scenario = service.load_scenario(scenario_id)
     if not scenario:
         raise HTTPException(status_code=404, detail="Senaryo bulunamadı")

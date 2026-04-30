@@ -11,6 +11,8 @@ from app.services.firestore_store import FirestoreStore
 _SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "scripts" / "optimization"
 _SCENARIO_JSON = _SCRIPTS_DIR / "scenario.json"
 _COLLECTION = "scenarios"
+_COUNTER_COLLECTION = "_meta"
+_COUNTER_DOC = "scenario_counter"
 
 
 def _read_pipeline_csv() -> List[Dict[str, Any]]:
@@ -55,7 +57,26 @@ def _read_clusters_from_geojson() -> List[Dict]:
     ]
 
 
-def build_and_save(name: str) -> dict:
+def _next_scenario_id(store: FirestoreStore) -> int:
+    counter_ref = store.db.collection(_COUNTER_COLLECTION).document(_COUNTER_DOC)
+    snapshot = counter_ref.get()
+    if snapshot.exists:
+        current = int((snapshot.to_dict() or {}).get("value", 0))
+    else:
+        current = 0
+    new_value = current + 1
+    counter_ref.set({"value": new_value}, merge=True)
+    return new_value
+
+
+def build_and_save(
+    name: str,
+    *,
+    owner_username: str | None = None,
+    owner_role: str | None = None,
+) -> dict:
+    store = FirestoreStore()
+    scenario_id = _next_scenario_id(store)
     points = _read_pipeline_csv()
     clusters = _read_clusters_from_geojson()
 
@@ -67,9 +88,11 @@ def build_and_save(name: str) -> dict:
     critical_clusters = sum(1 for c in clusters if c.get("risk_level") in ("HIGH", "CRITICAL"))
 
     scenario = {
-        "scenario_id": f"scenario-{int(datetime.now(timezone.utc).timestamp())}",
+        "scenario_id": scenario_id,
         "name": name,
         "created_at": datetime.now(timezone.utc).isoformat(),
+        "owner_username": owner_username,
+        "owner_role": owner_role,
         "summary": {
             "total_points": len(points),
             "high_count": high_count,
@@ -87,13 +110,13 @@ def build_and_save(name: str) -> dict:
     with open(_SCENARIO_JSON, "w", encoding="utf-8") as f:
         json.dump(scenario, f, ensure_ascii=False, indent=2)
 
-    store = FirestoreStore()
-    store.db.collection(_COLLECTION).document(str(scenario["scenario_id"])).set(scenario)
+    store.db.collection(_COLLECTION).document(str(scenario_id)).set(scenario)
 
     return scenario
 
 
-def load_scenario(scenario_id: int) -> Optional[dict]:
+def load_scenario(scenario_id: int | str) -> Optional[dict]:
+    scenario_id = int(scenario_id)
     store = FirestoreStore()
     doc = store.db.collection(_COLLECTION).document(str(scenario_id)).get()
     if doc.exists:
@@ -106,3 +129,26 @@ def load_scenario(scenario_id: int) -> Optional[dict]:
     if data.get("scenario_id") != scenario_id:
         return None
     return data
+
+
+def list_user_scenarios(username: str, limit: int = 50) -> list[dict[str, Any]]:
+    store = FirestoreStore()
+    docs = (
+        store.db.collection(_COLLECTION)
+        .where("owner_username", "==", username)
+        .stream()
+    )
+    rows: list[dict[str, Any]] = []
+    for doc in docs:
+        data = doc.to_dict() or {}
+        rows.append(
+            {
+                "scenario_id": data.get("scenario_id"),
+                "name": data.get("name"),
+                "created_at": data.get("created_at"),
+                "summary": data.get("summary") or {},
+            }
+        )
+    rows.sort(key=lambda x: str(x.get("created_at") or ""), reverse=True)
+    rows = rows[:limit]
+    return rows

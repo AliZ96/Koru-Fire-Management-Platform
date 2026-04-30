@@ -161,7 +161,6 @@ class FirestoreStore:
         docs = (
             self.db.collection("pipelines")
             .where("username", "==", username)
-            .order_by("created_at", direction="DESCENDING")
             .stream()
         )
         rows: list[dict[str, Any]] = []
@@ -169,6 +168,7 @@ class FirestoreStore:
             data = doc.to_dict() or {}
             data["id"] = doc.id
             rows.append(data)
+        rows.sort(key=lambda x: str(x.get("created_at") or ""), reverse=True)
         return rows
 
     def create_pipeline(
