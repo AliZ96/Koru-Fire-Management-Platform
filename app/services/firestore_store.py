@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Optional
 
+from google.api_core.exceptions import FailedPrecondition
+
 from app.core.firebase import get_firestore_client
 
 
@@ -158,16 +160,26 @@ class FirestoreStore:
 
     # ---- pipelines ----
     def list_pipelines(self, username: str) -> list[dict[str, Any]]:
-        docs = (
-            self.db.collection("pipelines")
-            .where("username", "==", username)
-            .stream()
-        )
         rows: list[dict[str, Any]] = []
-        for doc in docs:
-            data = doc.to_dict() or {}
-            data["id"] = doc.id
-            rows.append(data)
+        try:
+            docs = (
+                self.db.collection("pipelines")
+                .where("username", "==", username)
+                .stream()
+            )
+            for doc in docs:
+                data = doc.to_dict() or {}
+                data["id"] = doc.id
+                rows.append(data)
+        except FailedPrecondition:
+            # Fallback: index gerektiren sorgu hatasında tüm koleksiyondan filtrele.
+            docs = self.db.collection("pipelines").stream()
+            for doc in docs:
+                data = doc.to_dict() or {}
+                if data.get("username") != username:
+                    continue
+                data["id"] = doc.id
+                rows.append(data)
         rows.sort(key=lambda x: str(x.get("created_at") or ""), reverse=True)
         return rows
 

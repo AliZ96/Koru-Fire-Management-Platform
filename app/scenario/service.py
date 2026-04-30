@@ -6,6 +6,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from google.api_core.exceptions import FailedPrecondition
+
+from app.services.optimization_service import get_scenario_info
 from app.services.firestore_store import FirestoreStore
 
 _SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "scripts" / "optimization"
@@ -82,6 +85,7 @@ def build_and_save(
 
     ga_result = _read_optimization_json("GA_All_Stations_Best_Solutions.json")
     sa_result = _read_optimization_json("SA_All_Stations_Best_Solutions.json")
+    optimize_scenario = get_scenario_info()
 
     high_count = sum(1 for p in points if p["risk_class"] == "HIGH")
     stations = list({p["fire_station_id"] for p in points})
@@ -105,6 +109,12 @@ def build_and_save(
         "clusters": clusters,
         "ga_result": ga_result,
         "sa_result": sa_result,
+        "pipeline_snapshot": {
+            "pipeline_points": optimize_scenario.get("pipeline_points") or [],
+            "stations": optimize_scenario.get("stations") or [],
+            "n": len(points),
+            "k": len(clusters),
+        },
     }
 
     with open(_SCENARIO_JSON, "w", encoding="utf-8") as f:
@@ -131,24 +141,54 @@ def load_scenario(scenario_id: int | str) -> Optional[dict]:
     return data
 
 
+def patch_scenario(
+    scenario_id: int | str,
+    patch: dict[str, Any],
+) -> Optional[dict[str, Any]]:
+    sid = int(scenario_id)
+    store = FirestoreStore()
+    ref = store.db.collection(_COLLECTION).document(str(sid))
+    doc = ref.get()
+    if not doc.exists:
+        return None
+    ref.set(patch, merge=True)
+    updated = ref.get().to_dict() or {}
+    return updated
+
+
 def list_user_scenarios(username: str, limit: int = 50) -> list[dict[str, Any]]:
     store = FirestoreStore()
-    docs = (
-        store.db.collection(_COLLECTION)
-        .where("owner_username", "==", username)
-        .stream()
-    )
     rows: list[dict[str, Any]] = []
-    for doc in docs:
-        data = doc.to_dict() or {}
-        rows.append(
-            {
-                "scenario_id": data.get("scenario_id"),
-                "name": data.get("name"),
-                "created_at": data.get("created_at"),
-                "summary": data.get("summary") or {},
-            }
+    try:
+        docs = (
+            store.db.collection(_COLLECTION)
+            .where("owner_username", "==", username)
+            .stream()
         )
+        for doc in docs:
+            data = doc.to_dict() or {}
+            rows.append(
+                {
+                    "scenario_id": data.get("scenario_id"),
+                    "name": data.get("name"),
+                    "created_at": data.get("created_at"),
+                    "summary": data.get("summary") or {},
+                }
+            )
+    except FailedPrecondition:
+        docs = store.db.collection(_COLLECTION).stream()
+        for doc in docs:
+            data = doc.to_dict() or {}
+            if data.get("owner_username") != username:
+                continue
+            rows.append(
+                {
+                    "scenario_id": data.get("scenario_id"),
+                    "name": data.get("name"),
+                    "created_at": data.get("created_at"),
+                    "summary": data.get("summary") or {},
+                }
+            )
     rows.sort(key=lambda x: str(x.get("created_at") or ""), reverse=True)
     rows = rows[:limit]
     return rows

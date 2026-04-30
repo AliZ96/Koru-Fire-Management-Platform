@@ -11,8 +11,15 @@ from fpdf import FPDF
 from app.core.security import get_current_user
 from app.scenario import service
 from app.scenario.schemaforscenario import ScenarioCreate
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/scenario", tags=["scenario"])
+
+
+class ScenarioPersistRequest(BaseModel):
+    sa_result: list[dict] | None = None
+    ga_result: list[dict] | None = None
+    pipeline_snapshot: dict | None = None
 
 
 @router.post("/create")
@@ -47,6 +54,38 @@ def get_scenario(scenario_id: int):
     if not scenario:
         raise HTTPException(status_code=404, detail="Senaryo bulunamadı")
     return scenario
+
+
+@router.patch("/persist/{scenario_id}")
+def persist_scenario(
+    scenario_id: int,
+    payload: ScenarioPersistRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    existing = service.load_scenario(scenario_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Senaryo bulunamadı")
+
+    username = str(current_user.get("sub") or "")
+    role = str(current_user.get("role") or "user")
+    owner = str(existing.get("owner_username") or "")
+    if role != "admin" and owner and owner != username:
+        raise HTTPException(status_code=403, detail="Bu senaryoyu güncelleme yetkiniz yok")
+
+    patch: dict = {}
+    if payload.sa_result is not None:
+        patch["sa_result"] = payload.sa_result
+    if payload.ga_result is not None:
+        patch["ga_result"] = payload.ga_result
+    if payload.pipeline_snapshot is not None:
+        patch["pipeline_snapshot"] = payload.pipeline_snapshot
+    if not patch:
+        raise HTTPException(status_code=400, detail="Kaydedilecek alan gönderilmedi")
+
+    updated = service.patch_scenario(scenario_id, patch)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Senaryo bulunamadı")
+    return {"ok": True, "scenario_id": scenario_id}
 
 
 @router.get("/export/json/{scenario_id}")

@@ -1817,6 +1817,8 @@
     let selectedRouteId = '';
     let lastOptimizationScenarioKey = null;
     let lastCreatedScenarioId = null;
+    let savedPipelineSnapshot = null;
+    const lastOptimizationResults = { SA: null, GA: null };
 
     // SA: soğuk aile (mavi/cyan/yeşil) | GA: sıcak aile (turuncu/kırmızı/amber)
     const SA_VEHICLE_COLORS = ['#2563eb', '#06b6d4', '#10b981'];
@@ -2022,6 +2024,14 @@
       if (!snap) {
         throw new Error('Pipeline snapshot hazir degil');
       }
+      const snapshotToSave = {
+        ...snap,
+        optimization: {
+          ...(snap.optimization || {}),
+          ...(lastOptimizationResults.SA ? { SA: lastOptimizationResults.SA } : {}),
+          ...(lastOptimizationResults.GA ? { GA: lastOptimizationResults.GA } : {}),
+        },
+      };
       const res = await fetch('/api/pipelines', {
         method: 'POST',
         headers: {
@@ -2032,7 +2042,7 @@
           name: `Pipeline Sonucu – n=${n} k=${k}`,
           n,
           k,
-          snapshot: snap,
+          snapshot: snapshotToSave,
         }),
       });
       if (!res.ok) {
@@ -2041,136 +2051,189 @@
       setStatus(`Pipeline kaydedildi (n=${n}, k=${k})`);
     }
 
+    async function persistCurrentScenarioOptimization(algo, data) {
+      const sid = Number(lastCreatedScenarioId || 0);
+      if (!sid) return;
+      const accessToken = sessionStorage.getItem('access_token');
+      if (!accessToken) return;
+
+      const snapshot = window._lastPipelineSnapshot
+        ? {
+            ...window._lastPipelineSnapshot,
+            optimization: {
+              ...(window._lastPipelineSnapshot.optimization || {}),
+              ...(lastOptimizationResults.SA ? { SA: lastOptimizationResults.SA } : {}),
+              ...(lastOptimizationResults.GA ? { GA: lastOptimizationResults.GA } : {}),
+            },
+          }
+        : null;
+
+      const body = {
+        ...(algo === 'SA' ? { sa_result: Array.isArray(data?.stations) ? data.stations : null } : {}),
+        ...(algo === 'GA' ? { ga_result: Array.isArray(data?.stations) ? data.stations : null } : {}),
+        ...(snapshot ? { pipeline_snapshot: snapshot } : {}),
+      };
+      try {
+        await fetch(`/api/scenario/persist/${sid}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + accessToken,
+          },
+          body: JSON.stringify(body),
+        });
+      } catch (e) {
+        console.warn('Senaryo persist uyarisi:', e);
+      }
+    }
+
     async function loadOptimizationRoutes(algorithm) {
       const info = document.getElementById('info');
       const algo = String(algorithm || '').toUpperCase();
       if (algo !== 'SA' && algo !== 'GA') return;
 
       try {
+        const renderRoutes = (data, k) => {
+          const stations = Array.isArray(data.stations) ? data.stations : [];
+          if (!stations.length) throw new Error('Rota bulunamadi');
+
+          optimizationRouteLayers = optimizationRouteLayers.filter(layer => {
+            if (layer && layer._algorithm === algo) {
+              try { map.removeLayer(layer); } catch (e) {}
+              return false;
+            }
+            return true;
+          });
+          vehicleIconLayers = vehicleIconLayers.filter(layer => {
+            if (layer && layer._algorithm === algo) {
+              try { map.removeLayer(layer); } catch (e) {}
+              return false;
+            }
+            return true;
+          });
+          loadedAlgorithms.delete(algo);
+          routeIndex = routeIndex.filter(r => r.algorithm !== algo);
+
+          if (!map.getPane('routePane')) {
+            map.createPane('routePane');
+            map.getPane('routePane').style.zIndex = 780;
+          }
+
+          const vehicleColors = getVehicleColors(algo);
+          const features = [];
+          const iconPlacements = [];
+          stations.forEach(station => {
+            const vehicles = Array.isArray(station.vehicles) ? station.vehicles : [];
+            if (!vehicles.length) return;
+
+            const routeId = `${algo}-${station.station_id}`;
+            routeIndex.push({
+              route_id: routeId,
+              algorithm: algo,
+              station_id: station.station_id,
+              distance: station.total_distance || 0,
+            });
+
+            vehicles.forEach((v, vIdx) => {
+              const points = Array.isArray(v.polyline) ? v.polyline : [];
+              const rawCoords = points
+                .filter(p => Array.isArray(p) && p.length >= 2)
+                .map(p => [Number(p[1]), Number(p[0])]);
+              if (rawCoords.length < 2) return;
+              // Script/JSON tour noktalarına birebir uyum için smoothing kapatıldı.
+              const coords = rawCoords;
+
+              const vColor = vehicleColors[vIdx] || vehicleColors[vehicleColors.length - 1];
+              features.push({
+                type: 'Feature',
+                geometry: { type: 'LineString', coordinates: coords },
+                properties: {
+                  route_id: routeId,
+                  algorithm: algo,
+                  station_id: station.station_id,
+                  station_name: station.station_name || `Station ${station.station_id}`,
+                  distance: station.total_distance || 0,
+                  vehicle_index: vIdx,
+                  vehicle_label: `Araç ${vIdx + 1}`,
+                  vehicle_count: vehicles.length,
+                  fire_point_count: Array.isArray(station.assigned_fire_points) ? station.assigned_fire_points.length : 0,
+                  cluster_target: k,
+                  vehicle_color: vColor,
+                }
+              });
+
+              // Araç ikonu için rotanın orta noktasını kaydet (coords = [lon,lat])
+              const midCoord = coords[Math.floor(coords.length / 2)];
+              iconPlacements.push({ latLng: [midCoord[1], midCoord[0]], color: vColor, vIdx, stationId: station.station_id });
+            });
+          });
+
+          if (!features.length) throw new Error('Polyline cizilemedi');
+
+          const layer = L.geoJSON({ type: 'FeatureCollection', features }, {
+            pane: 'routePane',
+            style: routeStyle,
+            onEachFeature: (feature, routeLayer) => {
+              const p = feature.properties || {};
+              const vcColor = p.vehicle_color || '#6b7280';
+              routeLayer.bindPopup(
+                `<b>${p.algorithm} Rota – <span style="color:${vcColor}">${p.vehicle_label || 'Araç'}</span></b><br>` +
+                `<strong>İstasyon:</strong> ${p.station_name} (${p.station_id})<br>` +
+                `<strong>Araç:</strong> <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${vcColor};margin-right:4px"></span>${p.vehicle_label}<br>` +
+                `<strong>Atanan nokta:</strong> ${p.fire_point_count}<br>` +
+                `<strong>Toplam mesafe:</strong> ${Number(p.distance || 0).toFixed(2)} km`
+              );
+            }
+          }).addTo(map);
+
+          layer._algorithm = algo;
+          optimizationRouteLayers.push(layer);
+
+          // Her araç rotasının ortasına 🚒 ikonu ekle
+          iconPlacements.forEach(({ latLng, color, vIdx }) => {
+            const icon = L.divIcon({
+              className: '',
+              html: `<div style="background:${color};color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.45);cursor:default" title="${algo} – Araç ${vIdx + 1}">🚒</div>`,
+              iconSize: [26, 26],
+              iconAnchor: [13, 13],
+            });
+            const marker = L.marker(latLng, { icon, pane: 'routePane', interactive: false });
+            marker._algorithm = algo;
+            marker.addTo(map);
+            vehicleIconLayers.push(marker);
+          });
+
+          loadedAlgorithms.add(algo);
+          rebuildRouteLegend();
+          rebuildRouteSelect();
+          refreshRouteStyles();
+          setBtnActive(algo === 'SA' ? 'btnRouteSA' : 'btnRouteGA', true);
+
+          info.textContent = `${algo} rotalari aktif (${features.length} rota)`;
+          setStatus(`${algo} rotalari aktif (${features.length} rota)`);
+        };
+
+        // Kaydedilmis pipeline gösterimindeysek, SA/GA'yi yeniden hesaplama yerine snapshot'tan çiz.
+        const savedOpt = savedPipelineSnapshot && savedPipelineSnapshot.optimization
+          ? savedPipelineSnapshot.optimization[algo]
+          : null;
+        if (savedOpt) {
+          info.textContent = `${algo} rotalari (kayitli snapshot) yukleniyor...`;
+          setStatus(`${algo} rotalari (kayitli snapshot) yukleniyor...`);
+          renderRoutes(savedOpt, Number(savedPipelineSnapshot.k || 0));
+          return;
+        }
+
         const { k } = await ensureOptimizationScenario();
-
-        optimizationRouteLayers = optimizationRouteLayers.filter(layer => {
-          if (layer && layer._algorithm === algo) {
-            try { map.removeLayer(layer); } catch (e) {}
-            return false;
-          }
-          return true;
-        });
-        vehicleIconLayers = vehicleIconLayers.filter(layer => {
-          if (layer && layer._algorithm === algo) {
-            try { map.removeLayer(layer); } catch (e) {}
-            return false;
-          }
-          return true;
-        });
-        loadedAlgorithms.delete(algo);
-        routeIndex = routeIndex.filter(r => r.algorithm !== algo);
-
+        savedPipelineSnapshot = null;
         info.textContent = `${algo} rotalari yukleniyor...`;
         setStatus(`${algo} rotalari yukleniyor...`);
         const res = await fetch(`/api/optimize/${algo.toLowerCase()}`);
         if (!res.ok) throw new Error('API hatasi: ' + res.status);
         const data = await res.json();
-        const stations = Array.isArray(data.stations) ? data.stations : [];
-        if (!stations.length) throw new Error('Rota bulunamadi');
-
-        if (!map.getPane('routePane')) {
-          map.createPane('routePane');
-          map.getPane('routePane').style.zIndex = 780;
-        }
-
-        const vehicleColors = getVehicleColors(algo);
-        const features = [];
-        const iconPlacements = [];
-        stations.forEach(station => {
-          const vehicles = Array.isArray(station.vehicles) ? station.vehicles : [];
-          if (!vehicles.length) return;
-
-          const routeId = `${algo}-${station.station_id}`;
-          routeIndex.push({
-            route_id: routeId,
-            algorithm: algo,
-            station_id: station.station_id,
-            distance: station.total_distance || 0,
-          });
-
-          vehicles.forEach((v, vIdx) => {
-            const points = Array.isArray(v.polyline) ? v.polyline : [];
-            const rawCoords = points
-              .filter(p => Array.isArray(p) && p.length >= 2)
-              .map(p => [Number(p[1]), Number(p[0])]);
-            if (rawCoords.length < 2) return;
-            // Script/JSON tour noktalarına birebir uyum için smoothing kapatıldı.
-            const coords = rawCoords;
-
-            const vColor = vehicleColors[vIdx] || vehicleColors[vehicleColors.length - 1];
-            features.push({
-              type: 'Feature',
-              geometry: { type: 'LineString', coordinates: coords },
-              properties: {
-                route_id: routeId,
-                algorithm: algo,
-                station_id: station.station_id,
-                station_name: station.station_name || `Station ${station.station_id}`,
-                distance: station.total_distance || 0,
-                vehicle_index: vIdx,
-                vehicle_label: `Araç ${vIdx + 1}`,
-                vehicle_count: vehicles.length,
-                fire_point_count: Array.isArray(station.assigned_fire_points) ? station.assigned_fire_points.length : 0,
-                cluster_target: k,
-                vehicle_color: vColor,
-              }
-            });
-
-            // Araç ikonu için rotanın orta noktasını kaydet (coords = [lon,lat])
-            const midCoord = coords[Math.floor(coords.length / 2)];
-            iconPlacements.push({ latLng: [midCoord[1], midCoord[0]], color: vColor, vIdx, stationId: station.station_id });
-          });
-        });
-
-        if (!features.length) throw new Error('Polyline cizilemedi');
-
-        const layer = L.geoJSON({ type: 'FeatureCollection', features }, {
-          pane: 'routePane',
-          style: routeStyle,
-          onEachFeature: (feature, routeLayer) => {
-            const p = feature.properties || {};
-            const vcColor = p.vehicle_color || '#6b7280';
-            routeLayer.bindPopup(
-              `<b>${p.algorithm} Rota – <span style="color:${vcColor}">${p.vehicle_label || 'Araç'}</span></b><br>` +
-              `<strong>İstasyon:</strong> ${p.station_name} (${p.station_id})<br>` +
-              `<strong>Araç:</strong> <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${vcColor};margin-right:4px"></span>${p.vehicle_label}<br>` +
-              `<strong>Atanan nokta:</strong> ${p.fire_point_count}<br>` +
-              `<strong>Toplam mesafe:</strong> ${Number(p.distance || 0).toFixed(2)} km`
-            );
-          }
-        }).addTo(map);
-
-        layer._algorithm = algo;
-        optimizationRouteLayers.push(layer);
-
-        // Her araç rotasının ortasına 🚒 ikonu ekle
-        iconPlacements.forEach(({ latLng, color, vIdx }) => {
-          const icon = L.divIcon({
-            className: '',
-            html: `<div style="background:${color};color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.45);cursor:default" title="${algo} – Araç ${vIdx + 1}">🚒</div>`,
-            iconSize: [26, 26],
-            iconAnchor: [13, 13],
-          });
-          const marker = L.marker(latLng, { icon, pane: 'routePane', interactive: false });
-          marker._algorithm = algo;
-          marker.addTo(map);
-          vehicleIconLayers.push(marker);
-        });
-
-        loadedAlgorithms.add(algo);
-        rebuildRouteLegend();
-        rebuildRouteSelect();
-        refreshRouteStyles();
-        setBtnActive(algo === 'SA' ? 'btnRouteSA' : 'btnRouteGA', true);
-
-        info.textContent = `${algo} rotalari aktif (${features.length} rota)`;
-        setStatus(`${algo} rotalari aktif (${features.length} rota)`);
+        lastOptimizationResults[algo] = data;
+        await persistCurrentScenarioOptimization(algo, data);
+        renderRoutes(data, k);
       } catch (e) {
         info.textContent = `${algo} rota hatasi: ${e.message}`;
         console.error(`${algo} route error:`, e);
@@ -2348,6 +2411,9 @@
           stations: Array.from(usedStationIds).map(id => stationById[id]).filter(Boolean),
           n, k
         };
+        savedPipelineSnapshot = null;
+        lastOptimizationResults.SA = null;
+        lastOptimizationResults.GA = null;
         info.textContent = `Pipeline: ${pipelinePoints.length} nokta + ${stationFeatures.length} istasyon (n=${n}, k=${k})`;
         setStatus(`Pipeline aktif (${pipelinePoints.length} nokta)`);
       } catch (e) {
@@ -2360,6 +2426,8 @@
     window.loadPipelineOnMap = function(snapshot) {
       if (!snapshot || !snapshot.pipeline_points) return;
       const info = document.getElementById('info');
+      // Kaydedilen pipeline acilirken eski SA/GA rota sonucunu temizle.
+      clearOptimizationRoutes();
       // Mevcut pipeline katmanını temizle
       if (pipelineLayer) {
         try { map.removeLayer(pipelineLayer); } catch(e) {}
@@ -2403,6 +2471,14 @@
       }).addTo(map);
 
       allActiveLayers.push(pipelineLayer);
+      window._lastPipelineSnapshot = snapshot;
+      savedPipelineSnapshot = snapshot;
+      if (document.getElementById('pipelineN') && snapshot.n != null) {
+        document.getElementById('pipelineN').value = Number(snapshot.n);
+      }
+      if (document.getElementById('pipelineK') && snapshot.k != null) {
+        document.getElementById('pipelineK').value = Number(snapshot.k);
+      }
       setBtnActive('btnPipeline', true);
       info.textContent = `Kaydedilmiş pipeline: ${pipelinePoints.length} nokta (n=${snapshot.n}, k=${snapshot.k})`;
       setStatus(`Kaydedilmiş pipeline yüklendi (${pipelinePoints.length} nokta)`);
@@ -2412,6 +2488,43 @@
         const first = pipelinePoints[0];
         map.setView([Number(first.lat), Number(first.lon)], 12, { animate: true });
       }
+    };
+
+    function normalizeStoredOptimization(raw) {
+      if (!raw) return null;
+      if (Array.isArray(raw)) return { stations: raw };
+      if (Array.isArray(raw.stations)) return raw;
+      return null;
+    }
+
+    window.loadSavedScenarioOnMap = async function(scenarioId) {
+      const info = document.getElementById('info');
+      if (scenarioId == null) return;
+      const res = await fetch(`/api/scenario/get/${scenarioId}`);
+      if (!res.ok) throw new Error('Senaryo API hatasi: ' + res.status);
+      const scenario = await res.json();
+
+      const snap = scenario.pipeline_snapshot || {};
+      if (!Array.isArray(snap.pipeline_points) || snap.pipeline_points.length === 0) {
+        throw new Error('Kayitli senaryo pipeline verisi icermiyor');
+      }
+
+      snap.optimization = {
+        ...(snap.optimization || {}),
+        ...(normalizeStoredOptimization(scenario.sa_result) ? { SA: normalizeStoredOptimization(scenario.sa_result) } : {}),
+        ...(normalizeStoredOptimization(scenario.ga_result) ? { GA: normalizeStoredOptimization(scenario.ga_result) } : {}),
+      };
+
+      window.loadPipelineOnMap(snap);
+      savedPipelineSnapshot = snap;
+      lastCreatedScenarioId = scenario.scenario_id != null ? scenario.scenario_id : lastCreatedScenarioId;
+      lastOptimizationResults.SA = normalizeStoredOptimization(scenario.sa_result);
+      lastOptimizationResults.GA = normalizeStoredOptimization(scenario.ga_result);
+
+      if (info) {
+        info.textContent = `Kayitli senaryo yuklendi (#${scenario.scenario_id ?? scenarioId})`;
+      }
+      setStatus(`Kayitli senaryo aktif (#${scenario.scenario_id ?? scenarioId})`);
     };
 
     async function togglePipelineLayer() {
@@ -4225,10 +4338,19 @@
             `<div class="pm-pipeline-meta">ID=${sid} • Nokta=${summary.total_points ?? '-'} • HIGH=${summary.high_count ?? '-'} • ${formatDate(item.created_at)}</div>` +
           '</div>' +
           '<div class="pm-pipeline-actions">' +
+            `<button class="pm-pipeline-btn map" title="Haritada Göster">🗺 Göster</button>` +
             `<button class="pm-pipeline-btn pdf" title="PDF İndir">⬇ PDF</button>` +
             `<button class="pm-pipeline-btn show" title="JSON Göster">🗂 JSON</button>` +
           '</div>';
 
+        div.querySelector('.map').addEventListener('click', async function() {
+          try {
+            closeModal();
+            await window.loadSavedScenarioOnMap(sid);
+          } catch (e) {
+            alert('Senaryo haritada acilamadi: ' + e.message);
+          }
+        });
         div.querySelector('.pdf').addEventListener('click', function() {
           window.open(`/api/scenario/export/pdf/${sid}`, '_blank');
         });
