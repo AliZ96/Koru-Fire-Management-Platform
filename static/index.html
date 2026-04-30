@@ -65,13 +65,13 @@
     .header .back-btn{ background:none; color:var(--text); border:none; padding:0; margin:0; cursor:pointer; font-size:18px; font-weight:600; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; transition:all 0.2s ease; text-decoration:none; display:inline-block; white-space:nowrap; }
     .header .back-btn:hover{ opacity:0.7; }
     .user-dropdown{ position:relative; display:inline-block }
-    .user-dropdown-toggle{ cursor:pointer; padding:4px 0; border:none; background:none; color:var(--text); font-size:12px; font-weight:600; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; display:flex; align-items:center; gap:4px }
-    .user-dropdown-toggle:hover{ opacity:0.8 }
-    .user-dropdown-menu{ position:absolute; top:100%; right:0; background:rgba(8,21,16,.95); border:1px solid var(--border); border-radius:6px; min-width:160px; box-shadow:0 4px 12px rgba(0,0,0,.25); opacity:0; pointer-events:none; transform:translateY(-4px); transition:all 0.2s ease; z-index:10001; margin-top:6px; backdrop-filter:blur(20px) }
+    .user-dropdown-toggle{ cursor:pointer; padding:7px 14px; border:1px solid rgba(245,158,11,.35); border-radius:10px; background:none; color:#F59E0B; font-size:13px; font-weight:600; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; display:flex; align-items:center; gap:6px; transition:all .2s }
+    .user-dropdown-toggle:hover{ background:rgba(245,158,11,.08); border-color:rgba(245,158,11,.6) }
+    .user-dropdown-menu{ position:absolute; top:calc(100% + 8px); right:0; background:rgba(5,14,7,.97); border:1px solid rgba(74,124,58,.25); border-radius:12px; overflow:hidden; min-width:160px; box-shadow:0 12px 40px rgba(0,0,0,.5); opacity:0; pointer-events:none; transform:translateY(-4px); transition:all 0.2s ease; z-index:10001; backdrop-filter:blur(20px) }
     .user-dropdown-menu.show{ opacity:1; pointer-events:auto; transform:translateY(0) }
-    .user-dropdown-menu a{ display:block; padding:10px 14px; color:var(--text2); text-decoration:none; border-bottom:1px solid var(--border); font-size:12px; font-weight:600; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; white-space:nowrap; cursor:pointer }
+    .user-dropdown-menu a{ display:block; padding:11px 16px; color:#8DB87E; text-decoration:none; border-bottom:1px solid rgba(74,124,58,.12); font-size:13px; font-weight:600; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; white-space:nowrap; cursor:pointer; transition:all .15s }
     .user-dropdown-menu a:last-child{ border-bottom:none }
-    .user-dropdown-menu a:hover{ background:rgba(74,124,58,.12) }
+    .user-dropdown-menu a:hover{ background:rgba(74,124,58,.12); color:#F59E0B }
     .logo{height:42px;width:auto; background: transparent; display:block}
     .brand-link{ text-decoration:none; color:inherit; display:flex; align-items:center; }
     .hamburger{width:32px;height:24px;display:inline-flex;flex-direction:column;justify-content:space-between;cursor:pointer;background:transparent;border:none;padding:0;margin:0}
@@ -97,6 +97,63 @@
     .proximity-popup{ z-index: 2000 !important; }
     .leaflet-popup-pane{ z-index: 2000 !important; }
 
+    /* ═══ PROFİL MODAL ═══ */
+    #profileModal{position:fixed;inset:0;z-index:20000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s ease}
+    #profileModal.open{opacity:1;pointer-events:auto}
+    #profileModal .pm-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px)}
+    #profileModal .pm-sheet{position:relative;background:rgba(8,21,16,.97);border:1px solid rgba(74,124,58,.35);border-radius:16px;width:min(520px,94vw);max-height:86vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.6);transform:translateY(20px) scale(.97);transition:transform .25s ease;font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+    #profileModal.open .pm-sheet{transform:translateY(0) scale(1)}
+    .pm-header{padding:20px 24px 0;display:flex;align-items:flex-start;gap:16px;flex-shrink:0}
+    .pm-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#10b981);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff;flex-shrink:0;letter-spacing:-1px;box-shadow:0 4px 16px rgba(37,99,235,.4)}
+    .pm-headinfo{flex:1;min-width:0}
+    .pm-name{font-size:18px;font-weight:700;color:#d1fae5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .pm-email{font-size:12px;color:#6b8f7a;margin-top:2px}
+    .pm-role-badge{display:inline-block;margin-top:6px;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase}
+    .pm-role-badge.admin{background:rgba(239,68,68,.18);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+    .pm-role-badge.user{background:rgba(37,99,235,.18);color:#93c5fd;border:1px solid rgba(37,99,235,.3)}
+    .pm-close{background:none;border:none;color:#6b8f7a;cursor:pointer;font-size:20px;padding:0;line-height:1;transition:color .15s;flex-shrink:0}
+    .pm-close:hover{color:#d1fae5}
+    .pm-tabs{display:flex;gap:0;border-bottom:1px solid rgba(74,124,58,.2);margin:16px 24px 0;flex-shrink:0}
+    .pm-tab{padding:8px 16px;font-size:12px;font-weight:600;color:#6b8f7a;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
+    .pm-tab.active{color:#4ade80;border-bottom-color:#4ade80}
+    .pm-tab:hover:not(.active){color:#d1fae5}
+    .pm-body{flex:1;overflow-y:auto;padding:20px 24px 24px}
+    .pm-body::-webkit-scrollbar{width:4px}
+    .pm-body::-webkit-scrollbar-track{background:transparent}
+    .pm-body::-webkit-scrollbar-thumb{background:rgba(74,124,58,.3);border-radius:2px}
+    .pm-section{margin-bottom:20px}
+    .pm-section-title{font-size:10px;font-weight:700;color:#6b8f7a;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(74,124,58,.12)}
+    .pm-field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+    .pm-field label{font-size:11px;font-weight:600;color:#6b8f7a;letter-spacing:.4px}
+    .pm-field input{background:rgba(255,255,255,.05);border:1px solid rgba(74,124,58,.25);border-radius:8px;padding:9px 12px;color:#d1fae5;font-size:13px;font-weight:500;font-family:inherit;outline:none;transition:border-color .15s}
+    .pm-field input:focus{border-color:#4ade80}
+    .pm-field input[readonly]{opacity:.55;cursor:default}
+    .pm-stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+    .pm-stat{background:rgba(255,255,255,.04);border:1px solid rgba(74,124,58,.15);border-radius:10px;padding:12px 14px}
+    .pm-stat-val{font-size:20px;font-weight:800;color:#4ade80}
+    .pm-stat-lbl{font-size:10px;font-weight:600;color:#6b8f7a;margin-top:2px;letter-spacing:.4px}
+    .pm-save-btn{width:100%;padding:10px;background:linear-gradient(135deg,#2563eb,#10b981);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s;letter-spacing:.3px}
+    .pm-save-btn:hover{opacity:.85}
+    .pm-save-btn:disabled{opacity:.4;cursor:default}
+    .pm-pipeline-list{display:flex;flex-direction:column;gap:8px}
+    .pm-pipeline-item{background:rgba(255,255,255,.04);border:1px solid rgba(74,124,58,.18);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px}
+    .pm-pipeline-icon{font-size:22px;flex-shrink:0}
+    .pm-pipeline-info{flex:1;min-width:0}
+    .pm-pipeline-name{font-size:12px;font-weight:700;color:#d1fae5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .pm-pipeline-meta{font-size:10px;color:#6b8f7a;margin-top:2px}
+    .pm-pipeline-actions{display:flex;gap:6px;flex-shrink:0}
+    .pm-pipeline-btn{background:none;border:1px solid rgba(74,124,58,.25);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s}
+    .pm-pipeline-btn.dl{color:#4ade80;border-color:rgba(74,174,80,.3)}
+    .pm-pipeline-btn.dl:hover{background:rgba(74,174,80,.12)}
+    .pm-pipeline-btn.del{color:#f87171;border-color:rgba(248,113,113,.3)}
+    .pm-pipeline-btn.del:hover{background:rgba(239,68,68,.12)}
+    .pm-pipeline-btn.show{color:#f59e0b;border-color:rgba(245,158,11,.35)}
+    .pm-pipeline-btn.show:hover{background:rgba(245,158,11,.12)}
+    .pm-pipeline-btn.pdf{color:#22c55e;border-color:rgba(34,197,94,.35)}
+    .pm-pipeline-btn.pdf:hover{background:rgba(34,197,94,.12)}
+    .pm-empty{text-align:center;padding:32px 0;color:#6b8f7a;font-size:13px}
+    .pm-empty-icon{font-size:40px;margin-bottom:10px}
+
     /* ═══ ACCORDION PANEL ═══ */
     .acc{border-bottom:1px solid rgba(74,124,58,.12)}
     .acc:last-of-type{border-bottom:none}
@@ -108,8 +165,9 @@
     .acc-count{font-size:10px;font-weight:600;color:var(--text2);background:rgba(74,124,58,.12);border-radius:10px;padding:2px 8px}
     .acc-arrow{font-size:10px;color:var(--text2);transition:transform .25s ease;margin-left:4px}
     .acc.open .acc-arrow{transform:rotate(180deg)}
-    .acc-body{max-height:0;overflow:hidden;transition:max-height .3s ease}
-    .acc.open .acc-body{max-height:560px}
+    .acc-body{max-height:0;overflow:hidden;transition:max-height .35s ease}
+    .acc.open .acc-body{max-height:620px}
+    .btn.btn-active{background:rgba(245,158,11,.18)!important;border-color:#f59e0b!important;color:#fde68a!important;box-shadow:0 0 0 2px rgba(245,158,11,.25)!important}
     .acc-body .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:0 0 12px 0}
     @media (max-width:480px){ .panel{width:100%;top:76px;right:0;height:calc(100% - 76px - 60px);transform:translateX(100%)} .panel-toggle{right:12px} .panel-toggle.open{right:12px} .map-frame{top:88px; left:8px; right:8px; bottom:68px; border-width:1px} .header{padding:10px 12px} .logo{height:34px} .header .title{font-size:14px; letter-spacing:.05px; white-space:nowrap} .footer{height:64px} .footer img{height:44px; max-width:45vw} .footer .contact{font-size:11px} }
   </style>
@@ -123,7 +181,7 @@
       <span><strong>E-Posta:</strong> <span class="copyable" data-copy="him@izmir.bel.tr"><a href="mailto:him@izmir.bel.tr">him@izmir.bel.tr</a><button type="button" class="copy-btn" aria-label="Kopyala">Kopyala</button></span></span>
     </div>
   </div>
-  <div class="header"><a href="/welcome" class="back-btn" title="Geri">←</a><a href="/" class="brand-link"><div class="nav-brand"><img id="logoImg" class="logo" alt="Koru logo"/><span class="title">KORU</span></div></a><div class="user-info"><div class="user-dropdown"><span id="userDisplay" class="user-dropdown-toggle"></span><div id="userDropdownMenu" class="user-dropdown-menu"><a href="#" id="profileLink">Profil</a><a href="#" id="logoutLink">Oturum Kapat</a></div></div></div><button id="menuBtn" class="hamburger" aria-label="Menü"><span></span><span></span><span></span></button></div>
+  <div class="header"><a href="/welcome" class="back-btn" title="Geri">←</a><a href="/welcome" class="brand-link"><div class="nav-brand"><img id="logoImg" class="logo" alt="Koru logo"/><span class="title">KORU</span></div></a><div class="user-info"><div class="user-dropdown"><span id="userDisplay" class="user-dropdown-toggle"></span><div id="userDropdownMenu" class="user-dropdown-menu"><a href="#" id="profileLink">Profil</a><a href="#" id="logoutLink">Oturum Kapat</a></div></div></div><button id="menuBtn" class="hamburger" aria-label="Menü"><span></span><span></span><span></span></button></div>
   <div id="sidebar" class="sidebar" aria-hidden="true">
     <a href="#" id="mFires">İzmir Yangınları</a>
     <a href="#" id="mVolunteer">AFAD Gönüllüsü olun</a>
@@ -176,77 +234,6 @@
       </div>
     </div>
 
-    <!-- Senaryo Builder -->
-    <div class="acc">
-      <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
-        <div class="acc-icon">
-          <svg viewBox="0 0 24 24">
-            <path d="M12 3l7 4v10l-7 4-7-4V7l7-4z"/>
-            <path d="M12 7v10M8 9l8 6M16 9l-8 6" opacity=".55"/>
-          </svg>
-        </div>
-        <span class="acc-label">Senaryo Builder</span>
-        <span class="acc-count">4</span>
-        <span class="acc-arrow">▼</span>
-      </div>
-
-      <div class="acc-body">
-        <div class="scenario-form">
-
-          <div class="field">
-            <label for="scenarioName">Senaryo adı</label>
-            <input id="scenarioName" type="text" value="KORU Müdahale Senaryosu" maxlength="80" />
-          </div>
-
-          <div class="field">
-            <label for="scenarioLocationSelect">Risk lokasyonu</label>
-
-            <select id="scenarioLocationSelect">
-              <option value="">Haritadan seç veya bölge seç</option>
-              <option value="38.4622,27.2167,Bornova">Bornova</option>
-              <option value="38.4550,27.1100,Karşıyaka">Karşıyaka</option>
-              <option value="38.3860,27.1740,Buca">Buca</option>
-              <option value="38.3240,26.3030,Çeşme">Çeşme</option>
-              <option value="38.2540,27.1340,Menderes">Menderes</option>
-              <option value="39.1210,27.1800,Bergama">Bergama</option>
-            </select>
-
-            <div class="row" style="padding:0;">
-              <button id="btnScenarioPickMap" type="button" class="btn btn-outline">Haritadan Seç</button>
-              <button id="btnScenarioClear" type="button" class="btn">Temizle</button>
-            </div>
-
-            <div id="scenarioSelectedLocation" class="scenario-selected">
-              Henüz lokasyon seçilmedi.
-            </div>
-
-            <div class="scenario-help">
-              Haritadan seç butonuna basıp haritada bir noktaya tıkla. Alternatif olarak dropdown’dan hazır bölge seçebilirsin.
-            </div>
-          </div>
-
-          <div class="two-cols">
-            <div class="field">
-              <label for="scenarioGroundVehicles">Kara aracı</label>
-              <input id="scenarioGroundVehicles" type="number" min="0" max="50" value="2" />
-            </div>
-
-            <div class="field">
-              <label for="scenarioAirVehicles">Hava aracı</label>
-              <input id="scenarioAirVehicles" type="number" min="0" max="20" value="1" />
-            </div>
-          </div>
-
-          <button id="btnScenarioCreate" type="button" class="btn btn-primary">
-            Senaryo Oluştur
-          </button>
-
-          <div id="scenarioError" class="scenario-error"></div>
-          <div id="scenarioSuccess" class="scenario-success"></div>
-
-        </div>
-      </div>
-    </div>
     <!-- Su Kaynakları -->
     <div class="acc">
       <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
@@ -270,12 +257,11 @@
       <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
         <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M9 20l-5.447-2.724A2 2 0 013 15.382V5.618a2 2 0 011.106-1.789L9 1m0 19l6-3m-6 3V1m6 16l4.553 2.276A2 2 0 0021 17.382V7.618a2 2 0 00-.894-1.664L15 2m0 15V2m0 0L9 1"/></svg></div>
         <span class="acc-label">Erişim & Müdahale</span>
-        <span class="acc-count">7</span>
+        <span class="acc-count">6</span>
         <span class="acc-arrow">▼</span>
       </div>
       <div class="acc-body">
         <div class="row">
-          <button id="btnAirAccess" class="btn btn-outline">Hava Erişimi</button>
           <button id="btnFireStations" class="btn btn-outline">İtfaiye İstasyonları</button>
           <button id="btnProximity" class="btn btn-outline">Kaynak Yakınlık</button>
           <button id="btnIntegrated" class="btn btn-outline">Entegre Katman</button>
@@ -296,15 +282,15 @@
     <div class="acc open">
       <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
         <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M12 2c-2 3-5 6-5 10a5 5 0 0010 0C17 8 14 5 12 2z"/><path d="M9 16c.5 1.5 2 2 3 2s2.5-.5 3-2" opacity=".4"/></svg></div>
-        <span class="acc-label">Yangin Yayilim Takibi</span>
+        <span class="acc-label">Yangın Yayılım Takibi</span>
         <span class="acc-count" id="spreadScenarioCount">0</span>
         <span class="acc-arrow">▼</span>
       </div>
-      <div class="acc-body" style="max-height:600px">
+      <div class="acc-body">
         <div class="row" style="padding-top:4px">
-          <button id="btnAddFirePoint" class="btn btn-outline">Yangin Noktasi Ekle</button>
+          <button id="btnAddFirePoint" class="btn btn-outline">Yangın Noktası Ekle</button>
           <button class="btn btn-outline" id="btnSpreadRefresh">Yenile</button>
-          <button class="btn btn-outline" onclick="clearAllSpreadScenarios()" style="color:var(--danger);border-color:var(--danger)">Sifirla</button>
+          <button class="btn btn-outline" id="btnSpreadClearAll" style="color:var(--danger);border-color:var(--danger)">Sıfırla</button>
         </div>
         <div class="row">
           <button id="btnSaveMyLocation" class="btn btn-outline">Konumumu Kaydet</button>
@@ -346,9 +332,8 @@
       const profileLink = document.getElementById('profileLink');
 
       if (userDisplay) {
-        const typeLabel = userType === 'admin' ? 'Kullanıcı - Admin' : 'Kullanıcı';
-        userDisplay.textContent = `${typeLabel} - ${username}`;
-        userDisplay.innerHTML += ' ▼';
+        const displayName = localStorage.getItem('koru_display_name') || username;
+        userDisplay.innerHTML = `<span style="font-size:15px;">👤</span><span>${displayName}</span><span style="font-size:9px;opacity:.7;">▼</span>`;
 
         userDisplay.addEventListener('click', function(e) {
           e.stopPropagation();
@@ -375,8 +360,8 @@
       if (profileLink) {
         profileLink.addEventListener('click', function(e) {
           e.preventDefault();
-          alert(`Profil: ${username} (${userType === 'admin' ? 'Admin' : 'Kullanıcı'})`);
           if (userDropdownMenu) userDropdownMenu.classList.remove('show');
+          if (typeof window.openProfileModal === 'function') window.openProfileModal();
         });
       }
     })();
@@ -962,6 +947,7 @@
         try { map.removeLayer(firePointLayer); } catch(e) {}
         firePointLayer = null;
         clearFirePointInfo();
+        setBtnActive('btnFirePoints', false);
         if (info) info.textContent = 'High / Low noktalar kapatıldı';
         setStatus('High / Low noktalar kapatıldı');
         return;
@@ -1010,7 +996,7 @@
       }
 
       renderFirePointInfo(randomList);
-
+      setBtnActive('btnFirePoints', true);
       if (info) info.textContent = `High: ${randomList.high.length} | Low: ${randomList.low.length}`;
       setStatus(`High / Low noktalar gösterildi (${randomList.high.length + randomList.low.length})`);
     }
@@ -1022,6 +1008,7 @@
         reservoirLayer = null;
         info.textContent = 'Su Rezervuarları kapatıldı';
         setStatus('Su Rezervuarları kapatıldı');
+        setBtnActive('btnReservoirs', false);
         return;
       }
 
@@ -1086,6 +1073,7 @@
 
         info.textContent = `Su Rezervuarları açık (${filteredFeatures.length} bulundu)`;
         setStatus(`Su Rezervuarları açık (${filteredFeatures.length})`);
+        setBtnActive('btnReservoirs', true);
       } catch (e) {
         info.textContent = 'Su Rezervuarları yüklenemedi: ' + e.message;
         console.error('Baraj yükleme hatası:', e);
@@ -1100,6 +1088,7 @@
         waterSourcesLayer = null;
         info.textContent = 'Su Kaynakları kapatıldı';
         setStatus('Su Kaynakları kapatıldı');
+        setBtnActive('btnWaterSources', false);
         return;
       }
 
@@ -1166,6 +1155,7 @@
 
         info.textContent = `Su Kaynakları açık (${filteredFeatures.length} bulundu)`;
         setStatus(`Su Kaynakları açık (${filteredFeatures.length})`);
+        setBtnActive('btnWaterSources', true);
       } catch (e) {
         info.textContent = 'Su Kaynakları yüklenemedi: ' + e.message;
         console.error('Su kaynakları yükleme hatası:', e);
@@ -1179,6 +1169,7 @@
         window.waterTanksLayer = null;
         info.textContent = 'Su tankları kapatıldı';
         setStatus('Su tankları kapatıldı');
+        setBtnActive('btnWaterTanks', false);
         return;
       }
 
@@ -1246,6 +1237,7 @@
 
         info.textContent = `Su tankları açık (${filteredFeatures.length} bulundu)`;
         setStatus(`Su tankları açık (${filteredFeatures.length})`);
+        setBtnActive('btnWaterTanks', true);
       } catch (e) {
         info.textContent = 'Su tankları yüklenemedi: ' + e.message;
         console.error('Su tankı yükleme hatası:', e);
@@ -1260,6 +1252,7 @@
         fireStationsLayer = null;
         info.textContent = 'İtfaiye istasyonları kapatıldı';
         setStatus('İtfaiye istasyonları kapatıldı');
+        setBtnActive('btnFireStations', false);
         return;
       }
 
@@ -1334,6 +1327,7 @@
 
         info.textContent = `İtfaiye istasyonları açık (${pointFeatures.length} bulundu)`;
         setStatus(`İtfaiye istasyonları açık (${pointFeatures.length})`);
+        setBtnActive('btnFireStations', true);
       } catch (e) {
         info.textContent = 'İtfaiye istasyonları yüklenemedi: ' + e.message;
         console.error('İtfaiye istasyonları yükleme hatası:', e);
@@ -1348,6 +1342,7 @@
         lakesLayer = null;
         info.textContent = 'Göl ve Göletler kapatıldı';
         setStatus('Göl ve Göletler kapatıldı');
+        setBtnActive('btnLakes', false);
         return;
       }
 
@@ -1399,6 +1394,7 @@
 
         info.textContent = `Göl ve Göletler açık (${filteredFeatures.length} bulundu)`;
         setStatus(`Göl ve Göletler açık (${filteredFeatures.length})`);
+        setBtnActive('btnLakes', true);
       } catch (e) {
         info.textContent = 'Göl ve Göletler yüklenemedi: ' + e.message;
         console.error('Göl yükleme hatası:', e);
@@ -1806,22 +1802,48 @@
     let pipelineLayer = null;
     let pipelineLegendCtl = null;
     let optimizationRouteLayers = [];
+    let vehicleIconLayers = [];
+    let loadedAlgorithms = new Set();
     let routeLegendCtl = null;
     let routeIndex = [];
     let selectedRouteId = '';
     let lastOptimizationScenarioKey = null;
 
-    function getAlgoColor(algo) {
-      return algo === 'GA' ? '#2563eb' : '#f97316';
+    // SA: soğuk aile (mavi/cyan/yeşil) | GA: sıcak aile (turuncu/kırmızı/amber)
+    const SA_VEHICLE_COLORS = ['#2563eb', '#06b6d4', '#10b981'];
+    const GA_VEHICLE_COLORS = ['#f97316', '#ef4444', '#f59e0b'];
+    function getVehicleColors(algo) {
+      return algo === 'GA' ? GA_VEHICLE_COLORS : SA_VEHICLE_COLORS;
+    }
+
+    // Chaikin corner-cutting: köşeleri yumuşatır, daha gerçekçi rota görünümü
+    function smoothCoords(coords, iterations = 3) {
+      if (coords.length < 3) return coords;
+      let pts = coords;
+      for (let iter = 0; iter < iterations; iter++) {
+        const res = [pts[0]];
+        for (let i = 0; i < pts.length - 1; i++) {
+          const p0 = pts[i], p1 = pts[i + 1];
+          res.push([0.75 * p0[0] + 0.25 * p1[0], 0.75 * p0[1] + 0.25 * p1[1]]);
+          res.push([0.25 * p0[0] + 0.75 * p1[0], 0.25 * p0[1] + 0.75 * p1[1]]);
+        }
+        res.push(pts[pts.length - 1]);
+        pts = res;
+      }
+      return pts;
     }
 
     function routeStyle(feature) {
       const props = feature.properties || {};
       const selected = selectedRouteId && selectedRouteId === props.route_id;
+      const isGA = props.algorithm === 'GA';
       return {
-        color: props.base_color || '#6b7280',
-        weight: selectedRouteId ? (selected ? 6 : 2) : 3,
-        opacity: selectedRouteId ? (selected ? 0.95 : 0.35) : 0.85,
+        color: props.vehicle_color || props.base_color || '#6b7280',
+        weight: selectedRouteId ? (selected ? 6 : 2) : 4,
+        opacity: selectedRouteId ? (selected ? 0.95 : 0.3) : 0.88,
+        dashArray: isGA ? '10 7' : null,
+        lineCap: 'round',
+        lineJoin: 'round',
       };
     }
 
@@ -1830,6 +1852,13 @@
         try { map.removeLayer(layer); } catch (e) {}
       });
       optimizationRouteLayers = [];
+      vehicleIconLayers.forEach(layer => {
+        try { map.removeLayer(layer); } catch (e) {}
+      });
+      vehicleIconLayers = [];
+      loadedAlgorithms.clear();
+      setBtnActive('btnRouteSA', false);
+      setBtnActive('btnRouteGA', false);
       routeIndex = [];
       selectedRouteId = '';
 
@@ -1863,20 +1892,36 @@
       });
     }
 
-    function ensureRouteLegend() {
-      if (routeLegendCtl) return;
+    function rebuildRouteLegend() {
+      if (routeLegendCtl) {
+        try { routeLegendCtl.remove(); } catch(e) {}
+        routeLegendCtl = null;
+      }
+      if (!loadedAlgorithms.size) return;
       routeLegendCtl = L.control({ position: 'bottomleft' });
       routeLegendCtl.onAdd = function() {
         const div = L.DomUtil.create('div', 'legend');
-        div.style.backgroundColor = 'white';
-        div.style.padding = '10px';
-        div.style.borderRadius = '5px';
-        div.style.boxShadow = '0 0 15px rgba(0,0,0,0.2)';
-        div.style.fontSize = '12px';
-        div.innerHTML =
-          '<b>Rota Katmani</b>' +
-          '<div class="row"><span class="sw" style="background:#f97316"></span>SA</div>' +
-          '<div class="row"><span class="sw" style="background:#2563eb"></span>GA</div>';
+        div.style.cssText = 'background:rgba(8,21,16,0.93);padding:10px 14px;border-radius:8px;box-shadow:0 0 15px rgba(0,0,0,0.35);font-size:12px;color:#d1fae5;min-width:170px;border:1px solid rgba(74,124,58,0.3)';
+        let html = '<b style="display:block;margin-bottom:8px;font-size:13px;letter-spacing:.5px">🗺 Rota Katmanı</b>';
+        if (loadedAlgorithms.has('SA')) {
+          html += '<div style="margin-bottom:4px;font-weight:700;opacity:0.6;font-size:10px;letter-spacing:1.2px">── SA ROTALARI ──</div>';
+          SA_VEHICLE_COLORS.forEach((c, i) => {
+            html += `<div style="display:flex;align-items:center;gap:7px;padding:3px 0">` +
+              `<span style="display:inline-block;width:24px;height:3px;background:${c};border-radius:2px;flex-shrink:0"></span>` +
+              `<span style="font-size:13px">🚒</span>` +
+              `<span style="color:${c};font-weight:600">Araç ${i + 1}</span></div>`;
+          });
+        }
+        if (loadedAlgorithms.has('GA')) {
+          html += '<div style="margin:8px 0 4px;font-weight:700;opacity:0.6;font-size:10px;letter-spacing:1.2px">- - GA ROTALARI - -</div>';
+          GA_VEHICLE_COLORS.forEach((c, i) => {
+            html += `<div style="display:flex;align-items:center;gap:7px;padding:3px 0">` +
+              `<span style="display:inline-block;width:24px;height:3px;border-top:3px dashed ${c};flex-shrink:0"></span>` +
+              `<span style="font-size:13px">🚒</span>` +
+              `<span style="color:${c};font-weight:600">Araç ${i + 1}</span></div>`;
+          });
+        }
+        div.innerHTML = html;
         return div;
       };
       routeLegendCtl.addTo(map);
@@ -1948,6 +1993,14 @@
           }
           return true;
         });
+        vehicleIconLayers = vehicleIconLayers.filter(layer => {
+          if (layer && layer._algorithm === algo) {
+            try { map.removeLayer(layer); } catch (e) {}
+            return false;
+          }
+          return true;
+        });
+        loadedAlgorithms.delete(algo);
         routeIndex = routeIndex.filter(r => r.algorithm !== algo);
 
         info.textContent = `${algo} rotalari yukleniyor...`;
@@ -1963,18 +2016,12 @@
           map.getPane('routePane').style.zIndex = 780;
         }
 
+        const vehicleColors = getVehicleColors(algo);
         const features = [];
+        const iconPlacements = [];
         stations.forEach(station => {
           const vehicles = Array.isArray(station.vehicles) ? station.vehicles : [];
-          const lineParts = [];
-          vehicles.forEach(v => {
-            const points = Array.isArray(v.polyline) ? v.polyline : [];
-            const coords = points
-              .filter(p => Array.isArray(p) && p.length >= 2)
-              .map(p => [Number(p[1]), Number(p[0])]);
-            if (coords.length >= 2) lineParts.push(coords);
-          });
-          if (!lineParts.length) return;
+          if (!vehicles.length) return;
 
           const routeId = `${algo}-${station.station_id}`;
           routeIndex.push({
@@ -1983,20 +2030,37 @@
             station_id: station.station_id,
             distance: station.total_distance || 0,
           });
-          features.push({
-            type: 'Feature',
-            geometry: { type: 'MultiLineString', coordinates: lineParts },
-            properties: {
-              route_id: routeId,
-              algorithm: algo,
-              station_id: station.station_id,
-              station_name: station.station_name || `Station ${station.station_id}`,
-              distance: station.total_distance || 0,
-              vehicle_count: vehicles.length || 1,
-              fire_point_count: Array.isArray(station.assigned_fire_points) ? station.assigned_fire_points.length : 0,
-              cluster_target: k,
-              base_color: getAlgoColor(algo),
-            }
+
+          vehicles.forEach((v, vIdx) => {
+            const points = Array.isArray(v.polyline) ? v.polyline : [];
+            const rawCoords = points
+              .filter(p => Array.isArray(p) && p.length >= 2)
+              .map(p => [Number(p[1]), Number(p[0])]);
+            if (rawCoords.length < 2) return;
+            const coords = smoothCoords(rawCoords, 3);
+
+            const vColor = vehicleColors[vIdx] || vehicleColors[vehicleColors.length - 1];
+            features.push({
+              type: 'Feature',
+              geometry: { type: 'LineString', coordinates: coords },
+              properties: {
+                route_id: routeId,
+                algorithm: algo,
+                station_id: station.station_id,
+                station_name: station.station_name || `Station ${station.station_id}`,
+                distance: station.total_distance || 0,
+                vehicle_index: vIdx,
+                vehicle_label: `Araç ${vIdx + 1}`,
+                vehicle_count: vehicles.length,
+                fire_point_count: Array.isArray(station.assigned_fire_points) ? station.assigned_fire_points.length : 0,
+                cluster_target: k,
+                vehicle_color: vColor,
+              }
+            });
+
+            // Araç ikonu için rotanın orta noktasını kaydet (coords = [lon,lat])
+            const midCoord = coords[Math.floor(coords.length / 2)];
+            iconPlacements.push({ latLng: [midCoord[1], midCoord[0]], color: vColor, vIdx, stationId: station.station_id });
           });
         });
 
@@ -2007,22 +2071,39 @@
           style: routeStyle,
           onEachFeature: (feature, routeLayer) => {
             const p = feature.properties || {};
+            const vcColor = p.vehicle_color || '#6b7280';
             routeLayer.bindPopup(
-              `<b>${p.algorithm} Rota</b><br>` +
-              `<strong>Istasyon:</strong> ${p.station_name} (${p.station_id})<br>` +
-              `<strong>Arac sayisi:</strong> ${p.vehicle_count}<br>` +
+              `<b>${p.algorithm} Rota – <span style="color:${vcColor}">${p.vehicle_label || 'Araç'}</span></b><br>` +
+              `<strong>İstasyon:</strong> ${p.station_name} (${p.station_id})<br>` +
+              `<strong>Araç:</strong> <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${vcColor};margin-right:4px"></span>${p.vehicle_label}<br>` +
               `<strong>Atanan nokta:</strong> ${p.fire_point_count}<br>` +
-              `<strong>Toplam mesafe:</strong> ${Number(p.distance || 0).toFixed(2)} km<br>` +
-              `<strong>Hedef kume:</strong> ${p.cluster_target}`
+              `<strong>Toplam mesafe:</strong> ${Number(p.distance || 0).toFixed(2)} km`
             );
           }
         }).addTo(map);
 
         layer._algorithm = algo;
         optimizationRouteLayers.push(layer);
-        ensureRouteLegend();
+
+        // Her araç rotasının ortasına 🚒 ikonu ekle
+        iconPlacements.forEach(({ latLng, color, vIdx }) => {
+          const icon = L.divIcon({
+            className: '',
+            html: `<div style="background:${color};color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.45);cursor:default" title="${algo} – Araç ${vIdx + 1}">🚒</div>`,
+            iconSize: [26, 26],
+            iconAnchor: [13, 13],
+          });
+          const marker = L.marker(latLng, { icon, pane: 'routePane', interactive: false });
+          marker._algorithm = algo;
+          marker.addTo(map);
+          vehicleIconLayers.push(marker);
+        });
+
+        loadedAlgorithms.add(algo);
+        rebuildRouteLegend();
         rebuildRouteSelect();
         refreshRouteStyles();
+        setBtnActive(algo === 'SA' ? 'btnRouteSA' : 'btnRouteGA', true);
 
         info.textContent = `${algo} rotalari aktif (${features.length} rota)`;
         setStatus(`${algo} rotalari aktif (${features.length} rota)`);
@@ -2197,6 +2278,12 @@
         pipelineLegendCtl.addTo(map);
 
         allActiveLayers.push(pipelineLayer);
+        // Haritada göster için snapshot kaydet
+        window._lastPipelineSnapshot = {
+          pipeline_points: pipelinePoints,
+          stations: Array.from(usedStationIds).map(id => stationById[id]).filter(Boolean),
+          n, k
+        };
         info.textContent = `Pipeline: ${pipelinePoints.length} nokta + ${stationFeatures.length} istasyon (n=${n}, k=${k})`;
         setStatus(`Pipeline aktif (${pipelinePoints.length} nokta)`);
       } catch (e) {
@@ -2204,6 +2291,64 @@
         console.error('Pipeline layer hatası:', e);
       }
     }
+
+    // ── Kaydedilmiş pipeline'ı haritada göster ──────────────────
+    window.loadPipelineOnMap = function(snapshot) {
+      if (!snapshot || !snapshot.pipeline_points) return;
+      const info = document.getElementById('info');
+      // Mevcut pipeline katmanını temizle
+      if (pipelineLayer) {
+        try { map.removeLayer(pipelineLayer); } catch(e) {}
+        pipelineLayer = null;
+      }
+      if (pipelineLegendCtl) { try { pipelineLegendCtl.remove(); } catch(e) {} pipelineLegendCtl = null; }
+
+      const pipelinePoints = snapshot.pipeline_points;
+      const stations = snapshot.stations || [];
+      const stationById = {};
+      stations.forEach(s => { stationById[String(s.id)] = s; });
+      const usedStationIds = new Set(pipelinePoints.map(p => String(p.fire_station_id)));
+
+      const pointFeatures = pipelinePoints.map(p => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [Number(p.lon), Number(p.lat)] },
+        properties: { type: 'fire_point', id: p.id, risk_class: p.risk, demand: p.demand, fire_station_id: p.fire_station_id, station_distance_km: p.station_distance_km }
+      }));
+      const stationFeatures = Array.from(usedStationIds)
+        .map(id => stationById[id]).filter(Boolean)
+        .map(s => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [Number(s.lon), Number(s.lat)] }, properties: { type: 'fire_station', id: s.id, name: s.name || `Station ${s.id}` } }));
+
+      const geoJson = { type: 'FeatureCollection', features: [...pointFeatures, ...stationFeatures] };
+
+      if (!map.getPane('pipelinePane')) {
+        map.createPane('pipelinePane');
+        map.getPane('pipelinePane').style.zIndex = 760;
+      }
+
+      pipelineLayer = L.geoJSON(geoJson, {
+        pane: 'pipelinePane',
+        pointToLayer: (feature, latlng) => {
+          const ft = (feature.properties || {}).type || 'fire_point';
+          const risk = String((feature.properties || {}).risk_class || '').toUpperCase();
+          const color = risk === 'HIGH' ? '#dc2626' : '#f59e0b';
+          if (ft === 'fire_station') {
+            return L.marker(latlng, { icon: L.divIcon({ className: 'fireStationSquareIcon', iconSize:[18,18], iconAnchor:[9,9], html:'<div style="width:18px;height:18px;background:#ff2d2d;border:2px solid #b30000;border-radius:2px;box-sizing:border-box;"></div>' }) });
+          }
+          return L.circleMarker(latlng, { radius:4, color, weight:1, fillColor:color, fillOpacity:0.85, opacity:0.9 });
+        }
+      }).addTo(map);
+
+      allActiveLayers.push(pipelineLayer);
+      setBtnActive('btnPipeline', true);
+      info.textContent = `Kaydedilmiş pipeline: ${pipelinePoints.length} nokta (n=${snapshot.n}, k=${snapshot.k})`;
+      setStatus(`Kaydedilmiş pipeline yüklendi (${pipelinePoints.length} nokta)`);
+
+      // Haritayı ilk noktaya uçur
+      if (pipelinePoints.length > 0) {
+        const first = pipelinePoints[0];
+        map.setView([Number(first.lat), Number(first.lon)], 12, { animate: true });
+      }
+    };
 
     async function togglePipelineLayer() {
       const info = document.getElementById('info');
@@ -2218,12 +2363,14 @@
         }
         const idx = allActiveLayers.indexOf(layerToRemove);
         if (idx > -1) allActiveLayers.splice(idx, 1);
+        setBtnActive('btnPipeline', false);
         info.textContent = 'Pipeline sonucu kapatıldı';
         setStatus('Pipeline sonucu kapatıldı');
         return;
       }
 
       await loadPipelineLayer();
+      setBtnActive('btnPipeline', !!pipelineLayer);
     }
 
     async function loadHeatmapGrid() {
@@ -2337,12 +2484,14 @@
           try { heatmapLegendCtl.remove(); } catch(e) {}
           heatmapLegendCtl = null;
         }
+        setBtnActive('btnHeatmap', false);
         info.textContent = 'Yangın Risk Heatmap kapatıldı';
         setStatus('Heatmap kapatıldı');
         return;
       }
 
       await loadHeatmapGrid();
+      setBtnActive('btnHeatmap', !!heatmapLayer);
     }
 
     async function toggleFireRisk() {
@@ -2355,12 +2504,14 @@
           try { fireRiskLegendCtl.remove(); } catch(e) {}
           fireRiskLegendCtl = null;
         }
+        setBtnActive('btnFireRisk', false);
         info.textContent = 'ML Yangın Risk Noktaları kapatıldı';
         setStatus('Yangın risk kapatıldı');
         return;
       }
 
       await loadFireRiskPoints();
+      setBtnActive('btnFireRisk', !!fireRiskLayer);
     }
 
     async function loadRiskForView(){
@@ -2662,6 +2813,7 @@
         airAccessLayer = null;
         if (legendCtl) { try { legendCtl.remove(); } catch(e) {} }
         legendCtl = null;
+        setBtnActive('btnAirAccess', false);
         info.textContent = 'Hava erişilebilirliği kapatıldı';
         setStatus('Hava erişilebilirliği kapatıldı');
         const idx = allActiveLayers.indexOf(layerToRemove);
@@ -2670,6 +2822,7 @@
       }
 
       await loadAirAccessibility();
+      setBtnActive('btnAirAccess', !!airAccessLayer);
     }
 
     async function loadProximityGrid() {
@@ -2849,12 +3002,14 @@
         }
         const idx = allActiveLayers.indexOf(layerToRemove);
         if (idx > -1) allActiveLayers.splice(idx, 1);
+        setBtnActive('btnProximity', false);
         info.textContent = 'Kaynak yakınlık haritası kapatıldı';
         setStatus('Kaynak yakınlık haritası kapatıldı');
         return;
       }
 
       await loadProximityGrid();
+      setBtnActive('btnProximity', !!proximityLayer);
     }
 
     function formatAirAccessLevel(level) {
@@ -3040,19 +3195,26 @@
         }
         const idx = allActiveLayers.indexOf(layerToRemove);
         if (idx > -1) allActiveLayers.splice(idx, 1);
+        setBtnActive('btnIntegrated', false);
         info.textContent = 'Entegre katman kapatıldı';
         setStatus('Entegre katman kapatıldı');
         return;
       }
 
       await loadIntegratedLayer();
+      setBtnActive('btnIntegrated', !!integratedLayer);
     }
 
     function safeBind(id, eventName, handler){
       const el = document.getElementById(id);
-      if (el) {
-        el.addEventListener(eventName, handler);
-      }
+      if (el) el.addEventListener(eventName, handler);
+    }
+
+    function setBtnActive(id, isActive) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (isActive) el.classList.add('btn-active');
+      else el.classList.remove('btn-active');
     }
 
     safeBind('btnFires', 'click', loadFires);
@@ -3093,6 +3255,7 @@
     safeBind('btnSpread', 'click', drawSpread);
     safeBind('btnAddFirePoint', 'click', toggleSpreadAddMode);
     safeBind('btnSpreadRefresh', 'click', loadSpreadScenarios);
+    safeBind('btnSpreadClearAll', 'click', clearAllSpreadScenarios);
     safeBind('btnSaveMyLocation', 'click', saveMySpreadLocation);
     safeBind('btnRequestNotif', 'click', requestSpreadNotifPermission);
 
@@ -3565,20 +3728,16 @@
 
     async function clearAllSpreadScenarios() {
       try {
-        const res = await fetch('/api/fire-spread/scenarios');
-        if (!res.ok) return;
-        const scenarios = await res.json();
-        for (const s of scenarios) {
-          if (s.status === 'active') {
-            await fetch(`/api/fire-spread/scenarios/${s.id}/stop`, {method:'PATCH'});
-          }
-        }
+        const res = await fetch('/api/fire-spread/scenarios', { method: 'DELETE' });
+        if (!res.ok) throw new Error('API hatası: ' + res.status);
         _clearSpreadLayer();
         _activeSpreadId = null;
+        if (_spreadWS) { try { _spreadWS.close(); } catch(e) {} _spreadWS = null; }
         await loadSpreadScenarios();
-        setStatus('Tum senaryolar sifirlandi');
+        setStatus('Tüm senaryolar sıfırlandı');
       } catch(e) {
-        setStatus('Sifirlama basarisiz');
+        setStatus('Sıfırlama başarısız: ' + e.message);
+        console.error('clearAllSpreadScenarios error:', e);
       }
     }
 
@@ -3701,6 +3860,380 @@
 
     loadSpreadScenarios();
   </script>
+
+  <!-- ═══════════ PROFİL MODAL ═══════════ -->
+  <div id="profileModal" role="dialog" aria-modal="true" aria-label="Kullanıcı Profili">
+    <div class="pm-backdrop" id="pmBackdrop"></div>
+    <div class="pm-sheet">
+      <div class="pm-header">
+        <div class="pm-avatar" id="pmAvatar">??</div>
+        <div class="pm-headinfo">
+          <div class="pm-name" id="pmName">—</div>
+          <div class="pm-email" id="pmEmail">—</div>
+          <span class="pm-role-badge user" id="pmRoleBadge">Kullanıcı</span>
+        </div>
+        <button class="pm-close" id="pmClose" title="Kapat">✕</button>
+      </div>
+      <div class="pm-tabs">
+        <button class="pm-tab active" data-tab="info">👤 Profil</button>
+        <button class="pm-tab" data-tab="pipelines">📋 Pipeline'larım</button>
+      </div>
+      <div class="pm-body">
+        <!-- Tab: Profil -->
+        <div id="pmTabInfo">
+          <div class="pm-section">
+            <div class="pm-section-title">Hesap Bilgileri</div>
+            <div class="pm-field">
+              <label>Görünen Ad</label>
+              <input type="text" id="pmDisplayName" placeholder="Adınızı girin" maxlength="60"/>
+            </div>
+            <div class="pm-field">
+              <label>E-posta</label>
+              <input type="text" id="pmEmailInput" readonly/>
+            </div>
+            <div class="pm-field">
+              <label>Rol</label>
+              <input type="text" id="pmRoleInput" readonly/>
+            </div>
+          </div>
+          <div class="pm-section">
+            <div class="pm-section-title">İstatistikler</div>
+            <div class="pm-stat-row">
+              <div class="pm-stat">
+                <div class="pm-stat-val" id="pmStatPipelines">0</div>
+                <div class="pm-stat-lbl">Kayıtlı Pipeline</div>
+              </div>
+              <div class="pm-stat">
+                <div class="pm-stat-val" id="pmStatLastRun">—</div>
+                <div class="pm-stat-lbl">Son Çalıştırma</div>
+              </div>
+            </div>
+          </div>
+          <button class="pm-save-btn" id="pmSaveBtn">Değişiklikleri Kaydet</button>
+        </div>
+        <!-- Tab: Pipeline'larım -->
+        <div id="pmTabPipelines" style="display:none">
+          <div class="pm-section">
+            <div class="pm-section-title">Kaydedilen Pipeline Sonuçları</div>
+            <div class="pm-pipeline-list" id="pmPipelineList">
+              <div class="pm-empty"><div class="pm-empty-icon">📭</div>Henüz kaydedilen pipeline yok.<br>PDF İndir butonunu kullanarak pipeline'ları buraya kaydedin.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // ═══════════ PROFİL MODAL JS ═══════════
+  (function() {
+    // ── Yardımcı ──────────────────────────────────────────
+    function authHeaders() {
+      const token = sessionStorage.getItem('access_token');
+      return token ? { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+    }
+
+    async function apiFetch(url, options) {
+      async function _doFetch(token) {
+        const hdrs = { 'Content-Type': 'application/json' };
+        if (token) hdrs['Authorization'] = 'Bearer ' + token;
+        return fetch(url, { headers: hdrs, ...options });
+      }
+
+      let token = sessionStorage.getItem('access_token');
+      let res = await _doFetch(token);
+
+      // 401 alındıysa token Firebase JWT olabilir — backend JWT'ye çevir ve tekrar dene
+      if (res.status === 401 && token) {
+        try {
+          const exRes = await fetch('/auth/firebase-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ firebase_token: token }),
+          });
+          if (exRes.ok) {
+            const { access_token: newToken } = await exRes.json();
+            sessionStorage.setItem('access_token', newToken);
+            res = await _doFetch(newToken);
+          }
+        } catch (_) {}
+      }
+
+      if (!res.ok) throw new Error(await res.text());
+      if (res.status === 204) return null;
+      return res.json();
+    }
+
+    function getInitials(name) {
+      if (!name || name === '—') return '?';
+      return name.split(/[\s@]/)[0].slice(0, 2).toUpperCase();
+    }
+    function formatDate(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      return d.toLocaleDateString('tr-TR', { day:'2-digit', month:'short', year:'numeric' }) +
+             ' ' + d.toLocaleTimeString('tr-TR', { hour:'2-digit', minute:'2-digit' });
+    }
+
+    // ── Modal elemanları ───────────────────────────────────
+    const modal = document.getElementById('profileModal');
+    const pmClose = document.getElementById('pmClose');
+    const pmBackdrop = document.getElementById('pmBackdrop');
+    const pmAvatar = document.getElementById('pmAvatar');
+    const pmName = document.getElementById('pmName');
+    const pmEmail = document.getElementById('pmEmail');
+    const pmRoleBadge = document.getElementById('pmRoleBadge');
+    const pmDisplayName = document.getElementById('pmDisplayName');
+    const pmEmailInput = document.getElementById('pmEmailInput');
+    const pmRoleInput = document.getElementById('pmRoleInput');
+    const pmSaveBtn = document.getElementById('pmSaveBtn');
+    const pmStatPipelines = document.getElementById('pmStatPipelines');
+    const pmStatLastRun = document.getElementById('pmStatLastRun');
+    const pmPipelineList = document.getElementById('pmPipelineList');
+
+    let _pipelineCache = [];
+
+    // ── Tab geçişi ─────────────────────────────────────────
+    document.querySelectorAll('.pm-tab').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.pm-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        const tab = this.dataset.tab;
+        document.getElementById('pmTabInfo').style.display = tab === 'info' ? '' : 'none';
+        document.getElementById('pmTabPipelines').style.display = tab === 'pipelines' ? '' : 'none';
+        if (tab === 'pipelines') loadAndRenderPipelines();
+      });
+    });
+
+    // ── Aç / kapat ─────────────────────────────────────────
+    function openModal() {
+      const username = sessionStorage.getItem('username') || '—';
+      const role = sessionStorage.getItem('role') || 'user';
+      const displayName = localStorage.getItem('koru_display_name') || username;
+
+      pmAvatar.textContent = getInitials(displayName);
+      pmName.textContent = displayName;
+      pmEmail.textContent = username;
+      pmDisplayName.value = displayName;
+      pmEmailInput.value = username;
+      pmRoleInput.value = role === 'admin' ? 'Yönetici (Admin)' : 'Kullanıcı';
+      pmRoleBadge.textContent = role === 'admin' ? 'Admin' : 'Kullanıcı';
+      pmRoleBadge.className = 'pm-role-badge ' + (role === 'admin' ? 'admin' : 'user');
+
+      // Profil tab aktif
+      document.querySelectorAll('.pm-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.pm-tab')[0].classList.add('active');
+      document.getElementById('pmTabInfo').style.display = '';
+      document.getElementById('pmTabPipelines').style.display = 'none';
+
+      // İstatistikleri API'den çek
+      loadAndRenderPipelines(true);
+
+      modal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      modal.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    pmClose.addEventListener('click', closeModal);
+    pmBackdrop.addEventListener('click', closeModal);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+    // ── Görünen ad kaydet ──────────────────────────────────
+    pmSaveBtn.addEventListener('click', function() {
+      const newName = pmDisplayName.value.trim();
+      if (!newName) return;
+      localStorage.setItem('koru_display_name', newName);
+      pmName.textContent = newName;
+      pmAvatar.textContent = getInitials(newName);
+      const userDisplay = document.getElementById('userDisplay');
+      if (userDisplay) {
+        userDisplay.innerHTML = `<span style="font-size:15px;">👤</span><span>${newName}</span><span style="font-size:9px;opacity:.7;">▼</span>`;
+      }
+      pmSaveBtn.textContent = '✓ Kaydedildi';
+      pmSaveBtn.disabled = true;
+      setTimeout(() => { pmSaveBtn.textContent = 'Değişiklikleri Kaydet'; pmSaveBtn.disabled = false; }, 1800);
+    });
+
+    // ── API: pipeline listesi yükle ────────────────────────
+    async function loadAndRenderPipelines(statsOnly = false) {
+      pmPipelineList.innerHTML = '<div class="pm-empty"><div class="pm-empty-icon">⏳</div>Yükleniyor...</div>';
+      try {
+        const data = await apiFetch('/api/pipelines');
+        _pipelineCache = data || [];
+        pmStatPipelines.textContent = _pipelineCache.length;
+        if (_pipelineCache.length > 0) {
+          const last = _pipelineCache[0]; // desc sıralı geliyor
+          pmStatLastRun.textContent = formatDate(last.created_at).split(' ').slice(0,2).join(' ');
+        } else {
+          pmStatLastRun.textContent = '—';
+        }
+        if (!statsOnly) renderPipelineList();
+      } catch(e) {
+        _pipelineCache = [];
+        pmStatPipelines.textContent = '0';
+        if (!statsOnly) {
+          pmPipelineList.innerHTML = '<div class="pm-empty"><div class="pm-empty-icon">⚠️</div>Yüklenemedi. Oturum açık mı?</div>';
+        }
+      }
+    }
+
+    function renderPipelineList() {
+      if (!_pipelineCache.length) {
+        pmPipelineList.innerHTML = '<div class="pm-empty"><div class="pm-empty-icon">📭</div>Henüz kaydedilen pipeline yok.<br>Pipeline çalıştırın, ardından kaydedin.</div>';
+        return;
+      }
+      pmPipelineList.innerHTML = '';
+      _pipelineCache.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'pm-pipeline-item';
+        div.innerHTML =
+          '<div class="pm-pipeline-icon">📄</div>' +
+          '<div class="pm-pipeline-info">' +
+            `<div class="pm-pipeline-name">${item.name}</div>` +
+            `<div class="pm-pipeline-meta">n=${item.n} • k=${item.k} • ${formatDate(item.created_at)}</div>` +
+          '</div>' +
+          '<div class="pm-pipeline-actions">' +
+            `<button class="pm-pipeline-btn show" title="Haritada Göster">🗺 Göster</button>` +
+            `<button class="pm-pipeline-btn pdf" data-id="${item.id}" title="PDF İndir">⬇ PDF</button>` +
+            `<button class="pm-pipeline-btn del" data-id="${item.id}" title="Sil">✕</button>` +
+          '</div>';
+
+        div.querySelector('.show').addEventListener('click', function() {
+          closeModal();
+          if (item.snapshot && typeof window.loadPipelineOnMap === 'function') {
+            window.loadPipelineOnMap(item.snapshot);
+          } else {
+            const nInput = document.getElementById('pipelineN');
+            const kInput = document.getElementById('pipelineK');
+            if (nInput) nInput.value = item.n || 20;
+            if (kInput) kInput.value = item.k || 4;
+            const btn = document.getElementById('btnPipeline');
+            if (btn) btn.click();
+          }
+        });
+
+        div.querySelector('.pdf').addEventListener('click', async function() {
+          const self = this;
+          self.disabled = true;
+          self.textContent = '⏳';
+
+          async function fetchPdf(token) {
+            return fetch(`/api/pipelines/${item.id}/pdf`, {
+              headers: token ? { 'Authorization': 'Bearer ' + token } : {},
+            });
+          }
+
+          try {
+            let token = sessionStorage.getItem('access_token');
+            let res = await fetchPdf(token);
+
+            // Token Firebase JWT ise exchange yap ve tekrar dene
+            if (res.status === 401 && token) {
+              const exRes = await fetch('/auth/firebase-token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ firebase_token: token }),
+              });
+              if (exRes.ok) {
+                const { access_token: newToken } = await exRes.json();
+                sessionStorage.setItem('access_token', newToken);
+                res = await fetchPdf(newToken);
+              }
+            }
+
+            if (!res.ok) { alert('PDF oluşturulamadı: ' + res.status); return; }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `koru_pipeline_${item.id}.pdf`;
+            a.click();
+            URL.revokeObjectURL(url);
+          } catch(e) {
+            alert('PDF indirilemedi: ' + e.message);
+          } finally {
+            self.disabled = false;
+            self.textContent = '⬇ PDF';
+          }
+        });
+
+        div.querySelector('.del').addEventListener('click', async function() {
+          const id = this.dataset.id;
+          this.disabled = true;
+          try {
+            await apiFetch(`/api/pipelines/${id}`, { method: 'DELETE' });
+            _pipelineCache = _pipelineCache.filter(p => p.id !== Number(id));
+            pmStatPipelines.textContent = _pipelineCache.length;
+            renderPipelineList();
+          } catch(e) {
+            this.disabled = false;
+          }
+        });
+
+        pmPipelineList.appendChild(div);
+      });
+    }
+
+    // ── Global: modal aç ──────────────────────────────────
+    window.openProfileModal = openModal;
+
+    // ── PDF İndir butonunu pipeline DB'ye kaydet ───────────
+    // (Script sayfanın en altında olduğundan DOMContentLoaded gerekmez)
+    (function bindPipelineSave() {
+      const pdfBtn = document.getElementById('btnPipelinePDF');
+      if (pdfBtn) {
+        pdfBtn.addEventListener('click', async function() {
+          const nVal = parseInt(document.getElementById('pipelineN')?.value || '20');
+          const kVal = parseInt(document.getElementById('pipelineK')?.value || '4');
+          try {
+            await apiFetch('/api/pipelines', {
+              method: 'POST',
+              body: JSON.stringify({
+                name: `Pipeline Sonucu – n=${nVal} k=${kVal}`,
+                n: nVal,
+                k: kVal,
+                snapshot: window._lastPipelineSnapshot || null,
+              }),
+            });
+          } catch(e) {
+            console.warn('Pipeline kaydedilemedi:', e);
+          }
+        });
+      }
+
+      // ── Pipeline çalıştırma butonu: tamamlanınca otomatik kaydet ──
+      const pipelineBtn = document.getElementById('btnPipeline');
+      if (pipelineBtn) {
+        pipelineBtn.addEventListener('click', async function() {
+          // Pipeline yüklenmesi async — 2.5sn sonra snapshot hazır olur
+          setTimeout(async () => {
+            if (!window._lastPipelineSnapshot) return;
+            const snap = window._lastPipelineSnapshot;
+            const nVal = snap.n || parseInt(document.getElementById('pipelineN')?.value || '20');
+            const kVal = snap.k || parseInt(document.getElementById('pipelineK')?.value || '4');
+            try {
+              const saved = await apiFetch('/api/pipelines', {
+                method: 'POST',
+                body: JSON.stringify({
+                  name: `Pipeline Sonucu – n=${nVal} k=${kVal}`,
+                  n: nVal,
+                  k: kVal,
+                  snapshot: snap,
+                }),
+              });
+              if (saved) _pipelineCache.unshift(saved);
+            } catch(e) {
+              console.warn('Pipeline oto-kayıt başarısız:', e);
+            }
+          }, 2500);
+        });
+      }
+    })();
+  })();
+  </script>
 </body>
 </html>
-

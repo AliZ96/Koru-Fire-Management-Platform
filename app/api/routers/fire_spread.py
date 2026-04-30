@@ -100,6 +100,15 @@ def stop_scenario(scenario_id: int, db: Session = Depends(get_db)):
     return {"status": "stopped"}
 
 
+@router.delete("/scenarios")
+def delete_all_scenarios(db: Session = Depends(get_db)):
+    """Tüm yangın yayılım senaryolarını ve snapshot'larını sil."""
+    db.query(SpreadSnapshot).delete()
+    db.query(FireScenario).delete()
+    db.commit()
+    return {"deleted": True}
+
+
 @router.get("/scenarios/{scenario_id}/eta")
 def get_eta_for_point(
     scenario_id: int, lat: float, lon: float, db: Session = Depends(get_db)

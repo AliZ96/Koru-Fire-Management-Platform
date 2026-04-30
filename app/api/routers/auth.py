@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from jose import jwt as jose_jwt
 
 from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse
 from app.services.auth_service import AuthService
-from app.core.security import get_current_user
+from app.core.security import get_current_user, create_access_token
 from app.db.session import get_db
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -36,3 +38,23 @@ def firefighter_login(payload: LoginRequest, db: Session = Depends(get_db)):
 @router.get("/me")
 def read_me(current_user: dict = Depends(get_current_user)):
     return current_user
+
+
+class FirebaseTokenRequest(BaseModel):
+    firebase_token: str
+
+
+@router.post("/firebase-token", response_model=TokenResponse)
+def firebase_token_exchange(payload: FirebaseTokenRequest):
+    """Firebase JWT'yi backend JWT'ye çevirir (pipeline ve API auth için)."""
+    try:
+        claims = jose_jwt.get_unverified_claims(payload.firebase_token)
+    except Exception as exc:
+        raise HTTPException(status_code=401, detail=f"Firebase token okunamadı: {exc}")
+
+    email = claims.get("email") or claims.get("sub") or ""
+    if not email:
+        raise HTTPException(status_code=400, detail="Firebase token'da email bulunamadı")
+
+    backend_token = create_access_token(data={"sub": email, "email": email, "role": "user"})
+    return TokenResponse(access_token=backend_token)

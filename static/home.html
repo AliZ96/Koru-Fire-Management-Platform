@@ -362,6 +362,39 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
 .auth-footer{text-align:center;font-size:12px;color:var(--text-dark-m);margin-top:8px}
 .auth-footer a{color:var(--accent);cursor:pointer;text-decoration:none;font-weight:600}
 .auth-footer a:hover{text-decoration:underline}
+    #profileModal{position:fixed;inset:0;z-index:20000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s ease}
+    #profileModal.open{opacity:1;pointer-events:auto}
+    #profileModal .pm-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px)}
+    #profileModal .pm-sheet{position:relative;background:rgba(8,21,16,.97);border:1px solid rgba(74,124,58,.35);border-radius:16px;width:min(520px,94vw);max-height:86vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.6);transform:translateY(20px) scale(.97);transition:transform .25s ease;font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+    #profileModal.open .pm-sheet{transform:translateY(0) scale(1)}
+    .pm-header{padding:20px 24px 0;display:flex;align-items:flex-start;gap:16px;flex-shrink:0}
+    .pm-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#10b981);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff;flex-shrink:0;letter-spacing:-1px;box-shadow:0 4px 16px rgba(37,99,235,.4)}
+    .pm-headinfo{flex:1;min-width:0}
+    .pm-name{font-size:18px;font-weight:700;color:#d1fae5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .pm-email{font-size:12px;color:#6b8f7a;margin-top:2px}
+    .pm-role-badge{display:inline-block;margin-top:6px;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase}
+    .pm-role-badge.admin{background:rgba(239,68,68,.18);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+    .pm-role-badge.user{background:rgba(37,99,235,.18);color:#93c5fd;border:1px solid rgba(37,99,235,.3)}
+    .pm-close{background:none;border:none;color:#6b8f7a;cursor:pointer;font-size:20px;padding:0;line-height:1;transition:color .15s;flex-shrink:0}
+    .pm-close:hover{color:#d1fae5}
+    .pm-tabs{display:flex;gap:0;border-bottom:1px solid rgba(74,124,58,.2);margin:16px 24px 0;flex-shrink:0}
+    .pm-tab{padding:8px 16px;font-size:12px;font-weight:600;color:#6b8f7a;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
+    .pm-tab.active{color:#4ade80;border-bottom-color:#4ade80}
+    .pm-tab:hover:not(.active){color:#d1fae5}
+    .pm-body{flex:1;overflow-y:auto;padding:20px 24px 24px}
+    .pm-body::-webkit-scrollbar{width:4px}
+    .pm-body::-webkit-scrollbar-track{background:transparent}
+    .pm-body::-webkit-scrollbar-thumb{background:rgba(74,124,58,.3);border-radius:2px}
+    .pm-section{margin-bottom:20px}
+    .pm-section-title{font-size:10px;font-weight:700;color:#6b8f7a;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(74,124,58,.12)}
+    .pm-field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+    .pm-field label{font-size:11px;font-weight:600;color:#6b8f7a;letter-spacing:.4px}
+    .pm-field input{background:rgba(255,255,255,.05);border:1px solid rgba(74,124,58,.25);border-radius:8px;padding:9px 12px;color:#d1fae5;font-size:13px;font-weight:500;font-family:inherit;outline:none;transition:border-color .15s}
+    .pm-field input:focus{border-color:#4ade80}
+    .pm-field input[readonly]{opacity:.55;cursor:default}
+    .pm-save-btn{width:100%;padding:10px;background:linear-gradient(135deg,#2563eb,#10b981);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s;letter-spacing:.3px}
+    .pm-save-btn:hover{opacity:.85}
+    .pm-save-btn:disabled{opacity:.4;cursor:default}
 
 </style>
 </head>
@@ -385,6 +418,17 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
     <a href="#features">Features</a>
     <a href="#impact">Impact</a>
     <a href="#" class="nav-cta js-open-auth" id="exploreMapBtn">Login</a>
+    <div id="navUserInfo" style="display:none;position:relative;">
+      <button id="navUserBtn" style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#F59E0B;background:none;border:1px solid rgba(245,158,11,.35);border-radius:10px;padding:7px 14px;cursor:pointer;font-family:var(--font);transition:all .2s;">
+        <span id="navUsername"></span>
+        <span style="font-size:9px;opacity:.7;">▼</span>
+      </button>
+      <div id="navUserDropdown" style="display:none;position:absolute;top:calc(100% + 8px);right:0;background:rgba(5,14,7,.97);border:1px solid rgba(74,124,58,.25);border-radius:12px;overflow:hidden;min-width:160px;box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:9999;">
+        <a href="#" id="navProfilLink" style="display:block;padding:11px 16px;font-size:13px;font-weight:600;color:#8DB87E;text-decoration:none;transition:all .15s;" onmouseover="this.style.background='rgba(74,124,58,.12)';this.style.color='#F59E0B'" onmouseout="this.style.background='';this.style.color='#8DB87E'">Profil</a>
+        <a href="/welcome" style="display:block;padding:11px 16px;font-size:13px;font-weight:600;color:#8DB87E;text-decoration:none;transition:all .15s;" onmouseover="this.style.background='rgba(74,124,58,.12)';this.style.color='#F59E0B'" onmouseout="this.style.background='';this.style.color='#8DB87E'">Uygulamaya Git</a>
+        <a href="#" id="navLogoutBtn" style="display:block;padding:11px 16px;font-size:13px;font-weight:600;color:#8DB87E;text-decoration:none;transition:all .15s;" onmouseover="this.style.background='rgba(74,124,58,.12)';this.style.color='#F59E0B'" onmouseout="this.style.background='';this.style.color='#8DB87E'">Oturum Kapat</a>
+      </div>
+    </div>
   </div>
   <button class="nav-mobile" id="navMobile" aria-label="Menu">
     <span></span><span></span><span></span>
@@ -405,7 +449,8 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
         <h1 class="hero-title">6,800 Fires. 80,000 Hectares.<br/><span class="accent">One Platform to Fight Back.</span></h1>
         <p class="hero-sub">KORU combines machine learning, GIS analytics, and metaheuristic route optimization to predict wildfire risk zones and generate strategic response plans — before the first flame ignites.</p>
         <div class="hero-ctas">
-          <a href="#" class="js-open-auth"><button class="btn-primary">Login</button></a>
+          <a href="#" class="js-open-auth" id="heroLoginBtn"><button class="btn-primary">Login</button></a>
+          <a href="/welcome" id="heroGetStartedBtn" style="display:none;"><button class="btn-primary">Get Started →</button></a>
           <a href="#features"><button class="btn-secondary">▶ View Demo</button></a>
         </div>
       </div>
@@ -774,6 +819,43 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
 <!-- ═══════ SCRIPTS ═══════ -->
 <script type="module" src="./firebase-init.js"></script>
 <script>
+// Kullanıcı giriş yapmışsa navbar'da hesap bilgisi göster
+(function() {
+  const token = sessionStorage.getItem('access_token');
+  const username = sessionStorage.getItem('username') || sessionStorage.getItem('email') || 'Kullanıcı';
+  if (token) {
+    const loginBtn = document.getElementById('exploreMapBtn');
+    const userInfo = document.getElementById('navUserInfo');
+    const navUsername = document.getElementById('navUsername');
+    if (loginBtn) loginBtn.style.display = 'none';
+    if (userInfo) { userInfo.style.display = 'flex'; }
+    if (navUsername) navUsername.textContent = '👤 ' + (localStorage.getItem('koru_display_name') || username);
+    const heroLogin = document.getElementById('heroLoginBtn');
+    const heroGet = document.getElementById('heroGetStartedBtn');
+    if (heroLogin) heroLogin.style.display = 'none';
+    if (heroGet) heroGet.style.display = 'inline';
+
+    const navUserBtn = document.getElementById('navUserBtn');
+    const navUserDropdown = document.getElementById('navUserDropdown');
+    if (navUserBtn && navUserDropdown) {
+      navUserBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        navUserDropdown.style.display = navUserDropdown.style.display === 'none' ? 'block' : 'none';
+      });
+      document.addEventListener('click', function() {
+        navUserDropdown.style.display = 'none';
+      });
+    }
+    const navLogoutBtn = document.getElementById('navLogoutBtn');
+    if (navLogoutBtn) {
+      navLogoutBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        sessionStorage.clear();
+        location.reload();
+      });
+    }
+  }
+})();
 // Auth modal
 function openAuth(e){if(e)e.preventDefault();switchTab('login');document.getElementById('authOverlay').classList.add('open');document.body.style.overflow='hidden';}
 function closeAuth(){document.getElementById('authOverlay').classList.remove('open');document.body.style.overflow='';}
@@ -884,14 +966,21 @@ async function handleLogin(e){
     }
 
     const credential = await api.signInWithEmailAndPassword(auth, email, password);
-    const token = await credential.user.getIdToken();
+    const firebaseToken = await credential.user.getIdToken();
     await pingFirestoreUser({
-      idToken: token,
+      idToken: firebaseToken,
       uid: credential.user.uid,
       username: credential.user.displayName || email,
       role: 'USER',
     });
-    sessionStorage.setItem('access_token', token);
+    // Firebase token → Backend JWT (pipeline API auth için)
+    const bResp = await fetch('/auth/firebase-token', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({firebase_token: firebaseToken}),
+    });
+    const backendToken = bResp.ok ? (await bResp.json()).access_token : firebaseToken;
+    sessionStorage.setItem('access_token', backendToken);
     sessionStorage.setItem('username', credential.user.displayName || email);
     sessionStorage.setItem('email', email);
     sessionStorage.setItem('role', 'user');
@@ -929,14 +1018,21 @@ async function handleSignup(e){
     }
 
     const credential = await api.createUserWithEmailAndPassword(auth, email, password);
-    const token = await credential.user.getIdToken();
+    const firebaseToken = await credential.user.getIdToken();
     await pingFirestoreUser({
-      idToken: token,
+      idToken: firebaseToken,
       uid: credential.user.uid,
       username: email,
       role: 'USER',
     });
-    sessionStorage.setItem('access_token', token);
+    // Firebase token → Backend JWT (pipeline API auth için)
+    const bResp = await fetch('/auth/firebase-token', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({firebase_token: firebaseToken}),
+    });
+    const backendToken = bResp.ok ? (await bResp.json()).access_token : firebaseToken;
+    sessionStorage.setItem('access_token', backendToken);
     sessionStorage.setItem('username', email);
     sessionStorage.setItem('email', email);
     sessionStorage.setItem('role', 'user');
@@ -992,6 +1088,114 @@ document.querySelectorAll('#navLinks a').forEach(a => {
     if (window.innerWidth <= 768) nl.style.cssText = '';
   });
 });
+
+// ── Nav Profil link ── (modal HTML aşağıda, DOMContentLoaded ile bağla)
+document.addEventListener('DOMContentLoaded', function() {
+(function(){
+  function getInitials(name) {
+    if (!name) return '?';
+    return name.split(/[\s@]/)[0].slice(0, 2).toUpperCase();
+  }
+  const modal = document.getElementById('profileModal');
+  const pmClose = document.getElementById('pmClose');
+  const pmBackdrop = document.getElementById('pmBackdrop');
+  const pmAvatar = document.getElementById('pmAvatar');
+  const pmName = document.getElementById('pmName');
+  const pmEmail = document.getElementById('pmEmail');
+  const pmRoleBadge = document.getElementById('pmRoleBadge');
+  const pmDisplayName = document.getElementById('pmDisplayName');
+  const pmEmailInput = document.getElementById('pmEmailInput');
+  const pmRoleInput = document.getElementById('pmRoleInput');
+  const pmSaveBtn = document.getElementById('pmSaveBtn');
+
+  function openProfileModal() {
+    const uname = sessionStorage.getItem('username') || sessionStorage.getItem('email') || 'Kullanıcı';
+    const role = sessionStorage.getItem('role') || 'user';
+    const dname = localStorage.getItem('koru_display_name') || uname;
+    pmAvatar.textContent = getInitials(dname);
+    pmName.textContent = dname;
+    pmEmail.textContent = uname;
+    pmDisplayName.value = dname;
+    pmEmailInput.value = uname;
+    pmRoleInput.value = role === 'admin' ? 'Yönetici (Admin)' : 'Kullanıcı';
+    pmRoleBadge.textContent = role === 'admin' ? 'Admin' : 'Kullanıcı';
+    pmRoleBadge.className = 'pm-role-badge ' + (role === 'admin' ? 'admin' : 'user');
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeProfileModal() {
+    modal.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  if (pmClose) pmClose.addEventListener('click', closeProfileModal);
+  if (pmBackdrop) pmBackdrop.addEventListener('click', closeProfileModal);
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeProfileModal(); });
+
+  if (pmSaveBtn) {
+    pmSaveBtn.addEventListener('click', function() {
+      const newName = pmDisplayName.value.trim();
+      if (!newName) return;
+      localStorage.setItem('koru_display_name', newName);
+      pmName.textContent = newName;
+      pmAvatar.textContent = getInitials(newName);
+      const nameEl = document.getElementById('navUsername');
+      if (nameEl) nameEl.textContent = newName;
+      pmSaveBtn.textContent = '✓ Kaydedildi';
+      pmSaveBtn.disabled = true;
+      setTimeout(function() { pmSaveBtn.textContent = 'Değişiklikleri Kaydet'; pmSaveBtn.disabled = false; }, 1800);
+    });
+  }
+
+  const navProfilLink = document.getElementById('navProfilLink');
+  if (navProfilLink) {
+    navProfilLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      document.getElementById('navUserDropdown').style.display = 'none';
+      openProfileModal();
+    });
+  }
+})();
+}); // DOMContentLoaded
 </script>
+
+<div id="profileModal" role="dialog" aria-modal="true" aria-label="Kullanıcı Profili">
+  <div class="pm-backdrop" id="pmBackdrop"></div>
+  <div class="pm-sheet">
+    <div class="pm-header">
+      <div class="pm-avatar" id="pmAvatar">??</div>
+      <div class="pm-headinfo">
+        <div class="pm-name" id="pmName">—</div>
+        <div class="pm-email" id="pmEmail">—</div>
+        <span class="pm-role-badge user" id="pmRoleBadge">Kullanıcı</span>
+      </div>
+      <button class="pm-close" id="pmClose" title="Kapat">✕</button>
+    </div>
+    <div class="pm-tabs">
+      <button class="pm-tab active" data-tab="info">👤 Profil</button>
+    </div>
+    <div class="pm-body">
+      <div id="pmTabInfo">
+        <div class="pm-section">
+          <div class="pm-section-title">Hesap Bilgileri</div>
+          <div class="pm-field">
+            <label>Görünen Ad</label>
+            <input type="text" id="pmDisplayName" placeholder="Adınızı girin" maxlength="60"/>
+          </div>
+          <div class="pm-field">
+            <label>E-posta</label>
+            <input type="text" id="pmEmailInput" readonly/>
+          </div>
+          <div class="pm-field">
+            <label>Rol</label>
+            <input type="text" id="pmRoleInput" readonly/>
+          </div>
+        </div>
+        <button class="pm-save-btn" id="pmSaveBtn">Değişiklikleri Kaydet</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
