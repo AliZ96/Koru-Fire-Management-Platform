@@ -32,6 +32,13 @@ The KORU platform consists of five primary integrated modules:
 
 ## Local Setup and Installation
 
+## Firebase Cutover Notes
+
+- Backend persistence now uses Firestore collections (`users`, `scenarios`, `fire_scenarios`, `spread_alerts`, `user_locations`).
+- `FIREBASE_PROJECT_ID` and optional `FIREBASE_CREDENTIALS_PATH` are required for backend auth/persistence.
+- Geospatial heavy queries can be delegated to a Cloud Run service via `GEO_SERVICE_BASE_URL`.
+- Existing FastAPI endpoint contracts are preserved to keep frontend compatibility during migration.
+
 ### Prerequisites
 
 To run the project locally, ensure you have the following installed:

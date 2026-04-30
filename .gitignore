@@ -43,6 +43,13 @@ venv.bak/
 # ===============================
 .env
 .env.local
+.env.*
+!.env.example
+
+# Firebase / secrets
+secrets/
+*.serviceAccount.json
+*firebase*adminsdk*.json
 
 # ===============================
 # IDE / Editor Settings

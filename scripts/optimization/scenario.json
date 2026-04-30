@@ -1,0 +1,488 @@
+{
+  "scenario_id": "scenario-1777565546",
+  "name": "Pipeline n=20 k=4",
+  "created_at": "2026-04-30T16:12:26.741189+00:00",
+  "summary": {
+    "total_points": 20,
+    "high_count": 10,
+    "low_count": 10,
+    "total_stations": 4,
+    "total_clusters": 4,
+    "critical_clusters": 0
+  },
+  "points": [
+    {
+      "id": 482,
+      "demand": 99,
+      "fire_station_id": 564,
+      "risk_class": "HIGH",
+      "station_distance_km": 0.0693
+    },
+    {
+      "id": 183,
+      "demand": 68,
+      "fire_station_id": 593,
+      "risk_class": "HIGH",
+      "station_distance_km": 0.0723
+    },
+    {
+      "id": 159,
+      "demand": 83,
+      "fire_station_id": 589,
+      "risk_class": "HIGH",
+      "station_distance_km": 0.6343
+    },
+    {
+      "id": 349,
+      "demand": 79,
+      "fire_station_id": 589,
+      "risk_class": "HIGH",
+      "station_distance_km": 0.6161
+    },
+    {
+      "id": 1,
+      "demand": 79,
+      "fire_station_id": 598,
+      "risk_class": "HIGH",
+      "station_distance_km": 0.2109
+    },
+    {
+      "id": 163,
+      "demand": 12,
+      "fire_station_id": 589,
+      "risk_class": "LOW",
+      "station_distance_km": 0.3351
+    },
+    {
+      "id": 436,
+      "demand": 65,
+      "fire_station_id": 564,
+      "risk_class": "HIGH",
+      "station_distance_km": 0.2653
+    },
+    {
+      "id": 198,
+      "demand": 23,
+      "fire_station_id": 589,
+      "risk_class": "LOW",
+      "station_distance_km": 0.065
+    },
+    {
+      "id": 493,
+      "demand": 99,
+      "fire_station_id": 564,
+      "risk_class": "HIGH",
+      "station_distance_km": 0.1065
+    },
+    {
+      "id": 551,
+      "demand": 50,
+      "fire_station_id": 564,
+      "risk_class": "LOW",
+      "station_distance_km": 0.5227
+    },
+    {
+      "id": 129,
+      "demand": 49,
+      "fire_station_id": 598,
+      "risk_class": "LOW",
+      "station_distance_km": 0.0291
+    },
+    {
+      "id": 33,
+      "demand": 38,
+      "fire_station_id": 589,
+      "risk_class": "LOW",
+      "station_distance_km": 0.2322
+    },
+    {
+      "id": 223,
+      "demand": 32,
+      "fire_station_id": 598,
+      "risk_class": "LOW",
+      "station_distance_km": 0.1412
+    },
+    {
+      "id": 289,
+      "demand": 93,
+      "fire_station_id": 593,
+      "risk_class": "HIGH",
+      "station_distance_km": 0.1661
+    },
+    {
+      "id": 467,
+      "demand": 23,
+      "fire_station_id": 564,
+      "risk_class": "LOW",
+      "station_distance_km": 0.2027
+    },
+    {
+      "id": 373,
+      "demand": 18,
+      "fire_station_id": 589,
+      "risk_class": "LOW",
+      "station_distance_km": 0.3034
+    },
+    {
+      "id": 26,
+      "demand": 85,
+      "fire_station_id": 593,
+      "risk_class": "HIGH",
+      "station_distance_km": 0.1925
+    },
+    {
+      "id": 40,
+      "demand": 24,
+      "fire_station_id": 598,
+      "risk_class": "LOW",
+      "station_distance_km": 0.2796
+    },
+    {
+      "id": 240,
+      "demand": 39,
+      "fire_station_id": 589,
+      "risk_class": "LOW",
+      "station_distance_km": 0.0683
+    },
+    {
+      "id": 219,
+      "demand": 96,
+      "fire_station_id": 589,
+      "risk_class": "HIGH",
+      "station_distance_km": 0.0272
+    }
+  ],
+  "clusters": [
+    {
+      "type": "cluster_info",
+      "cluster_id": 0,
+      "medoid_id": 482,
+      "station_id": 564,
+      "total_points": 5,
+      "high_count": 3,
+      "low_count": 2,
+      "high_pct": 60.0,
+      "risk_level": "YUKSEK",
+      "station_distance_km": 0.0693
+    },
+    {
+      "type": "cluster_info",
+      "cluster_id": 1,
+      "medoid_id": 129,
+      "station_id": 598,
+      "total_points": 4,
+      "high_count": 1,
+      "low_count": 3,
+      "high_pct": 25.0,
+      "risk_level": "NORMAL",
+      "station_distance_km": 0.0291
+    },
+    {
+      "type": "cluster_info",
+      "cluster_id": 2,
+      "medoid_id": 240,
+      "station_id": 589,
+      "total_points": 8,
+      "high_count": 3,
+      "low_count": 5,
+      "high_pct": 37.5,
+      "risk_level": "NORMAL",
+      "station_distance_km": 0.0683
+    },
+    {
+      "type": "cluster_info",
+      "cluster_id": 3,
+      "medoid_id": 183,
+      "station_id": 593,
+      "total_points": 3,
+      "high_count": 3,
+      "low_count": 0,
+      "high_pct": 100.0,
+      "risk_level": "KRITIK",
+      "station_distance_km": 0.0723
+    }
+  ],
+  "ga_result": [
+    {
+      "station_id": 564,
+      "assigned_fire_points": [
+        482,
+        436,
+        493,
+        551,
+        467
+      ],
+      "total_distance": 1.8443,
+      "vehicles": [
+        {
+          "vehicle_index": 0,
+          "tour": [
+            564,
+            551,
+            493,
+            564
+          ],
+          "load": 149,
+          "distance": 1.0535
+        },
+        {
+          "vehicle_index": 1,
+          "tour": [
+            564,
+            436,
+            467,
+            482,
+            564
+          ],
+          "load": 187,
+          "distance": 0.7908
+        }
+      ]
+    },
+    {
+      "station_id": 593,
+      "assigned_fire_points": [
+        183,
+        289,
+        26
+      ],
+      "total_distance": 0.74,
+      "vehicles": [
+        {
+          "vehicle_index": 0,
+          "tour": [
+            593,
+            183,
+            289,
+            593
+          ],
+          "load": 161,
+          "distance": 0.3549
+        },
+        {
+          "vehicle_index": 1,
+          "tour": [
+            593,
+            26,
+            593
+          ],
+          "load": 85,
+          "distance": 0.3851
+        }
+      ]
+    },
+    {
+      "station_id": 589,
+      "assigned_fire_points": [
+        159,
+        349,
+        163,
+        198,
+        33,
+        373,
+        240,
+        219
+      ],
+      "total_distance": 2.6027,
+      "vehicles": [
+        {
+          "vehicle_index": 0,
+          "tour": [
+            589,
+            349,
+            159,
+            163,
+            198,
+            589
+          ],
+          "load": 197,
+          "distance": 1.5187
+        },
+        {
+          "vehicle_index": 1,
+          "tour": [
+            589,
+            33,
+            240,
+            373,
+            219,
+            589
+          ],
+          "load": 191,
+          "distance": 1.084
+        }
+      ]
+    },
+    {
+      "station_id": 598,
+      "assigned_fire_points": [
+        1,
+        129,
+        223,
+        40
+      ],
+      "total_distance": 1.1086,
+      "vehicles": [
+        {
+          "vehicle_index": 0,
+          "tour": [
+            598,
+            223,
+            129,
+            1,
+            40,
+            598
+          ],
+          "load": 184,
+          "distance": 1.1583
+        }
+      ]
+    }
+  ],
+  "sa_result": [
+    {
+      "station_id": 564,
+      "assigned_fire_points": [
+        482,
+        436,
+        493,
+        551,
+        467
+      ],
+      "total_distance": 1.93,
+      "vehicles": [
+        {
+          "vehicle_index": 0,
+          "tour": [
+            564,
+            436,
+            482,
+            564
+          ],
+          "load": 164,
+          "distance": 0.6392
+        },
+        {
+          "vehicle_index": 1,
+          "tour": [
+            564,
+            551,
+            467,
+            493,
+            564
+          ],
+          "load": 172,
+          "distance": 1.3664
+        }
+      ]
+    },
+    {
+      "station_id": 593,
+      "assigned_fire_points": [
+        183,
+        289,
+        26
+      ],
+      "total_distance": 0.8378,
+      "vehicles": [
+        {
+          "vehicle_index": 0,
+          "tour": [
+            593,
+            26,
+            183,
+            593
+          ],
+          "load": 153,
+          "distance": 0.5056
+        },
+        {
+          "vehicle_index": 1,
+          "tour": [
+            593,
+            289,
+            593
+          ],
+          "load": 93,
+          "distance": 0.3321
+        }
+      ]
+    },
+    {
+      "station_id": 589,
+      "assigned_fire_points": [
+        159,
+        349,
+        163,
+        198,
+        33,
+        373,
+        240,
+        219
+      ],
+      "total_distance": 4.2506,
+      "vehicles": [
+        {
+          "vehicle_index": 0,
+          "tour": [
+            589,
+            198,
+            349,
+            163,
+            159,
+            589
+          ],
+          "load": 197,
+          "distance": 1.9167
+        },
+        {
+          "vehicle_index": 1,
+          "tour": [
+            589,
+            589
+          ],
+          "load": 0,
+          "distance": 0.0
+        },
+        {
+          "vehicle_index": 2,
+          "tour": [
+            589,
+            240,
+            219,
+            373,
+            33,
+            589
+          ],
+          "load": 191,
+          "distance": 1.2116
+        }
+      ]
+    },
+    {
+      "station_id": 598,
+      "assigned_fire_points": [
+        1,
+        129,
+        223,
+        40
+      ],
+      "total_distance": 1.1424,
+      "vehicles": [
+        {
+          "vehicle_index": 0,
+          "tour": [
+            598,
+            1,
+            129,
+            40,
+            223,
+            598
+          ],
+          "load": 184,
+          "distance": 1.2801
+        }
+      ]
+    }
+  ]
+}

@@ -3,6 +3,7 @@ from typing import Optional, Tuple
 from fastapi import APIRouter, HTTPException, Query
 
 from app.schemas.air_accessibility import AircraftType as ApiAircraftType
+from app.services.geo_service_client import GeoServiceClient
 from app.services.air_accessibility_service import (
     AircraftType as ServiceAircraftType,
 )
@@ -11,6 +12,7 @@ from app.services.integrated_layer_service import IntegratedLayerService
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 service = IntegratedLayerService()
+geo_client = GeoServiceClient()
 MAX_BBOX_AREA_DEG2 = 1.0
 MIN_CELL_SIZE = 0.005
 
@@ -91,6 +93,18 @@ async def get_integrated_layer(
     """
     bbox = _build_bbox(min_lat=min_lat, min_lon=min_lon, max_lat=max_lat, max_lon=max_lon)
     _validate_integrated_request(cell_size=cell_size, bbox=bbox)
+    if geo_client.enabled:
+        try:
+            return geo_client.get_integrated_layer(
+                cell_size=cell_size,
+                min_lat=min_lat,
+                min_lon=min_lon,
+                max_lat=max_lat,
+                max_lon=max_lon,
+                aircraft_type=aircraft_type.value,
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail=f"Geo service error: {exc}")
 
     cells = service.build_integrated_grid(
         cell_size=cell_size,
