@@ -86,3 +86,4 @@ logs/
 *.joblib
 *.h5
 *.onnx
+secrets/koru-41307-firebase-adminsdk-fbsvc-e3ce4d69c4.json
