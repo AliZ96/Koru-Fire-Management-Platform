@@ -2,6 +2,7 @@ from fastapi import HTTPException
 
 from app.core.security import hash_password, verify_password, create_access_token
 from app.repositories.auth_repo import AuthRepositoryPG
+from app.services.firebase_identity_service import FirebaseIdentityService
 
 
 def _validate_password(password: str) -> str:
@@ -31,16 +32,28 @@ class AuthService:
     @staticmethod
     def login_user(username: str, password: str, db=None) -> str:
         repo = AuthRepositoryPG(db)
-
-        user = repo.get_by_username_and_role(username, "user")
-        if not user:
-            raise HTTPException(status_code=401, detail="Invalid credentials")
-
         password = _validate_password(password)
-        if not verify_password(password, user.get("hashed_password", "")):
-            raise HTTPException(status_code=401, detail="Invalid credentials")
+        user = repo.get_by_username_and_role(username, "user")
+        if user and verify_password(password, user.get("hashed_password", "")):
+            return create_access_token({"sub": username, "role": "user"})
 
-        return create_access_token({"sub": username, "role": "user"})
+        # Fallback: Firebase email/password login (Swagger ve frontend parity)
+        firebase_payload = FirebaseIdentityService.sign_in_with_email_password(username, password)
+        firebase_email = str(firebase_payload.get("email") or username)
+        firebase_uid = str(firebase_payload.get("localId") or "")
+
+        existing = repo.get_by_username_and_role(firebase_email, "user")
+        if not existing:
+            repo.create_user(firebase_email, hash_password(password), "user")
+
+        return create_access_token(
+            {
+                "sub": firebase_email,
+                "role": "user",
+                "auth_provider": "firebase_password",
+                "firebase_uid": firebase_uid,
+            }
+        )
 
     @staticmethod
     def register_firefighter(username: str, password: str, db=None) -> str:

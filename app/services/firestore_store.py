@@ -155,3 +155,61 @@ class FirestoreStore:
             data["id"] = doc.id
             rows.append(data)
         return rows
+
+    # ---- pipelines ----
+    def list_pipelines(self, username: str) -> list[dict[str, Any]]:
+        docs = (
+            self.db.collection("pipelines")
+            .where("username", "==", username)
+            .order_by("created_at", direction="DESCENDING")
+            .stream()
+        )
+        rows: list[dict[str, Any]] = []
+        for doc in docs:
+            data = doc.to_dict() or {}
+            data["id"] = doc.id
+            rows.append(data)
+        return rows
+
+    def create_pipeline(
+        self,
+        *,
+        username: str,
+        name: str,
+        n: int,
+        k: int,
+        snapshot_json: Optional[str],
+    ) -> dict[str, Any]:
+        payload = {
+            "username": username,
+            "name": name,
+            "n": n,
+            "k": k,
+            "snapshot_json": snapshot_json,
+            "created_at": _now_iso(),
+            "updated_at": _now_iso(),
+        }
+        ref = self.db.collection("pipelines").document()
+        ref.set(payload)
+        payload["id"] = ref.id
+        return payload
+
+    def get_pipeline(self, pipeline_id: str, username: str) -> Optional[dict[str, Any]]:
+        doc = self.db.collection("pipelines").document(str(pipeline_id)).get()
+        if not doc.exists:
+            return None
+        data = doc.to_dict() or {}
+        if data.get("username") != username:
+            return None
+        data["id"] = doc.id
+        return data
+
+    def delete_pipeline(self, pipeline_id: str, username: str) -> bool:
+        doc = self.db.collection("pipelines").document(str(pipeline_id)).get()
+        if not doc.exists:
+            return False
+        data = doc.to_dict() or {}
+        if data.get("username") != username:
+            return False
+        doc.reference.delete()
+        return True
