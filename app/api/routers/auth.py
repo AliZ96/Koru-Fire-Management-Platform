@@ -43,6 +43,12 @@ class FirebaseTokenRequest(BaseModel):
     firebase_token: str
 
 
+class UserSyncRequest(BaseModel):
+    firebase_uid: str | None = None
+    display_name: str | None = None
+    role: str = "user"
+
+
 @router.post("/firebase-token", response_model=TokenResponse)
 def firebase_token_exchange(payload: FirebaseTokenRequest):
     """Firebase JWT'yi backend JWT'ye çevirir (pipeline ve API auth için)."""
@@ -57,3 +63,19 @@ def firebase_token_exchange(payload: FirebaseTokenRequest):
 
     backend_token = create_access_token(data={"sub": email, "email": email, "role": "user"})
     return TokenResponse(access_token=backend_token)
+
+
+@router.post("/user/sync")
+def sync_user_profile(payload: UserSyncRequest, current_user: dict = Depends(get_current_user)):
+    username = str(current_user.get("sub") or "")
+    role = str(payload.role or current_user.get("role") or "user").lower()
+    if not username:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    row = AuthService.sync_user_profile(
+        username=username,
+        role=role,
+        firebase_uid=payload.firebase_uid,
+        display_name=payload.display_name,
+    )
+    return {"ok": True, "user_id": row.get("id"), "username": username}
