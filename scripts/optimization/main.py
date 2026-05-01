@@ -1,3 +1,4 @@
+import argparse
 import json
 import os
 from GA import *
@@ -8,7 +9,7 @@ try:
 except Exception:
     PlotResults = None
 
-def SA_AllStationsBestSolutionOfPopulationTests():
+def SA_AllStationsBestSolutionOfPopulationTests(maxtemperature : int):
     ProblemInstance.loadInstance("pipeline_result.csv",
                                  "../llf22/output/dist_all.csv",
                                  "../llf22/output/izmir_fire_points_filtered2.csv",
@@ -24,10 +25,8 @@ def SA_AllStationsBestSolutionOfPopulationTests():
         firePoints = ProblemInstance.getFireStationAssignedFirePoints(stationID)
         ProblemInstance.setCurrentSolutionSetStationID(stationID)
         ProblemInstance.setCurrentSolutionSetFirePointsList(firePoints)
-        popSize, nbOfGenerations = 100, 10
-        crossoverType, crossoverRate = "CX", 0.7
-        mutationType, mutationRate =  "swap", 0.1
-        sa = SA(100)
+
+        sa = SA(maxtemperature)
         sa.run()
         stationBestSolution = sa.getBestSolution()
         print("Fire Station ID: " + str(stationBestSolution.getFireStationID()))
@@ -36,9 +35,11 @@ def SA_AllStationsBestSolutionOfPopulationTests():
         stationSolutions.append(stationBestSolution)
     return stationSolutions
 
-def GA_AllStationsBestSolutionOfPopulationTests():
+def GA_AllStationsBestSolutionOfPopulationTests(popSize : int = 1000, nbOfGenerations : int = 100):
+
     ProblemInstance.loadInstance("pipeline_result.csv",
-                                 "../llf22/output/dist_all.csv",
+                                 
+                                "../llf22/output/dist_all.csv",
                                  "../llf22/output/izmir_fire_points_filtered2.csv",
                                  "../llf22/output/izmir_itfaiye_master_dataset.csv")
     ProblemInstance.setVehicleCapacity(200)
@@ -52,7 +53,7 @@ def GA_AllStationsBestSolutionOfPopulationTests():
         firePoints = ProblemInstance.getFireStationAssignedFirePoints(stationID)
         ProblemInstance.setCurrentSolutionSetStationID(stationID)
         ProblemInstance.setCurrentSolutionSetFirePointsList(firePoints)
-        popSize, nbOfGenerations = 100, 10
+        
         crossoverType, crossoverRate = "CX", 0.7
         mutationType, mutationRate =  "swap", 0.1
         ga = GA(popSize, crossoverType, crossoverRate, mutationType, mutationRate, nbOfGenerations)
@@ -108,6 +109,30 @@ def runAlgorithm(algorithm : str) -> None:
         writeAllStationsSolutionsToFile("SA_All_Stations_Best_Solutions.txt", saResults)
         writeAllStationsSolutionsToJSON("SA_All_Stations_Best_Solutions.json", saResults)
 
+def runGA(popSize : int, nbOfGenerations : int) -> None:
+    gaResults = GA_AllStationsBestSolutionOfPopulationTests(popSize, nbOfGenerations)
+    disable_plots = os.getenv("KORU_DISABLE_PLOTS", "0") == "1"
+    if PlotResults is not None and not disable_plots:
+        PlotResults.plotAllStationsVehicles("GA", gaResults)
+    writeAllStationsSolutionsToFile("GA_All_Stations_Best_Solutions.txt", gaResults)
+    writeAllStationsSolutionsToJSON("GA_All_Stations_Best_Solutions.json", gaResults)
+
+def runSA(maxtemperature : int) -> None:
+    saResults = SA_AllStationsBestSolutionOfPopulationTests(maxtemperature)
+    disable_plots = os.getenv("KORU_DISABLE_PLOTS", "0") == "1"
+    if PlotResults is not None and not disable_plots:
+        PlotResults.plotAllStationsVehicles("SA", saResults)
+    writeAllStationsSolutionsToFile("SA_All_Stations_Best_Solutions.txt", saResults)
+    writeAllStationsSolutionsToJSON("SA_All_Stations_Best_Solutions.json", saResults)
+
 if __name__ == "__main__":
-    runAlgorithm("GA")
-    runAlgorithm("SA")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--pop-size", type=int, default=100)
+    parser.add_argument("--max-iterations", type=int, default=100)
+    parser.add_argument("--max-temperature", type=int, default=100)
+    args = parser.parse_args()
+
+    runGA(args.pop_size, args.max_iterations)
+    runSA(args.max_temperature)
+
+
