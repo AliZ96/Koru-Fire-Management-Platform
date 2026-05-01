@@ -1,316 +1,441 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="tr">
 <head>
   <meta charset="utf-8"/>
-  <title>KORU Yangın Önleme Platformu</title>
+  <title>KORU — İtfaiye Komuta Paneli</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"/>
-  <link rel="icon" type="image/svg+xml" href="/static/img/login-bg.svg"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
   <style>
-    :root{ --bg: #050E07; --accent: #F59E0B; --green: #4A7C3A; --green-hi: #6AAD58; --text: #E2F0DA; --text2: #7BA368; --danger: #EF4444; --border: rgba(74,124,58,.18); }
-    html,body{height:100%;margin:0}
-    body{ box-sizing:border-box; background: var(--bg); }
-    .map-frame{ position:absolute; top:76px; left:12px; right:12px; bottom:68px; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,.25); overflow:hidden; transition:right 0.3s ease }
-    #map{height:100%}
-    .panel{position:fixed;top:76px;right:0;width:360px;height:calc(100% - 76px - 60px);z-index:9999;background:rgba(8,21,16,.95);padding:16px;border-radius:0;box-shadow:-2px 0 16px rgba(0,0,0,.25);font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;display:flex;flex-direction:column;gap:12px;overflow-y:auto;transform:translateX(100%);transition:transform 0.3s ease;backdrop-filter:blur(20px);border-left:1px solid var(--border);color:var(--text)}
-    .panel.open{transform:translateX(0)}
-    .panel-close-btn{position:absolute;top:2px;left:2px;width:24px;height:24px;background:none;border:none;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all 0.2s ease;padding:0;margin:0;z-index:10001;font-weight:bold}
-    .panel-close-btn:hover{color:var(--text);transform:scale(1.1)}
-    .panel input{width:56px}
-    .panel .section{margin:0;padding:12px 0;display:flex;flex-direction:column;gap:8px;border:none;border-bottom:1px dashed rgba(74,124,58,0.15);padding-right:0}
-    .panel .section:last-child{border-bottom:none}
-    .panel .section-title{display:block;font-weight:700;font-size:13px;color:var(--accent);margin-bottom:4px}
-    .panel .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-    .panel label{font-size:11px;color:var(--text2);opacity:.85}
-    .panel input[type=number]{height:28px;padding:3px 8px;border:1px solid rgba(74,124,58,.25);border-radius:8px;font-family:inherit;background:rgba(14,30,12,.8);color:var(--text)}
-    .panel input[type=number]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(245,158,11,.15)}
-    .panel select{height:28px;padding:3px 8px;border:1px solid rgba(74,124,58,.25);border-radius:8px;font-family:inherit;font-size:12px;background:rgba(14,30,12,.8);color:var(--text);cursor:pointer}
-    .panel select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(245,158,11,.15)}
-    .panel input[type=text]{height:28px;padding:3px 8px;border:1px solid rgba(74,124,58,.25);border-radius:8px;font-family:inherit;background:rgba(14,30,12,.8);color:var(--text);width:100%;box-sizing:border-box}
-    .panel input[type=text]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(245,158,11,.15)}
-    .scenario-form{display:flex;flex-direction:column;gap:10px;width:100%;padding-bottom:12px}
-    .scenario-form .field{display:flex;flex-direction:column;gap:4px;width:100%}
-    .scenario-form .two-cols{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
-    .scenario-form input[type=number]{width:100%;box-sizing:border-box}
-    .scenario-form select{width:100%;box-sizing:border-box}
-    .scenario-help{font-size:10px;line-height:1.35;color:var(--text2);opacity:.9}
-    .scenario-selected{font-size:11px;line-height:1.4;color:var(--text);background:rgba(14,30,12,.65);border:1px solid rgba(74,124,58,.18);border-radius:8px;padding:8px;width:100%;box-sizing:border-box}
-    .scenario-error{font-size:11px;line-height:1.35;color:#fecaca;background:rgba(127,29,29,.35);border:1px solid rgba(239,68,68,.35);border-radius:8px;padding:8px;display:none}
-    .scenario-success{font-size:11px;line-height:1.35;color:#bbf7d0;background:rgba(20,83,45,.35);border:1px solid rgba(34,197,94,.35);border-radius:8px;padding:8px;display:none}
-    .panel-toggle{position:absolute;top:12px;right:12px;width:40px;height:40px;background:rgba(8,21,16,.85);color:var(--accent);border:1px solid rgba(74,124,58,.25);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;transition:all 0.2s ease;padding:0;margin:0;z-index:9998;box-shadow:0 2px 8px rgba(0,0,0,.25)}
-    .btn{cursor:pointer; border:1px solid rgba(74,124,58,.2); border-radius:10px; padding:6px 10px; background:rgba(14,30,12,.6); transition:all .15s ease; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size:12px; height:30px; color:var(--text) }
-    .btn:hover{ box-shadow:0 3px 8px rgba(0,0,0,.2) }
-    .btn:active{ transform:translateY(1px) }
-    .btn:focus-visible{ outline:none; box-shadow:0 0 0 3px rgba(245,158,11,.25) }
-    .btn-primary{ background: linear-gradient(135deg, #D97706, #F59E0B); color:#0A0A0A; border-color: transparent; font-weight:600 }
-    .btn-primary:hover{ filter: brightness(1.08); box-shadow:0 5px 12px rgba(245,158,11,.3) }
-    .btn-outline{ background:rgba(14,30,12,.6); color: var(--text2); border-color: rgba(74,124,58,.3); }
-    .btn-outline:hover{ background: rgba(74,124,58,.15); border-color: var(--accent) }
-    #info{ font-size:11px; color:var(--text2); margin-left:6px }
-    .legend{background:rgba(8,21,16,.9);padding:6px 8px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.25);font:12px/1.2 sans-serif;border:1px solid var(--border);color:var(--text)}
-    .legend .row{display:flex;align-items:center;margin:2px 0}
-    .legend .sw{width:14px;height:14px;margin-right:6px;border:1px solid rgba(74,124,58,.4)}
-    .legend.pipeline-legend{background:rgba(255,255,255,.98);border:1px solid rgba(0,0,0,.12);color:#111827;box-shadow:0 8px 24px rgba(0,0,0,.18)}
-    .legend.pipeline-legend .row{color:#111827;margin:4px 0}
-    .legend.pipeline-legend .sw{border:1px solid rgba(17,24,39,.35)}
-    .legend.pipeline-legend .legend-note{margin:6px 0;font-size:10px;line-height:1.45;color:#374151}
-    .legend.pipeline-legend .legend-title{font-weight:700;color:#111827}
-    .legend.pipeline-legend .legend-subtitle{font-weight:600;margin-top:6px;color:#111827}
-    .header{position:absolute;top:0;left:0;right:0;z-index:10000;background:rgba(5,14,7,.92);padding:10px 16px;display:flex;align-items:center;gap:10px;justify-content:flex-start;border-bottom:1px solid var(--border); color:var(--text); flex-wrap:nowrap;backdrop-filter:blur(20px);height:64px}
-    .nav-brand{display:flex;align-items:center;gap:8px;flex:0}
-    .nav-icon{font-size:24px;display:flex;align-items:center}
-    .header .title{color:var(--text); font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-weight:800; font-size:18px; letter-spacing:3px; white-space:nowrap; }
-    .header .user-info{ color:var(--text); font-size:12px; font-weight:600; display:flex; align-items:center; gap:10px; white-space:nowrap; margin-left:auto; }
-    .header .back-btn{ background:none; color:var(--text); border:none; padding:0; margin:0; cursor:pointer; font-size:18px; font-weight:600; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; transition:all 0.2s ease; text-decoration:none; display:inline-block; white-space:nowrap; }
-    .header .back-btn:hover{ opacity:0.7; }
-    .user-dropdown{ position:relative; display:inline-block }
-    .user-dropdown-toggle{ cursor:pointer; padding:7px 14px; border:1px solid rgba(245,158,11,.35); border-radius:10px; background:none; color:#F59E0B; font-size:13px; font-weight:600; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; display:flex; align-items:center; gap:6px; transition:all .2s }
-    .user-dropdown-toggle:hover{ background:rgba(245,158,11,.08); border-color:rgba(245,158,11,.6) }
-    .user-dropdown-menu{ position:absolute; top:calc(100% + 8px); right:0; background:rgba(5,14,7,.97); border:1px solid rgba(74,124,58,.25); border-radius:12px; overflow:hidden; min-width:160px; box-shadow:0 12px 40px rgba(0,0,0,.5); opacity:0; pointer-events:none; transform:translateY(-4px); transition:all 0.2s ease; z-index:10001; backdrop-filter:blur(20px) }
-    .user-dropdown-menu.show{ opacity:1; pointer-events:auto; transform:translateY(0) }
-    .user-dropdown-menu a{ display:block; padding:11px 16px; color:#8DB87E; text-decoration:none; border-bottom:1px solid rgba(74,124,58,.12); font-size:13px; font-weight:600; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; white-space:nowrap; cursor:pointer; transition:all .15s }
-    .user-dropdown-menu a:last-child{ border-bottom:none }
-    .user-dropdown-menu a:hover{ background:rgba(74,124,58,.12); color:#F59E0B }
-    .logo{height:42px;width:auto; background: transparent; display:block}
-    .brand-link{ text-decoration:none; color:inherit; display:flex; align-items:center; }
-    .hamburger{width:32px;height:24px;display:inline-flex;flex-direction:column;justify-content:space-between;cursor:pointer;background:transparent;border:none;padding:0;margin:0}
-    .hamburger span{display:block;height:3px;background:var(--text);border-radius:2px;opacity:0.9}
-    .sidebar{position:fixed;top:0;right:0;bottom:0;width:300px;background:rgba(5,14,7,.97);color:var(--text);box-shadow:-2px 0 16px rgba(0,0,0,.25);transform:translateX(100%);transition:transform .25s ease;z-index:10050;display:flex;flex-direction:column}
-    .sidebar.open{transform:translateX(0)}
-    .sidebar a{padding:14px 18px;color:var(--text);text-decoration:none;border-bottom:1px solid var(--border);display:block}
-    .sidebar, .sidebar a{ font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif }
-    .sidebar a{ font-weight:600; letter-spacing:.2px }
-    .sidebar a:hover{background:rgba(74,124,58,.12)}
-    .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:10040;opacity:0;pointer-events:none;transition:opacity .2s}
-    .backdrop.show{opacity:1;pointer-events:auto}
-    .status{ margin-left:auto; font:600 12px/1.2 sans-serif; color:var(--text2) }
-    .footer{ position:absolute; left:0; right:0; bottom:0; height:60px; background:rgba(5,14,7,.92); display:flex; align-items:center; justify-content:space-between; padding:0 16px; border-top:1px solid var(--border) }
-    .footer img{ height:52px; width:auto; display:block; max-width:50vw; object-fit:contain }
-    .footer .contact{ font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-weight:600; font-size:12px; line-height:1; color: var(--text2); display:flex; align-items:center; gap:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; justify-content:flex-end }
-    .footer .contact a{ color: var(--text2); text-decoration:none }
-    .footer .contact a:hover{ text-decoration:underline }
-    .footer .contact strong{ font-weight:800 }
-    .copyable{ position:relative; display:inline-flex; align-items:center; gap:6px; color: var(--text2); padding:0 2px }
-    .copy-btn{ display:none; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-weight:700; font-size:11px; color:#0A0A0A; background: var(--accent); border:none; border-radius:10px; padding:2px 8px; cursor:pointer; line-height:1 }
-    .copyable:hover .copy-btn{ display:inline-block }
-    .proximity-popup{ z-index: 2000 !important; }
-    .leaflet-popup-pane{ z-index: 2000 !important; }
+    /* ═══ THEME VARS ═══ */
+    :root{
+      --bg:#0a0b0d; --surface:#0f1117; --surface2:#161920; --surface3:#1e2128;
+      --accent:#ef4444; --accent-dark:#b91c1c;
+      --text:#f1f5f9; --text2:#94a3b8; --text3:#64748b;
+      --danger:#ef4444; --warning:#f59e0b; --safe:#22c55e;
+      --border:rgba(239,68,68,.12); --border2:rgba(255,255,255,.06);
+    }
+    html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--text)}
 
-    /* ═══ PROFİL MODAL ═══ */
+    /* ═══ TOPBAR ═══ */
+    .topbar{
+      position:fixed;top:0;left:0;right:0;height:54px;
+      background:var(--surface);border-bottom:1px solid var(--border);
+      display:flex;align-items:center;padding:0 16px;gap:14px;z-index:2000;
+      backdrop-filter:blur(20px);
+    }
+    .topbar-brand{display:flex;align-items:center;gap:8px}
+    .topbar-fire{font-size:20px;line-height:1}
+    .topbar-title{font-size:15px;font-weight:800;letter-spacing:2.5px;color:var(--text);white-space:nowrap}
+    .live-pip{
+      display:flex;align-items:center;gap:5px;
+      background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);
+      border-radius:20px;padding:2px 9px;
+    }
+    .live-dot{width:7px;height:7px;border-radius:50%;background:#ef4444;animation:blink 1.8s ease-in-out infinite;flex-shrink:0}
+    @keyframes blink{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(239,68,68,.5)}50%{opacity:.3;box-shadow:0 0 0 5px rgba(239,68,68,0)}}
+    .live-label{font-size:10px;font-weight:700;color:#ef4444;letter-spacing:1.2px}
+    .topbar-divider{width:1px;height:22px;background:var(--border2);flex-shrink:0}
+    .topbar-status{flex:1;font-size:11px;color:var(--text3);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+    .topbar-right{display:flex;align-items:center;gap:10px;margin-left:auto;flex-shrink:0}
+    .citizen-btn{
+      text-decoration:none;font-size:11px;font-weight:600;color:var(--text2);
+      border:1px solid var(--border2);border-radius:8px;padding:5px 12px;
+      transition:all .15s;white-space:nowrap;
+    }
+    .citizen-btn:hover{color:var(--text);border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.07)}
+
+    /* User dropdown */
+    .user-dropdown{position:relative}
+    .user-dropdown-toggle{cursor:pointer;padding:6px 12px;border:1px solid rgba(239,68,68,.3);border-radius:8px;background:none;color:#ef4444;font-size:12px;font-weight:700;font-family:inherit;display:flex;align-items:center;gap:5px;transition:all .2s}
+    .user-dropdown-toggle:hover{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.55)}
+    .user-dropdown-menu{position:absolute;top:calc(100% + 8px);right:0;background:#0f1117;border:1px solid rgba(239,68,68,.2);border-radius:10px;overflow:hidden;min-width:168px;box-shadow:0 12px 40px rgba(0,0,0,.65);opacity:0;pointer-events:none;transform:translateY(-4px);transition:all .2s;z-index:3000}
+    .user-dropdown-menu.show{opacity:1;pointer-events:auto;transform:translateY(0)}
+    .user-dropdown-menu a{display:block;padding:10px 14px;color:#fca5a5;text-decoration:none;border-bottom:1px solid rgba(239,68,68,.08);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit}
+    .user-dropdown-menu a:last-child{border-bottom:none}
+    .user-dropdown-menu a:hover{background:rgba(239,68,68,.1);color:#ef4444}
+
+    /* ═══ APP LAYOUT ═══ */
+    .app-layout{position:fixed;top:54px;left:0;right:0;bottom:0;display:flex;overflow:hidden}
+
+    /* ═══ LEFT CONTROL SIDEBAR ═══ */
+    .ctrl-sidebar{
+      width:315px;min-width:315px;height:100%;
+      background:var(--surface);border-right:1px solid var(--border);
+      display:flex;flex-direction:column;overflow:hidden;
+      box-shadow:2px 0 24px rgba(0,0,0,.5);z-index:100;
+    }
+    .sidebar-topbar{
+      padding:10px 14px 8px;border-bottom:1px solid var(--border2);
+      flex-shrink:0;display:flex;align-items:center;gap:8px;
+    }
+    .sidebar-topbar-title{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:1.8px;text-transform:uppercase;flex:1}
+    .sidebar-scroll{flex:1;overflow-y:auto;padding:4px 0 8px}
+    .sidebar-scroll::-webkit-scrollbar{width:3px}
+    .sidebar-scroll::-webkit-scrollbar-track{background:transparent}
+    .sidebar-scroll::-webkit-scrollbar-thumb{background:rgba(239,68,68,.18);border-radius:2px}
+    .sidebar-footer{
+      padding:10px 12px;border-top:1px solid var(--border2);
+      display:flex;align-items:center;gap:8px;flex-shrink:0;
+    }
+    #info{font-size:11px;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+    /* ═══ ACCORDION ═══ */
+    .acc{border-bottom:1px solid var(--border2)}
+    .acc:last-of-type{border-bottom:none}
+    .acc-head{
+      display:flex;align-items:center;gap:9px;padding:11px 14px;
+      cursor:pointer;user-select:none;transition:background .15s;
+    }
+    .acc-head:hover{background:rgba(239,68,68,.04)}
+    .acc-icon{
+      flex-shrink:0;width:28px;height:28px;display:flex;align-items:center;
+      justify-content:center;background:rgba(239,68,68,.08);border-radius:7px;
+      border:1px solid rgba(239,68,68,.12);
+    }
+    .acc-icon svg{width:13px;height:13px;stroke:var(--text2);stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+    .acc-label{font-size:12px;font-weight:700;letter-spacing:.4px;flex:1;color:var(--text)}
+    .acc-count{font-size:10px;font-weight:700;color:var(--accent);background:rgba(239,68,68,.1);border-radius:8px;padding:1px 7px;border:1px solid rgba(239,68,68,.18)}
+    .acc-arrow{font-size:9px;color:var(--text3);transition:transform .25s;margin-left:2px}
+    .acc.open .acc-arrow{transform:rotate(180deg)}
+    .acc-body{max-height:0;overflow:hidden;transition:max-height .32s ease}
+    .acc.open .acc-body{max-height:700px}
+    .acc-body .inner{padding:6px 14px 14px;display:flex;flex-direction:column;gap:7px}
+    .acc-body .row{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+
+    /* ═══ BUTTONS ═══ */
+    .btn{
+      cursor:pointer;border:1px solid rgba(239,68,68,.18);border-radius:8px;
+      padding:5px 10px;background:rgba(239,68,68,.05);
+      transition:all .15s;font-family:inherit;font-size:11px;height:28px;
+      color:var(--text);white-space:nowrap;
+    }
+    .btn:hover{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.4)}
+    .btn:active{transform:translateY(1px)}
+    .btn:focus-visible{outline:none;box-shadow:0 0 0 2px rgba(239,68,68,.4)}
+    .btn-primary{background:linear-gradient(135deg,#b91c1c,#ef4444);color:#fff;border-color:transparent;font-weight:700}
+    .btn-primary:hover{filter:brightness(1.1);box-shadow:0 3px 10px rgba(239,68,68,.35)}
+    .btn-outline{background:transparent;color:var(--text2);border-color:rgba(239,68,68,.2)}
+    .btn-outline:hover{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.45);color:var(--text)}
+    .btn.btn-active{
+      background:rgba(239,68,68,.18)!important;border-color:#ef4444!important;
+      color:#fca5a5!important;box-shadow:0 0 0 2px rgba(239,68,68,.2)!important;
+    }
+
+    /* ═══ INPUTS / SELECTS ═══ */
+    .acc-body input[type=number]{
+      height:26px;padding:2px 7px;border:1px solid rgba(239,68,68,.2);border-radius:6px;
+      font-family:inherit;font-size:11px;background:rgba(239,68,68,.04);color:var(--text);
+      width:54px;
+    }
+    .acc-body input[type=number]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(239,68,68,.15)}
+    .acc-body select{
+      height:26px;padding:2px 7px;border:1px solid rgba(239,68,68,.2);border-radius:6px;
+      font-family:inherit;font-size:11px;background:rgba(239,68,68,.04);color:var(--text);cursor:pointer;
+    }
+    .acc-body select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(239,68,68,.15)}
+    .acc-body label{font-size:11px;color:var(--text3)}
+
+    /* ═══ SPREAD / STATUS ═══ */
+    #spreadScenarioList{font-size:11px;color:var(--text2);padding:2px 0 4px}
+    #spreadInfo,#spreadEtaBox{margin-top:3px}
+    #firePointInfo{margin-top:6px;padding:8px;border:1px solid var(--border);border-radius:7px;background:rgba(239,68,68,.04);font-size:11px;display:none}
+
+    /* ═══ MAP ═══ */
+    .map-wrap{flex:1;position:relative;background:#000}
+    #map{width:100%;height:100%}
+
+    /* ═══ LEGEND ═══ */
+    .legend{background:rgba(10,11,13,.93);padding:7px 10px;border-radius:7px;box-shadow:0 3px 14px rgba(0,0,0,.5);font:12px/1.25 sans-serif;border:1px solid rgba(239,68,68,.15);color:var(--text)}
+    .legend .row{display:flex;align-items:center;margin:2px 0}
+    .legend .sw{width:13px;height:13px;margin-right:6px;border:1px solid rgba(239,68,68,.25)}
+    .legend.pipeline-legend{background:rgba(255,255,255,.97);color:#111827;border-color:rgba(0,0,0,.12)}
+    .legend.pipeline-legend .row{color:#111827;margin:4px 0}
+    .legend.pipeline-legend .sw{border:1px solid rgba(17,24,39,.3)}
+    .legend.pipeline-legend .legend-note{margin:5px 0;font-size:10px;line-height:1.4;color:#374151}
+    .legend.pipeline-legend .legend-title{font-weight:700;color:#111827}
+
+    /* ═══ PROFILE MODAL ═══ */
     #profileModal{position:fixed;inset:0;z-index:20000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s ease}
     #profileModal.open{opacity:1;pointer-events:auto}
-    #profileModal .pm-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px)}
-    #profileModal .pm-sheet{position:relative;background:rgba(8,21,16,.97);border:1px solid rgba(74,124,58,.35);border-radius:16px;width:min(520px,94vw);max-height:86vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.6);transform:translateY(20px) scale(.97);transition:transform .25s ease;font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+    #profileModal .pm-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)}
+    #profileModal .pm-sheet{position:relative;background:#0f1117;border:1px solid rgba(239,68,68,.3);border-radius:14px;width:min(520px,94vw);max-height:86vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.7);transform:translateY(20px) scale(.97);transition:transform .25s ease;font-family:'Inter',system-ui,sans-serif}
     #profileModal.open .pm-sheet{transform:translateY(0) scale(1)}
     .pm-header{padding:20px 24px 0;display:flex;align-items:flex-start;gap:16px;flex-shrink:0}
-    .pm-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#10b981);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff;flex-shrink:0;letter-spacing:-1px;box-shadow:0 4px 16px rgba(37,99,235,.4)}
+    .pm-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#b91c1c,#ef4444);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff;flex-shrink:0;box-shadow:0 4px 16px rgba(239,68,68,.35)}
     .pm-headinfo{flex:1;min-width:0}
-    .pm-name{font-size:18px;font-weight:700;color:#d1fae5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .pm-email{font-size:12px;color:#6b8f7a;margin-top:2px}
+    .pm-name{font-size:18px;font-weight:700;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .pm-email{font-size:12px;color:#64748b;margin-top:2px}
     .pm-role-badge{display:inline-block;margin-top:6px;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase}
-    .pm-role-badge.admin{background:rgba(239,68,68,.18);color:#f87171;border:1px solid rgba(239,68,68,.3)}
-    .pm-role-badge.user{background:rgba(37,99,235,.18);color:#93c5fd;border:1px solid rgba(37,99,235,.3)}
-    .pm-close{background:none;border:none;color:#6b8f7a;cursor:pointer;font-size:20px;padding:0;line-height:1;transition:color .15s;flex-shrink:0}
-    .pm-close:hover{color:#d1fae5}
-    .pm-tabs{display:flex;gap:0;border-bottom:1px solid rgba(74,124,58,.2);margin:16px 24px 0;flex-shrink:0}
-    .pm-tab{padding:8px 16px;font-size:12px;font-weight:600;color:#6b8f7a;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
-    .pm-tab.active{color:#4ade80;border-bottom-color:#4ade80}
-    .pm-tab:hover:not(.active){color:#d1fae5}
+    .pm-role-badge.admin{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+    .pm-role-badge.user{background:rgba(37,99,235,.15);color:#93c5fd;border:1px solid rgba(37,99,235,.3)}
+    .pm-close{background:none;border:none;color:#64748b;cursor:pointer;font-size:20px;padding:0;line-height:1;transition:color .15s;flex-shrink:0}
+    .pm-close:hover{color:#f1f5f9}
+    .pm-tabs{display:flex;gap:0;border-bottom:1px solid rgba(239,68,68,.15);margin:16px 24px 0;flex-shrink:0}
+    .pm-tab{padding:8px 16px;font-size:12px;font-weight:600;color:#64748b;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
+    .pm-tab.active{color:#ef4444;border-bottom-color:#ef4444}
+    .pm-tab:hover:not(.active){color:#f1f5f9}
     .pm-body{flex:1;overflow-y:auto;padding:20px 24px 24px}
     .pm-body::-webkit-scrollbar{width:4px}
     .pm-body::-webkit-scrollbar-track{background:transparent}
-    .pm-body::-webkit-scrollbar-thumb{background:rgba(74,124,58,.3);border-radius:2px}
+    .pm-body::-webkit-scrollbar-thumb{background:rgba(239,68,68,.2);border-radius:2px}
     .pm-section{margin-bottom:20px}
-    .pm-section-title{font-size:10px;font-weight:700;color:#6b8f7a;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(74,124,58,.12)}
+    .pm-section-title{font-size:10px;font-weight:700;color:#64748b;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(239,68,68,.1)}
     .pm-field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
-    .pm-field label{font-size:11px;font-weight:600;color:#6b8f7a;letter-spacing:.4px}
-    .pm-field input{background:rgba(255,255,255,.05);border:1px solid rgba(74,124,58,.25);border-radius:8px;padding:9px 12px;color:#d1fae5;font-size:13px;font-weight:500;font-family:inherit;outline:none;transition:border-color .15s}
-    .pm-field input:focus{border-color:#4ade80}
+    .pm-field label{font-size:11px;font-weight:600;color:#64748b;letter-spacing:.4px}
+    .pm-field input{background:rgba(255,255,255,.05);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:9px 12px;color:#f1f5f9;font-size:13px;font-weight:500;font-family:inherit;outline:none;transition:border-color .15s}
+    .pm-field input:focus{border-color:#ef4444}
     .pm-field input[readonly]{opacity:.55;cursor:default}
     .pm-stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
-    .pm-stat{background:rgba(255,255,255,.04);border:1px solid rgba(74,124,58,.15);border-radius:10px;padding:12px 14px}
-    .pm-stat-val{font-size:20px;font-weight:800;color:#4ade80}
-    .pm-stat-lbl{font-size:10px;font-weight:600;color:#6b8f7a;margin-top:2px;letter-spacing:.4px}
-    .pm-save-btn{width:100%;padding:10px;background:linear-gradient(135deg,#2563eb,#10b981);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s;letter-spacing:.3px}
+    .pm-stat{background:rgba(255,255,255,.04);border:1px solid rgba(239,68,68,.12);border-radius:10px;padding:12px 14px}
+    .pm-stat-val{font-size:20px;font-weight:800;color:#ef4444}
+    .pm-stat-lbl{font-size:10px;font-weight:600;color:#64748b;margin-top:2px;letter-spacing:.4px}
+    .pm-save-btn{width:100%;padding:10px;background:linear-gradient(135deg,#b91c1c,#ef4444);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s;letter-spacing:.3px}
     .pm-save-btn:hover{opacity:.85}
     .pm-save-btn:disabled{opacity:.4;cursor:default}
     .pm-pipeline-list{display:flex;flex-direction:column;gap:8px}
-    .pm-pipeline-item{background:rgba(255,255,255,.04);border:1px solid rgba(74,124,58,.18);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px}
+    .pm-pipeline-item{background:rgba(255,255,255,.04);border:1px solid rgba(239,68,68,.15);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px}
     .pm-pipeline-icon{font-size:22px;flex-shrink:0}
     .pm-pipeline-info{flex:1;min-width:0}
-    .pm-pipeline-name{font-size:12px;font-weight:700;color:#d1fae5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .pm-pipeline-meta{font-size:10px;color:#6b8f7a;margin-top:2px}
+    .pm-pipeline-name{font-size:12px;font-weight:700;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .pm-pipeline-meta{font-size:10px;color:#64748b;margin-top:2px}
     .pm-pipeline-actions{display:flex;gap:6px;flex-shrink:0}
-    .pm-pipeline-btn{background:none;border:1px solid rgba(74,124,58,.25);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s}
-    .pm-pipeline-btn.dl{color:#4ade80;border-color:rgba(74,174,80,.3)}
-    .pm-pipeline-btn.dl:hover{background:rgba(74,174,80,.12)}
+    .pm-pipeline-btn{background:none;border:1px solid rgba(239,68,68,.2);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s}
+    .pm-pipeline-btn.dl{color:#4ade80;border-color:rgba(74,222,128,.3)}
+    .pm-pipeline-btn.dl:hover{background:rgba(74,222,128,.1)}
     .pm-pipeline-btn.del{color:#f87171;border-color:rgba(248,113,113,.3)}
     .pm-pipeline-btn.del:hover{background:rgba(239,68,68,.12)}
     .pm-pipeline-btn.show{color:#f59e0b;border-color:rgba(245,158,11,.35)}
     .pm-pipeline-btn.show:hover{background:rgba(245,158,11,.12)}
     .pm-pipeline-btn.pdf{color:#22c55e;border-color:rgba(34,197,94,.35)}
     .pm-pipeline-btn.pdf:hover{background:rgba(34,197,94,.12)}
-    .pm-empty{text-align:center;padding:32px 0;color:#6b8f7a;font-size:13px}
+    .pm-empty{text-align:center;padding:32px 0;color:#64748b;font-size:13px}
     .pm-empty-icon{font-size:40px;margin-bottom:10px}
+    /* ── Sidebar plan list ── */
+    .sb-sub-title{font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--text2);text-transform:uppercase;padding:2px 0 6px;border-bottom:1px solid var(--border);margin-bottom:6px}
+    .sb-plan-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid rgba(239,68,68,.15);border-radius:8px;background:rgba(255,255,255,.03);margin-bottom:6px}
+    .sb-plan-info{flex:1;min-width:0}
+    .sb-plan-name{font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .sb-plan-meta{font-size:10px;color:var(--text2);margin-top:1px}
+    .sb-plan-btn{padding:4px 8px;font-size:10px;font-weight:600;border-radius:5px;border:1px solid rgba(245,158,11,.35);background:none;color:#f59e0b;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0}
+    .sb-plan-btn:hover{background:rgba(245,158,11,.15)}
 
-    /* ═══ ACCORDION PANEL ═══ */
-    .acc{border-bottom:1px solid rgba(74,124,58,.12)}
-    .acc:last-of-type{border-bottom:none}
-    .acc-head{display:flex;align-items:center;gap:8px;padding:12px 0;cursor:pointer;user-select:none;transition:color .2s}
-    .acc-head:hover{color:var(--accent)}
-    .acc-icon{flex-shrink:0;width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:rgba(74,124,58,.1);border-radius:8px}
-    .acc-icon svg{width:14px;height:14px;stroke:var(--text2);stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
-    .acc-label{font-size:12px;font-weight:700;letter-spacing:.5px;flex:1;color:var(--text)}
-    .acc-count{font-size:10px;font-weight:600;color:var(--text2);background:rgba(74,124,58,.12);border-radius:10px;padding:2px 8px}
-    .acc-arrow{font-size:10px;color:var(--text2);transition:transform .25s ease;margin-left:4px}
-    .acc.open .acc-arrow{transform:rotate(180deg)}
-    .acc-body{max-height:0;overflow:hidden;transition:max-height .35s ease}
-    .acc.open .acc-body{max-height:620px}
-    .btn.btn-active{background:rgba(245,158,11,.18)!important;border-color:#f59e0b!important;color:#fde68a!important;box-shadow:0 0 0 2px rgba(245,158,11,.25)!important}
-    .acc-body .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:0 0 12px 0}
-    @media (max-width:480px){ .panel{width:100%;top:76px;right:0;height:calc(100% - 76px - 60px);transform:translateX(100%)} .panel-toggle{right:12px} .panel-toggle.open{right:12px} .map-frame{top:88px; left:8px; right:8px; bottom:68px; border-width:1px} .header{padding:10px 12px} .logo{height:34px} .header .title{font-size:14px; letter-spacing:.05px; white-space:nowrap} .footer{height:64px} .footer img{height:44px; max-width:45vw} .footer .contact{font-size:11px} }
+    /* ═══ SCENARIO / SPREAD ═══ */
+    .scenario-form{display:flex;flex-direction:column;gap:8px;width:100%}
+    .scenario-form .field{display:flex;flex-direction:column;gap:3px}
+    .scenario-form .two-cols{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+    .scenario-form input[type=number]{width:100%;box-sizing:border-box;height:26px;padding:2px 7px;border:1px solid rgba(239,68,68,.2);border-radius:6px;font-family:inherit;font-size:11px;background:rgba(239,68,68,.04);color:var(--text)}
+    .scenario-form select{width:100%;box-sizing:border-box;height:26px;padding:2px 7px;border:1px solid rgba(239,68,68,.2);border-radius:6px;font-family:inherit;font-size:11px;background:rgba(239,68,68,.04);color:var(--text)}
+    .scenario-help{font-size:10px;line-height:1.35;color:var(--text3)}
+    .scenario-selected{font-size:11px;line-height:1.4;color:var(--text);background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.15);border-radius:7px;padding:7px;width:100%;box-sizing:border-box}
+    .scenario-error{font-size:11px;line-height:1.35;color:#fecaca;background:rgba(127,29,29,.3);border:1px solid rgba(239,68,68,.3);border-radius:7px;padding:7px;display:none}
+    .scenario-success{font-size:11px;line-height:1.35;color:#bbf7d0;background:rgba(20,83,45,.3);border:1px solid rgba(34,197,94,.3);border-radius:7px;padding:7px;display:none}
+
+    /* Leaflet popup overrides */
+    .proximity-popup{z-index:2000!important}
+    .leaflet-popup-pane{z-index:2000!important}
   </style>
 </head>
 <body>
-  <div class="map-frame"><div id="map"></div><button id="panelToggle" class="panel-toggle" title="Kontrol Panelini Aç">&#9776;</button></div>
-  <div class="footer">
-    <div class="contact">
-      <span><strong>Telefon:</strong> <span class="copyable" data-copy="153"><span class="copy-val">153</span><button type="button" class="copy-btn" aria-label="Kopyala">Kopyala</button></span></span>
-      <span><strong>Faks:</strong> <span class="copyable" data-copy="(0232) 293 39 95"><span class="copy-val">(0232) 293 39 95</span><button type="button" class="copy-btn" aria-label="Kopyala">Kopyala</button></span></span>
-      <span><strong>E-Posta:</strong> <span class="copyable" data-copy="him@izmir.bel.tr"><a href="mailto:him@izmir.bel.tr">him@izmir.bel.tr</a><button type="button" class="copy-btn" aria-label="Kopyala">Kopyala</button></span></span>
+
+  <!-- ═══ TOPBAR ═══ -->
+  <div class="topbar">
+    <div class="topbar-brand">
+      <span class="topbar-fire">🔥</span>
+      <span class="topbar-title">KORU İTFAİYE</span>
+      <div class="live-pip">
+        <span class="live-dot"></span>
+        <span class="live-label">CANLI</span>
+      </div>
+    </div>
+    <div class="topbar-divider"></div>
+    <div class="topbar-status" id="info"></div>
+    <div class="topbar-right">
+      <a href="/" class="citizen-btn">👁 Vatandaş Görünümü</a>
+      <div class="user-dropdown">
+        <span id="userDisplay" class="user-dropdown-toggle"></span>
+        <div id="userDropdownMenu" class="user-dropdown-menu">
+          <a href="/" id="citizenLink">👁 Vatandaş Haritası</a>
+          <a href="#" id="profileLink">Profil</a>
+          <a href="#" id="logoutLink">Oturum Kapat</a>
+        </div>
+      </div>
     </div>
   </div>
-  <div class="header"><a href="/welcome" class="back-btn" title="Geri">←</a><a href="/welcome" class="brand-link"><div class="nav-brand"><img id="logoImg" class="logo" alt="Koru logo"/><span class="title">KORU</span></div></a><div class="user-info"><div class="user-dropdown"><span id="userDisplay" class="user-dropdown-toggle"></span><div id="userDropdownMenu" class="user-dropdown-menu"><a href="#" id="profileLink">Profil</a><a href="#" id="logoutLink">Oturum Kapat</a></div></div></div><button id="menuBtn" class="hamburger" aria-label="Menü"><span></span><span></span><span></span></button></div>
-  <div id="sidebar" class="sidebar" aria-hidden="true">
-    <a href="#" id="mFires">İzmir Yangınları</a>
-    <a href="#" id="mVolunteer">AFAD Gönüllüsü olun</a>
-    <a href="#" id="mContact">Bize Ulaşın</a>
+
+  <!-- ═══ APP LAYOUT ═══ -->
+  <div class="app-layout">
+
+    <!-- LEFT CONTROL SIDEBAR -->
+    <aside class="ctrl-sidebar">
+      <div class="sidebar-topbar">
+        <span class="sidebar-topbar-title">Kontrol Paneli</span>
+      </div>
+
+      <div class="sidebar-scroll">
+
+        <!-- Yangın Takibi -->
+        <div class="acc open">
+          <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
+            <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M12 2c-4 4-7 8-7 12a7 7 0 0014 0c0-4-3-8-7-12z"/></svg></div>
+            <span class="acc-label">Yangın Takibi</span>
+            <span class="acc-count">2</span>
+            <span class="acc-arrow">▼</span>
+          </div>
+          <div class="acc-body">
+            <div class="inner">
+              <div class="row">
+                <label for="dr">Aralık</label>
+                <select id="dr">
+                  <option value="1">Son 24 saat</option>
+                  <option value="2">Son 2 gün</option>
+                  <option value="3">Son 3 gün</option>
+                  <option value="5" selected>Son 5 gün</option>
+                </select>
+                <button id="btnFires" class="btn btn-outline">Göster</button>
+                <button id="btnLiveTracking" class="btn btn-primary">Canlı Takip</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Risk Analizi -->
+        <div class="acc">
+          <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
+            <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M3 12l4-4 4 4 4-4 4 4"/></svg></div>
+            <span class="acc-label">Risk Analizi</span>
+            <span class="acc-count">4</span>
+            <span class="acc-arrow">▼</span>
+          </div>
+          <div class="acc-body">
+            <div class="inner">
+              <div class="row">
+                <button id="btnFireRisk" class="btn btn-outline">ML Risk</button>
+                <button id="btnHeatmap" class="btn btn-outline">Isıl Harita</button>
+                <button id="btnFirePoints" class="btn btn-outline">High/Low</button>
+              </div>
+              <div class="row">
+                <button id="btnPipeline" class="btn btn-outline">Pipeline</button>
+                <label for="pipelineN">n:</label>
+                <input id="pipelineN" type="number" value="20" min="1" max="554"/>
+                <label for="pipelineK">k:</label>
+                <input id="pipelineK" type="number" value="4" min="1" max="100" style="width:46px"/>
+              </div>
+              <div class="row">
+                <button id="btnPipelinePDF" class="btn btn-outline" disabled title="Pipeline çalıştıktan sonra aktif olur">⬇ PDF İndir</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Su Kaynakları -->
+        <div class="acc">
+          <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
+            <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M12 2c-4 5-7 9-7 13a7 7 0 0014 0c0-4-3-8-7-13z"/></svg></div>
+            <span class="acc-label">Su Kaynakları</span>
+            <span class="acc-count">4</span>
+            <span class="acc-arrow">▼</span>
+          </div>
+          <div class="acc-body">
+            <div class="inner">
+              <div class="row">
+                <button id="btnReservoirs" class="btn btn-outline">Rezervuarlar</button>
+                <button id="btnWaterSources" class="btn btn-outline">Su Kaynakları</button>
+              </div>
+              <div class="row">
+                <button id="btnWaterTanks" class="btn btn-outline">Su Tankları</button>
+                <button id="btnLakes" class="btn btn-outline">Göl/Gölet</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Erişim & Müdahale -->
+        <div class="acc">
+          <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
+            <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M9 20l-5.447-2.724A2 2 0 013 15.382V5.618a2 2 0 011.106-1.789L9 1m0 19l6-3m-6 3V1m6 16l4.553 2.276A2 2 0 0021 17.382V7.618a2 2 0 00-.894-1.664L15 2m0 15V2m0 0L9 1"/></svg></div>
+            <span class="acc-label">Erişim &amp; Müdahale</span>
+            <span class="acc-count">6</span>
+            <span class="acc-arrow">▼</span>
+          </div>
+          <div class="acc-body">
+            <div class="inner">
+              <div class="row">
+                <button id="btnFireStations" class="btn btn-outline">İtfaiye İst.</button>
+                <button id="btnProximity" class="btn btn-outline">Yakınlık</button>
+                <button id="btnIntegrated" class="btn btn-outline">Entegre</button>
+              </div>
+              <div class="row">
+                <button id="btnRouteSA" class="btn btn-outline">SA Rotaları</button>
+                <button id="btnRouteGA" class="btn btn-outline">GA Rotaları</button>
+                <button id="btnRouteClear" class="btn">Temizle</button>
+              </div>
+              <div class="row">
+                <label for="routeSelect" style="flex-shrink:0">Rota</label>
+                <select id="routeSelect" style="flex:1;min-width:0;max-width:220px">
+                  <option value="">Tümü (highlight kapalı)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Operasyonel Araçlar -->
+        <div class="acc open">
+          <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
+            <div class="acc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 17H5a2 2 0 01-2-2V5a2 2 0 012-2h4m6 14h4a2 2 0 002-2V5a2 2 0 00-2-2h-4m-5 2v14"/></svg></div>
+            <span class="acc-label">Operasyonel Araçlar</span>
+            <span class="acc-arrow">▼</span>
+          </div>
+          <div class="acc-body">
+            <div class="inner">
+              <div class="sb-sub-title">Kaydedilmiş Planlar</div>
+              <div class="row">
+                <button id="btnSidebarRefreshPlans" class="btn btn-outline" style="width:100%">↺ Planları Yükle</button>
+              </div>
+              <div id="sidebarPipelineList" style="margin-top:6px"><span style="font-size:11px;color:var(--text2)">Planları yüklemek için butona tıklayın.</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- JS uyumluluk elemanları (gizli) -->
+        <span id="spreadScenarioCount" style="display:none">0</span>
+        <div id="spreadScenarioList" style="display:none"></div>
+        <div id="spreadInfo" style="display:none"></div>
+        <div id="spreadEtaBox" style="display:none"></div>
+
+        <!-- firePointInfo -->
+        <div id="firePointInfo"></div>
+
+      </div><!-- /sidebar-scroll -->
+
+      <!-- Sidebar footer: reset + status -->
+      <div class="sidebar-footer">
+        <button id="btnReset" class="btn" style="flex-shrink:0;border-color:rgba(239,68,68,.2)">⟳ Sıfırla</button>
+        <span id="info-footer" style="font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+      </div>
+    </aside><!-- /ctrl-sidebar -->
+
+    <!-- MAP AREA -->
+    <div class="map-wrap">
+      <div id="map"></div>
+    </div>
+
+  </div><!-- /app-layout -->
+
+  <!-- Hidden compatibility shims (JS references these) -->
+  <div class="map-frame" style="display:none" aria-hidden="true"></div>
+  <div class="panel" style="display:none" aria-hidden="true"></div>
+  <button id="panelToggle" style="display:none" aria-hidden="true"></button>
+  <button id="panelCloseBtn" style="display:none" aria-hidden="true"></button>
+  <div id="sidebar" style="display:none" aria-hidden="true">
+    <a href="#" id="mFires"></a>
+    <a href="#" id="mVolunteer"></a>
+    <a href="#" id="mContact"></a>
   </div>
-  <div id="backdrop" class="backdrop"></div>
-  <div class="panel">
-    <button class="panel-close-btn" id="panelCloseBtn" title="Paneli Kapat">×</button>
-
-    <!-- Yangın Takibi -->
-    <div class="acc">
-      <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
-        <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M12 2c-4 4-7 8-7 12a7 7 0 0014 0c0-4-3-8-7-12z"/></svg></div>
-        <span class="acc-label">Yangın Takibi</span>
-        <span class="acc-count">2</span>
-        <span class="acc-arrow">▼</span>
-      </div>
-      <div class="acc-body">
-        <div class="row">
-          <label for="dr">Aralık</label>
-          <select id="dr">
-            <option value="1">Son 24 saat</option>
-            <option value="7">Son 1 hafta</option>
-          </select>
-          <button id="btnFires" class="btn btn-outline">Göster</button>
-          <button id="btnLiveTracking" class="btn btn-primary">Canlı Takip</button>
-        </div>
-      </div>
-    </div>
-    <!-- Risk Analizi -->
-    <div class="acc">
-      <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
-        <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M3 12l4-4 4 4 4-4 4 4"/></svg></div>
-        <span class="acc-label">Risk Analizi</span>
-        <span class="acc-count">4</span>
-        <span class="acc-arrow">▼</span>
-      </div>
-      <div class="acc-body">
-        <div class="row">
-          <button id="btnFireRisk" class="btn btn-outline">Riskli Bölgeler</button>
-          <button id="btnHeatmap" class="btn btn-outline">Isıl Harita</button>
-          <button id="btnFirePoints" class="btn btn-outline">High / Low Noktalar</button>
-          <button id="btnPipeline" class="btn btn-outline">Pipeline Sonucu</button>
-          <label for="pipelineN">n:</label>
-          <input id="pipelineN" type="number" value="20" min="1" max="554" style="width:64px;" />
-          <label for="pipelineK">k:</label>
-          <input id="pipelineK" type="number" value="4" min="1" max="100" style="width:56px;" />
-          <button id="btnPipelinePDF" class="btn btn-outline" disabled title="Pipeline çalıştıktan sonra aktif olur">PDF İndir</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Su Kaynakları -->
-    <div class="acc">
-      <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
-        <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M12 2c-4 5-7 9-7 13a7 7 0 0014 0c0-4-3-8-7-13z"/><path d="M9.5 16a2.5 2.5 0 005 0" opacity=".5"/></svg></div>
-        <span class="acc-label">Su Kaynakları</span>
-        <span class="acc-count">4</span>
-        <span class="acc-arrow">▼</span>
-      </div>
-      <div class="acc-body">
-        <div class="row">
-          <button id="btnReservoirs" class="btn btn-outline">Rezervuarlar</button>
-          <button id="btnWaterSources" class="btn btn-outline">Su Kaynakları</button>
-          <button id="btnWaterTanks" class="btn btn-outline">Su Tankları</button>
-          <button id="btnLakes" class="btn btn-outline">Göl ve Göletler</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Erişim & Müdahale -->
-    <div class="acc">
-      <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
-        <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M9 20l-5.447-2.724A2 2 0 013 15.382V5.618a2 2 0 011.106-1.789L9 1m0 19l6-3m-6 3V1m6 16l4.553 2.276A2 2 0 0021 17.382V7.618a2 2 0 00-.894-1.664L15 2m0 15V2m0 0L9 1"/></svg></div>
-        <span class="acc-label">Erişim & Müdahale</span>
-        <span class="acc-count">6</span>
-        <span class="acc-arrow">▼</span>
-      </div>
-      <div class="acc-body">
-        <div class="row">
-          <button id="btnFireStations" class="btn btn-outline">İtfaiye İstasyonları</button>
-          <button id="btnProximity" class="btn btn-outline">Kaynak Yakınlık</button>
-          <button id="btnIntegrated" class="btn btn-outline">Entegre Katman</button>
-          <button id="btnRouteSA" class="btn btn-outline">SA Rotaları</button>
-          <button id="btnRouteGA" class="btn btn-outline">GA Rotaları</button>
-          <button id="btnRouteClear" class="btn">Rotaları Temizle</button>
-        </div>
-        <div class="row">
-          <label for="routeSelect">Seçili Rota</label>
-          <select id="routeSelect" style="min-width:220px;">
-            <option value="">Tümü (highlight kapalı)</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
-    <!-- Yangın Yayılım Takibi -->
-    <div class="acc open">
-      <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
-        <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M12 2c-2 3-5 6-5 10a5 5 0 0010 0C17 8 14 5 12 2z"/><path d="M9 16c.5 1.5 2 2 3 2s2.5-.5 3-2" opacity=".4"/></svg></div>
-        <span class="acc-label">Yangın Yayılım Takibi</span>
-        <span class="acc-count" id="spreadScenarioCount">0</span>
-        <span class="acc-arrow">▼</span>
-      </div>
-      <div class="acc-body">
-        <div class="row" style="padding-top:4px">
-          <button id="btnAddFirePoint" class="btn btn-outline">Yangın Noktası Ekle</button>
-          <button class="btn btn-outline" id="btnSpreadRefresh">Yenile</button>
-          <button class="btn btn-outline" id="btnSpreadClearAll" style="color:var(--danger);border-color:var(--danger)">Sıfırla</button>
-        </div>
-        <div class="row">
-          <button id="btnSaveMyLocation" class="btn btn-outline">Konumumu Kaydet</button>
-          <button id="btnRequestNotif" class="btn btn-outline">Bildirim Ac</button>
-        </div>
-        <div id="spreadScenarioList" style="font-size:11px;color:var(--text2);padding:4px 0 8px;">Henuz senaryo yok. Haritaya tiklayin.</div>
-        <div id="spreadInfo"></div>
-        <div id="spreadEtaBox"></div>
-      </div>
-    </div>
-
-    <!-- Sıfırla + Durum -->
-    <div style="padding:12px 0;display:flex;flex-direction:column;gap:8px">
-      <div class="row">
-        <button id="btnReset" class="btn">Sıfırla</button>
-        <span id="info" style="margin-left:6px;color:var(--text2)"></span>
-      </div>
-      <div id="firePointInfo" style="display:none; margin-top:10px; padding:10px; border:1px solid var(--border); border-radius:8px; background:rgba(14,30,12,.6); font-size:12px; color:var(--text);"></div>
-    </div>
-  </div>
+  <div id="backdrop" style="display:none" aria-hidden="true"></div>
+  <button id="menuBtn" style="display:none" aria-hidden="true"></button>
+  <img id="logoImg" style="display:none" alt=""/>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
   <script src="https://d3js.org/d3-contour.v2.min.js"></script>
@@ -421,7 +546,11 @@
     backdrop.addEventListener('click', closeSidebar);
     window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeSidebar(); });
 
+    const mCitizenView = document.getElementById('mCitizenView');
+    if (mCitizenView) mCitizenView.addEventListener('click', (e)=>{ e.preventDefault(); closeSidebar(); window.location.href='/'; });
     document.getElementById('mFires').addEventListener('click', (e)=>{ e.preventDefault(); closeSidebar(); document.getElementById('btnLiveTracking').click(); });
+    const citizenLink = document.getElementById('citizenLink');
+    if (citizenLink) citizenLink.addEventListener('click', function(e){ e.preventDefault(); window.location.href='/'; });
 
     const panel = document.querySelector('.panel');
     const panelToggle = document.getElementById('panelToggle');
@@ -463,13 +592,17 @@
     const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       {maxZoom:19, attribution:'&copy; OpenStreetMap'});
 
+    const darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      {maxZoom:19, attribution:'&copy; CartoDB', subdomains:'abcd'});
+
     const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       {maxZoom:19, attribution:'&copy; Esri'});
 
-    satelliteLayer.addTo(map);
+    darkLayer.addTo(map);
     L.Icon.Default.prototype.options.imagePath = '';
 
     const baseMaps = {
+      'Karanlık': darkLayer,
       'Standart': osmLayer,
       'Uydu': satelliteLayer
     };
@@ -550,7 +683,7 @@
 
         izmirBoundaryLayer = L.geoJSON(gj, {
           pane:'izmirBoundary',
-          style: { color:'#F59E0B', weight:5, fillOpacity:0, opacity:1, dashArray:'' },
+          style: { color:'#ef4444', weight:5, fillOpacity:0, opacity:1, dashArray:'' },
           // Sınır çizgisi sadece görsel; mouse/hover olaylarını pipeline gibi katmanlara bırakıyoruz.
           interactive: false,
           bubblingMouseEvents: false,
@@ -610,7 +743,18 @@
       };
 
       return L.geoJSON(filteredGeo, {
-        pointToLayer:(f,latlng)=>L.circleMarker(latlng, markerStyle(f.properties||{})),
+        pointToLayer:(f,latlng)=>{
+          const p = f.properties || {};
+          const c = (p.confidence||'').toLowerCase();
+          const size = c === 'h' ? 22 : c === 'n' ? 18 : 15;
+          const icon = L.divIcon({
+            html: `<span style="font-size:${size}px;line-height:1;filter:drop-shadow(0 0 4px rgba(255,80,0,.9))">🔥</span>`,
+            className: '',
+            iconSize: [size, size],
+            iconAnchor: [size/2, size],
+          });
+          return L.marker(latlng, { icon });
+        },
         onEachFeature:(f,l)=>{ const p=f.properties||{}; l.bindPopup(firePopupHtml(p)); }
       });
     }
@@ -618,6 +762,8 @@
     function setStatus(msg){
       const s = document.getElementById('info');
       if (s) s.textContent = msg || '';
+      const f = document.getElementById('info-footer');
+      if (f) f.textContent = msg || '';
     }
 
     // S11.1 Scenario Builder Frontend
@@ -1901,7 +2047,7 @@
       routeLegendCtl = L.control({ position: 'bottomleft' });
       routeLegendCtl.onAdd = function() {
         const div = L.DomUtil.create('div', 'legend');
-        div.style.cssText = 'background:rgba(8,21,16,0.93);padding:10px 14px;border-radius:8px;box-shadow:0 0 15px rgba(0,0,0,0.35);font-size:12px;color:#d1fae5;min-width:170px;border:1px solid rgba(74,124,58,0.3)';
+        div.style.cssText = 'background:rgba(15,5,5,0.93);padding:10px 14px;border-radius:8px;box-shadow:0 0 15px rgba(0,0,0,0.35);font-size:12px;color:#fecaca;min-width:170px;border:1px solid rgba(239,68,68,0.3)';
         let html = '<b style="display:block;margin-bottom:8px;font-size:13px;letter-spacing:.5px">🗺 Rota Katmanı</b>';
         if (loadedAlgorithms.has('SA')) {
           html += '<div style="margin-bottom:4px;font-weight:700;opacity:0.6;font-size:10px;letter-spacing:1.2px">── SA ROTALARI ──</div>';
@@ -2037,12 +2183,11 @@
               .filter(p => Array.isArray(p) && p.length >= 2)
               .map(p => [Number(p[1]), Number(p[0])]);
             if (rawCoords.length < 2) return;
-            const coords = smoothCoords(rawCoords, 3);
 
             const vColor = vehicleColors[vIdx] || vehicleColors[vehicleColors.length - 1];
             features.push({
               type: 'Feature',
-              geometry: { type: 'LineString', coordinates: coords },
+              geometry: { type: 'LineString', coordinates: rawCoords },
               properties: {
                 route_id: routeId,
                 algorithm: algo,
@@ -2059,7 +2204,7 @@
             });
 
             // Araç ikonu için rotanın orta noktasını kaydet (coords = [lon,lat])
-            const midCoord = coords[Math.floor(coords.length / 2)];
+            const midCoord = rawCoords[Math.floor(rawCoords.length / 2)];
             iconPlacements.push({ latLng: [midCoord[1], midCoord[0]], color: vColor, vIdx, stationId: station.station_id });
           });
         });
@@ -2278,11 +2423,25 @@
         pipelineLegendCtl.addTo(map);
 
         allActiveLayers.push(pipelineLayer);
+
+        // SA/GA sonuçlarını snapshot'a ekle ("Göster" butonu için kesin tekrar üretim)
+        let snapshotSaRoutes = null, snapshotGaRoutes = null;
+        try {
+          const [saRes, gaRes] = await Promise.all([
+            fetch('/api/optimize/sa'),
+            fetch('/api/optimize/ga'),
+          ]);
+          if (saRes.ok) { const d = await saRes.json(); snapshotSaRoutes = Array.isArray(d.stations) ? d.stations : null; }
+          if (gaRes.ok) { const d = await gaRes.json(); snapshotGaRoutes = Array.isArray(d.stations) ? d.stations : null; }
+        } catch(e) { console.warn('SA/GA snapshot prefetch hatası:', e); }
+
         // Haritada göster için snapshot kaydet
         window._lastPipelineSnapshot = {
           pipeline_points: pipelinePoints,
           stations: Array.from(usedStationIds).map(id => stationById[id]).filter(Boolean),
-          n, k
+          n, k,
+          sa_routes: snapshotSaRoutes,
+          ga_routes: snapshotGaRoutes,
         };
         info.textContent = `Pipeline: ${pipelinePoints.length} nokta + ${stationFeatures.length} istasyon (n=${n}, k=${k})`;
         setStatus(`Pipeline aktif (${pipelinePoints.length} nokta)`);
@@ -2293,62 +2452,203 @@
     }
 
     // ── Kaydedilmiş pipeline'ı haritada göster ──────────────────
-    window.loadPipelineOnMap = function(snapshot) {
-      if (!snapshot || !snapshot.pipeline_points) return;
+    window.loadPipelineOnMap = async function(snapshot) {
+      if (!snapshot) return;
       const info = document.getElementById('info');
-      // Mevcut pipeline katmanını temizle
-      if (pipelineLayer) {
-        try { map.removeLayer(pipelineLayer); } catch(e) {}
-        pipelineLayer = null;
-      }
-      if (pipelineLegendCtl) { try { pipelineLegendCtl.remove(); } catch(e) {} pipelineLegendCtl = null; }
+      const snapN = snapshot.n || 20;
+      const snapK = snapshot.k || 4;
 
-      const pipelinePoints = snapshot.pipeline_points;
-      const stations = snapshot.stations || [];
-      const stationById = {};
-      stations.forEach(s => { stationById[String(s.id)] = s; });
-      const usedStationIds = new Set(pipelinePoints.map(p => String(p.fire_station_id)));
+      // n/k inputlarını snapshot değerlerine ayarla
+      const nInput = document.getElementById('pipelineN');
+      const kInput = document.getElementById('pipelineK');
+      if (nInput) nInput.value = snapN;
+      if (kInput) kInput.value = snapK;
 
-      const pointFeatures = pipelinePoints.map(p => ({
-        type: 'Feature',
-        geometry: { type: 'Point', coordinates: [Number(p.lon), Number(p.lat)] },
-        properties: { type: 'fire_point', id: p.id, risk_class: p.risk, demand: p.demand, fire_station_id: p.fire_station_id, station_distance_km: p.station_distance_km }
-      }));
-      const stationFeatures = Array.from(usedStationIds)
-        .map(id => stationById[id]).filter(Boolean)
-        .map(s => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [Number(s.lon), Number(s.lat)] }, properties: { type: 'fire_station', id: s.id, name: s.name || `Station ${s.id}` } }));
+      // ── YENİ SNAPSHOT (sa_routes var): kaydedilmiş veriden birebir geri yükle ──
+      if (snapshot.pipeline_points &&
+          Array.isArray(snapshot.sa_routes) && snapshot.sa_routes.length > 0) {
 
-      const geoJson = { type: 'FeatureCollection', features: [...pointFeatures, ...stationFeatures] };
+        // Mevcut katmanları temizle
+        if (pipelineLayer) { try { map.removeLayer(pipelineLayer); } catch(e) {} pipelineLayer = null; }
+        if (pipelineLegendCtl) { try { pipelineLegendCtl.remove(); } catch(e) {} pipelineLegendCtl = null; }
+        clearOptimizationRoutes();
 
-      if (!map.getPane('pipelinePane')) {
-        map.createPane('pipelinePane');
-        map.getPane('pipelinePane').style.zIndex = 760;
-      }
+        // Pipeline noktalarını çiz (snapshot'tan)
+        const pipelinePoints = snapshot.pipeline_points;
+        const stations = snapshot.stations || [];
+        const stationById = {};
+        stations.forEach(s => { stationById[String(s.id)] = s; });
+        const usedStationIds = new Set(pipelinePoints.map(p => String(p.fire_station_id)));
 
-      pipelineLayer = L.geoJSON(geoJson, {
-        pane: 'pipelinePane',
-        pointToLayer: (feature, latlng) => {
-          const ft = (feature.properties || {}).type || 'fire_point';
-          const risk = String((feature.properties || {}).risk_class || '').toUpperCase();
-          const color = risk === 'HIGH' ? '#dc2626' : '#f59e0b';
-          if (ft === 'fire_station') {
-            return L.marker(latlng, { icon: L.divIcon({ className: 'fireStationSquareIcon', iconSize:[18,18], iconAnchor:[9,9], html:'<div style="width:18px;height:18px;background:#ff2d2d;border:2px solid #b30000;border-radius:2px;box-sizing:border-box;"></div>' }) });
-          }
-          return L.circleMarker(latlng, { radius:4, color, weight:1, fillColor:color, fillOpacity:0.85, opacity:0.9 });
+        const pointFeatures = pipelinePoints.map(p => ({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [Number(p.lon), Number(p.lat)] },
+          properties: { type: 'fire_point', id: p.id, risk_class: p.risk, demand: p.demand,
+            fire_station_id: p.fire_station_id, station_distance_km: p.station_distance_km }
+        }));
+        const stationFeatures = Array.from(usedStationIds)
+          .map(id => stationById[id]).filter(Boolean)
+          .map(s => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [Number(s.lon), Number(s.lat)] },
+            properties: { type: 'fire_station', id: s.id, name: s.name || `Station ${s.id}` } }));
+
+        if (!map.getPane('pipelinePane')) {
+          map.createPane('pipelinePane');
+          map.getPane('pipelinePane').style.zIndex = 760;
         }
-      }).addTo(map);
+        pipelineLayer = L.geoJSON(
+          { type: 'FeatureCollection', features: [...pointFeatures, ...stationFeatures] },
+          {
+            pane: 'pipelinePane',
+            pointToLayer: (feature, latlng) => {
+              const ft = (feature.properties || {}).type || 'fire_point';
+              const risk = String((feature.properties || {}).risk_class || '').toUpperCase();
+              const color = risk === 'HIGH' ? '#dc2626' : '#f59e0b';
+              if (ft === 'fire_station') {
+                return L.marker(latlng, { icon: L.divIcon({ className:'fireStationSquareIcon', iconSize:[18,18], iconAnchor:[9,9],
+                  html:'<div style="width:18px;height:18px;background:#ff2d2d;border:2px solid #b30000;border-radius:2px;box-sizing:border-box;"></div>' }) });
+              }
+              return L.circleMarker(latlng, { radius:4, color, weight:1, fillColor:color, fillOpacity:0.85, opacity:0.9 });
+            }
+          }
+        ).addTo(map);
 
-      allActiveLayers.push(pipelineLayer);
-      setBtnActive('btnPipeline', true);
-      info.textContent = `Kaydedilmiş pipeline: ${pipelinePoints.length} nokta (n=${snapshot.n}, k=${snapshot.k})`;
-      setStatus(`Kaydedilmiş pipeline yüklendi (${pipelinePoints.length} nokta)`);
+        allActiveLayers.push(pipelineLayer);
+        setBtnActive('btnPipeline', true);
 
-      // Haritayı ilk noktaya uçur
-      if (pipelinePoints.length > 0) {
-        const first = pipelinePoints[0];
-        map.setView([Number(first.lat), Number(first.lon)], 12, { animate: true });
+        // SA/GA rotalarını snapshot'tan çiz
+        renderRoutesFromSnapshot(snapshot.sa_routes, 'SA');
+        if (Array.isArray(snapshot.ga_routes) && snapshot.ga_routes.length > 0) {
+          renderRoutesFromSnapshot(snapshot.ga_routes, 'GA');
+        }
+
+        // Haritayı yangın noktaları üzerine ortala
+        const lats = pipelinePoints.map(p => Number(p.lat));
+        const lons = pipelinePoints.map(p => Number(p.lon));
+        map.setView([(Math.min(...lats)+Math.max(...lats))/2, (Math.min(...lons)+Math.max(...lons))/2], 10, {animate:true});
+
+        info.textContent = `Kaydedilmiş pipeline: ${pipelinePoints.length} nokta, SA+GA rotaları (n=${snapN}, k=${snapK})`;
+        setStatus(`Kaydedilmiş pipeline yüklendi (${pipelinePoints.length} nokta)`);
+
+        // Arka planda sunucu durumunu senkronize et
+        lastOptimizationScenarioKey = null;
+        (async function() {
+          try {
+            const pr = await fetch('/api/optimize/pipeline', { method:'POST',
+              headers:{'Content-Type':'application/json'}, body:JSON.stringify({n:snapN, k:snapK}) });
+            if (!pr.ok) return;
+            const pd = await pr.json(); if (!pd.success) return;
+            const rr = await fetch('/api/optimize/run', {method:'POST'});
+            if (!rr.ok) return;
+            const rd = await rr.json();
+            if (rd.success) lastOptimizationScenarioKey = `${snapN}-${snapK}`;
+          } catch(e) { console.warn('Arka plan senkronizasyon hatası:', e); }
+        })();
+
+        return;
+      }
+
+      // ── ESKİ SNAPSHOT (sa_routes yok): vatandaş view ile aynı mantık — fresh re-run ──
+      // Pipeline'ı ve SA rotalarını sıfırdan çalıştır (citizen view'deki "Pipeline Sonucu" + "SA Rotaları" gibi)
+      if (pipelineLayer) { try { map.removeLayer(pipelineLayer); } catch(e) {} pipelineLayer = null; }
+      if (pipelineLegendCtl) { try { pipelineLegendCtl.remove(); } catch(e) {} pipelineLegendCtl = null; }
+      clearOptimizationRoutes();
+      lastOptimizationScenarioKey = null;
+
+      info.textContent = `Pipeline yeniden çalışıyor (n=${snapN}, k=${snapK})...`;
+      setStatus(`Pipeline yeniden çalışıyor (n=${snapN}, k=${snapK})...`);
+
+      try {
+        await loadPipelineLayer();        // pipeline noktaları + SA/GA sunucu hesabı
+        if (pipelineLayer) {
+          await loadOptimizationRoutes('SA');  // SA rotaları otomatik yükle
+        }
+      } catch(e) {
+        info.textContent = 'Pipeline yükleme hatası: ' + e.message;
+        console.error('loadPipelineOnMap fresh run hatası:', e);
       }
     };
+
+    // ── Snapshot'tan rota çizme (API çağrısı olmadan aynı sonucu üretir) ────────
+    function renderRoutesFromSnapshot(stationDataArray, algo) {
+      if (!Array.isArray(stationDataArray) || !stationDataArray.length) return;
+      if (!map.getPane('routePane')) {
+        map.createPane('routePane');
+        map.getPane('routePane').style.zIndex = 780;
+      }
+      const vehicleColors = getVehicleColors(algo);
+      const features = [];
+      const iconPlacements = [];
+
+      stationDataArray.forEach(station => {
+        const vehicles = Array.isArray(station.vehicles) ? station.vehicles : [];
+        if (!vehicles.length) return;
+        const routeId = `${algo}-${station.station_id}`;
+        routeIndex.push({
+          route_id: routeId, algorithm: algo,
+          station_id: station.station_id, distance: station.total_distance || 0,
+        });
+        vehicles.forEach((v, vIdx) => {
+          const points = Array.isArray(v.polyline) ? v.polyline : [];
+          const rawCoords = points
+            .filter(p => Array.isArray(p) && p.length >= 2)
+            .map(p => [Number(p[1]), Number(p[0])]);
+          if (rawCoords.length < 2) return;
+          const vColor = vehicleColors[vIdx] || vehicleColors[vehicleColors.length - 1];
+          features.push({
+            type: 'Feature',
+            geometry: { type: 'LineString', coordinates: rawCoords },
+            properties: {
+              route_id: routeId, algorithm: algo,
+              station_id: station.station_id,
+              station_name: station.station_name || `Station ${station.station_id}`,
+              distance: station.total_distance || 0,
+              vehicle_index: vIdx, vehicle_label: `Araç ${vIdx + 1}`,
+              vehicle_count: vehicles.length,
+              fire_point_count: Array.isArray(station.assigned_fire_points) ? station.assigned_fire_points.length : 0,
+              vehicle_color: vColor,
+            }
+          });
+          const midCoord = rawCoords[Math.floor(rawCoords.length / 2)];
+          iconPlacements.push({ latLng: [midCoord[1], midCoord[0]], color: vColor, vIdx });
+        });
+      });
+
+      if (!features.length) return;
+
+      const layer = L.geoJSON({ type: 'FeatureCollection', features }, {
+        pane: 'routePane', style: routeStyle,
+        onEachFeature: (feature, routeLayer) => {
+          const p = feature.properties || {};
+          const vcColor = p.vehicle_color || '#6b7280';
+          routeLayer.bindPopup(
+            `<b>${p.algorithm} Rota – <span style="color:${vcColor}">${p.vehicle_label || 'Araç'}</span></b><br>` +
+            `<strong>İstasyon:</strong> ${p.station_name} (${p.station_id})<br>` +
+            `<strong>Atanan nokta:</strong> ${p.fire_point_count}<br>` +
+            `<strong>Toplam mesafe:</strong> ${Number(p.distance || 0).toFixed(2)} km`
+          );
+        }
+      }).addTo(map);
+      layer._algorithm = algo;
+      optimizationRouteLayers.push(layer);
+
+      iconPlacements.forEach(({ latLng, color, vIdx }) => {
+        const icon = L.divIcon({
+          className: '',
+          html: `<div style="background:${color};color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.45);cursor:default" title="${algo} – Araç ${vIdx + 1}">🚒</div>`,
+          iconSize: [26, 26], iconAnchor: [13, 13],
+        });
+        const marker = L.marker(latLng, { icon, pane: 'routePane', interactive: false });
+        marker._algorithm = algo;
+        marker.addTo(map);
+        vehicleIconLayers.push(marker);
+      });
+
+      loadedAlgorithms.add(algo);
+      rebuildRouteLegend();
+      rebuildRouteSelect();
+      refreshRouteStyles();
+      setBtnActive(algo === 'SA' ? 'btnRouteSA' : 'btnRouteGA', true);
+    }
 
     async function togglePipelineLayer() {
       const info = document.getElementById('info');
@@ -2633,7 +2933,7 @@
         try { map.removeLayer(layer); } catch(e) {}
       });
 
-      satelliteLayer.addTo(map);
+      darkLayer.addTo(map);
       if (izmirBoundaryLayer) {
         try { izmirBoundaryLayer.addTo(map); } catch(e) {}
       }
@@ -3256,8 +3556,11 @@
     safeBind('btnAddFirePoint', 'click', toggleSpreadAddMode);
     safeBind('btnSpreadRefresh', 'click', loadSpreadScenarios);
     safeBind('btnSpreadClearAll', 'click', clearAllSpreadScenarios);
-    safeBind('btnSaveMyLocation', 'click', saveMySpreadLocation);
-    safeBind('btnRequestNotif', 'click', requestSpreadNotifPermission);
+    safeBind('btnSidebarRefreshPlans', 'click', async function() {
+      const el = document.getElementById('sidebarPipelineList');
+      if (el) el.innerHTML = '<span style="font-size:11px;color:var(--text2)">⏳ Yükleniyor...</span>';
+      await loadAndRenderPipelines(false);
+    });
 
     map.on('moveend zoomend', ()=>{ if (riskActive) loadRiskForView(); });
 
@@ -4072,13 +4375,42 @@
           pmStatLastRun.textContent = '—';
         }
         if (!statsOnly) renderPipelineList();
+        renderSidebarPipelines();
       } catch(e) {
         _pipelineCache = [];
         pmStatPipelines.textContent = '0';
         if (!statsOnly) {
           pmPipelineList.innerHTML = '<div class="pm-empty"><div class="pm-empty-icon">⚠️</div>Yüklenemedi. Oturum açık mı?</div>';
         }
+        renderSidebarPipelines();
       }
+    }
+
+    function renderSidebarPipelines() {
+      const el = document.getElementById('sidebarPipelineList');
+      if (!el) return;
+      if (!_pipelineCache || !_pipelineCache.length) {
+        el.innerHTML = '<span style="font-size:11px;color:var(--text2)">Henüz kaydedilmiş plan yok.</span>';
+        return;
+      }
+      el.innerHTML = '';
+      _pipelineCache.slice(0, 6).forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'sb-plan-item';
+        const d = formatDate(item.created_at).split(' ').slice(0, 2).join(' ');
+        div.innerHTML =
+          '<div class="sb-plan-info">' +
+            `<div class="sb-plan-name" title="${item.name}">${item.name}</div>` +
+            `<div class="sb-plan-meta">n=${item.n} · k=${item.k} · ${d}</div>` +
+          '</div>' +
+          '<button class="sb-plan-btn">🗺 Göster</button>';
+        div.querySelector('button').addEventListener('click', function() {
+          if (item.snapshot && typeof window.loadPipelineOnMap === 'function') {
+            window.loadPipelineOnMap(item.snapshot);
+          }
+        });
+        el.appendChild(div);
+      });
     }
 
     function renderPipelineList() {

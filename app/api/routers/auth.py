@@ -6,6 +6,7 @@ from jose import jwt as jose_jwt
 from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse
 from app.services.auth_service import AuthService
 from app.core.security import get_current_user, create_access_token
+from app.core.config import settings
 from app.db.session import get_db
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -56,5 +57,6 @@ def firebase_token_exchange(payload: FirebaseTokenRequest):
     if not email:
         raise HTTPException(status_code=400, detail="Firebase token'da email bulunamadı")
 
-    backend_token = create_access_token(data={"sub": email, "email": email, "role": "user"})
+    role = "admin" if email.lower() in settings.admin_emails_list else "user"
+    backend_token = create_access_token(data={"sub": email, "email": email, "role": role})
     return TokenResponse(access_token=backend_token)

@@ -50,6 +50,16 @@ class Settings(BaseSettings):
         alias="ACCESS_TOKEN_EXPIRE_MINUTES"
     )
 
+    # Admin
+    ADMIN_EMAILS: str = Field(
+        default="sena1@gmail.com",
+        alias="ADMIN_EMAILS"
+    )
+
+    @property
+    def admin_emails_list(self) -> list[str]:
+        return [e.strip().lower() for e in (self.ADMIN_EMAILS or "").split(",") if e.strip()]
+
     @property
     def cors_origins_list(self) -> list[str]:
         raw_value = (self.BACKEND_CORS_ORIGINS or "*").strip()

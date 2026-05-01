@@ -346,6 +346,14 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
 .auth-tab{flex:1;padding:12px 0;background:none;border:none;font-family:var(--font);font-size:13px;font-weight:600;letter-spacing:.5px;color:var(--text-dark-m);cursor:pointer;transition:all .2s;border-bottom:2px solid transparent;margin-bottom:-1px}
 .auth-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
 .auth-tab:hover:not(.active){color:var(--text-dark2)}
+/* Rol seçici */
+.role-selector{display:flex;gap:8px;margin-bottom:24px}
+.role-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;background:rgba(5,14,7,.5);border:1.5px solid rgba(74,124,58,.2);border-radius:14px;color:var(--text-dark2);font-family:var(--font);font-size:12px;font-weight:600;letter-spacing:.4px;cursor:pointer;transition:all .22s}
+.role-btn .role-icon{font-size:26px;line-height:1}
+.role-btn:hover{border-color:rgba(245,158,11,.45);color:var(--text-dark)}
+.role-btn.active{border-color:var(--accent);background:rgba(245,158,11,.1);color:var(--accent);box-shadow:0 0 0 3px rgba(245,158,11,.08)}
+.role-btn.active-fire{border-color:#ef4444;background:rgba(239,68,68,.1);color:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.08)}
+.role-btn.active-fire .role-icon{filter:drop-shadow(0 0 6px rgba(239,68,68,.6))}
 .auth-form{display:flex;flex-direction:column;gap:16px}
 .auth-form[hidden]{display:none}
 .auth-field{display:flex;flex-direction:column;gap:6px}
@@ -787,7 +795,16 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
       <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Giriş Yap</button>
       <button class="auth-tab" id="tabSignup" onclick="switchTab('signup')">Kayıt Ol</button>
     </div>
-    <!-- LOGIN FORM -->
+    <!-- ROL SEÇİCİ -->
+    <div class="role-selector" id="roleSelectorLogin">
+      <button class="role-btn active" id="roleCitizen" onclick="selectRole('citizen')">
+        Vatandaş
+      </button>
+      <button class="role-btn" id="roleFirefighter" onclick="selectRole('firefighter')">
+        Yetkili Personel
+      </button>
+    </div>
+    <!-- LOGIN FORM - Vatandaş -->
     <form class="auth-form" id="formLogin" onsubmit="handleLogin(event)">
       <div class="auth-field">
         <label>E-posta</label>
@@ -799,6 +816,19 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
       </div>
       <button type="submit" class="auth-submit">Giriş Yap →</button>
       <div class="auth-footer">Hesabınız yok mu? <a onclick="switchTab('signup')">Kayıt olun</a></div>
+    </form>
+    <!-- LOGIN FORM - İtfaiyeci -->
+    <form class="auth-form" id="formFirefighter" hidden onsubmit="handleFirefighterLogin(event)">
+      <div class="auth-field">
+        <label>Kullanıcı Adı</label>
+        <input type="text" id="ffUsername" placeholder="yetkili_kullanici" required/>
+      </div>
+      <div class="auth-field">
+        <label>Şifre</label>
+        <input type="password" id="ffPassword" placeholder="••••••••" required/>
+      </div>
+      <button type="submit" class="auth-submit" style="background:linear-gradient(135deg,#b91c1c,#ef4444)">Yetkili Girişi →</button>
+      <div class="auth-footer" style="color:#ef4444;opacity:.7">🔒 Sadece kayıtlı personel</div>
     </form>
     <!-- SIGNUP FORM -->
     <form class="auth-form" id="formSignup" hidden onsubmit="handleSignup(event)">
@@ -862,8 +892,30 @@ function closeAuth(){document.getElementById('authOverlay').classList.remove('op
 function switchTab(tab){
   document.getElementById('tabLogin').classList.toggle('active',tab==='login');
   document.getElementById('tabSignup').classList.toggle('active',tab==='signup');
-  document.getElementById('formLogin').hidden=(tab!=='login');
+  const isFF = window._currentRole === 'firefighter';
+  document.getElementById('formLogin').hidden=(tab!=='login') || isFF;
+  document.getElementById('formFirefighter').hidden=(tab!=='login') || !isFF;
   document.getElementById('formSignup').hidden=(tab!=='signup');
+  const sel = document.getElementById('roleSelectorLogin');
+  if (sel) sel.style.display = tab === 'login' ? 'flex' : 'none';
+}
+
+window._currentRole = 'citizen';
+function selectRole(role) {
+  window._currentRole = role;
+  const cBtn = document.getElementById('roleCitizen');
+  const fBtn = document.getElementById('roleFirefighter');
+  if (role === 'citizen') {
+    cBtn.className = 'role-btn active';
+    fBtn.className = 'role-btn';
+    document.getElementById('formLogin').hidden = false;
+    document.getElementById('formFirefighter').hidden = true;
+  } else {
+    cBtn.className = 'role-btn';
+    fBtn.className = 'role-btn active-fire';
+    document.getElementById('formLogin').hidden = true;
+    document.getElementById('formFirefighter').hidden = false;
+  }
 }
 function setExploreMapEnabled(enabled){
   const exploreMapBtn = document.getElementById('exploreMapBtn');
@@ -885,6 +937,12 @@ function normalizeAuthMessage(message){
     return 'E-posta veya şifre hatalı.';
   }
   return message || 'İşlem başarısız.';
+}
+function _jwtRole(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    return payload.role || 'user';
+  } catch { return 'user'; }
 }
 async function getFirebaseAuthContext(){
   if (window.koruFirebaseAuth && window.koruFirebaseAuthApi) {
@@ -980,15 +1038,51 @@ async function handleLogin(e){
       body: JSON.stringify({firebase_token: firebaseToken}),
     });
     const backendToken = bResp.ok ? (await bResp.json()).access_token : firebaseToken;
+    const userRole = _jwtRole(backendToken);
     sessionStorage.setItem('access_token', backendToken);
     sessionStorage.setItem('username', credential.user.displayName || email);
     sessionStorage.setItem('email', email);
-    sessionStorage.setItem('role', 'user');
+    sessionStorage.setItem('role', userRole);
     closeAuth();
-    window.location.href = '/welcome';
+    window.location.href = userRole === 'admin' ? '/firefighter' : '/welcome';
   } catch (error) {
     alert(normalizeAuthMessage(error.message));
     button.textContent = 'Giriş Yap →';
+    button.disabled = false;
+  }
+}
+
+async function handleFirefighterLogin(e) {
+  e.preventDefault();
+  const username = document.getElementById('ffUsername')?.value?.trim() || '';
+  const password = document.getElementById('ffPassword')?.value || '';
+  const button = e.target.querySelector('.auth-submit');
+
+  if (!username || !password) { alert('Kullanıcı adı ve şifre zorunlu.'); return; }
+
+  button.textContent = '⏳ Giriş Yapılıyor...';
+  button.disabled = true;
+
+  try {
+    const res = await fetch('/auth/firefighter/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Giriş başarısız. Kullanıcı adı veya şifre hatalı.');
+    }
+    const { access_token } = await res.json();
+    sessionStorage.setItem('access_token', access_token);
+    sessionStorage.setItem('username', username);
+    sessionStorage.setItem('email', username);
+    sessionStorage.setItem('role', 'firefighter');
+    closeAuth();
+    window.location.href = '/firefighter';
+  } catch (error) {
+    alert(error.message);
+    button.textContent = 'İtfaiyeci Girişi →';
     button.disabled = false;
   }
 }
@@ -1032,12 +1126,13 @@ async function handleSignup(e){
       body: JSON.stringify({firebase_token: firebaseToken}),
     });
     const backendToken = bResp.ok ? (await bResp.json()).access_token : firebaseToken;
+    const userRole = _jwtRole(backendToken);
     sessionStorage.setItem('access_token', backendToken);
     sessionStorage.setItem('username', email);
     sessionStorage.setItem('email', email);
-    sessionStorage.setItem('role', 'user');
+    sessionStorage.setItem('role', userRole);
     closeAuth();
-    window.location.href = '/welcome';
+    window.location.href = userRole === 'admin' ? '/firefighter' : '/welcome';
   } catch (error) {
     alert(normalizeAuthMessage(error.message));
     button.textContent = 'Kayıt Ol →';
