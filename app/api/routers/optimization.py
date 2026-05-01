@@ -36,6 +36,13 @@ class PipelineRequest(BaseModel):
     k: int = Field(..., ge=1, le=100, description="Küme sayısı")
 
 
+class OptimizationRunRequest(BaseModel):
+    """SA/GA optimizasyon parametreleri."""
+    pop_size: int = Field(default=100, ge=1, le=10000, description="GA popülasyon boyutu")
+    max_iterations: int = Field(default=100, ge=1, le=10000, description="GA maksimum iterasyon sayısı")
+    max_temperature: int = Field(default=100, ge=1, le=100000, description="SA başlangıç sıcaklığı")
+
+
 # ── Endpoint'ler ─────────────────────────────────────────────────────────────
 
 @router.post("/pipeline", summary="K-Means Pipeline Çalıştır")
@@ -56,14 +63,18 @@ async def run_kmeans_pipeline(request: PipelineRequest):
 
 
 @router.post("/run", summary="SA + GA Optimizasyon Çalıştır")
-async def run_optimization():
+async def run_optimization(request: OptimizationRunRequest = OptimizationRunRequest()):
     """
     pipeline_result.csv + dist_all.csv kullanarak SA ve GA algoritmalarını çalıştırır.
     Her istasyon için en iyi tour'ları üretir ve JSON olarak kaydeder.
 
     Önkoşul: Önce /api/optimize/pipeline ile pipeline çalıştırılmalıdır.
     """
-    result = run_sa_ga_optimization()
+    result = run_sa_ga_optimization(
+        pop_size=request.pop_size,
+        max_iterations=request.max_iterations,
+        max_temperature=request.max_temperature,
+    )
     if not result.get("success"):
         raise HTTPException(status_code=500, detail=result)
     return result

@@ -229,6 +229,12 @@
           <input id="pipelineN" type="number" value="20" min="1" max="554" style="width:64px;" />
           <label for="pipelineK">k:</label>
           <input id="pipelineK" type="number" value="4" min="1" max="100" style="width:56px;" />
+          <label for="gaPopSize" title="GA: Popülasyon boyutu">Pop:</label>
+          <input id="gaPopSize" type="number" value="100" min="1" max="10000" style="width:56px;" title="GA Popülasyon boyutu" />
+          <label for="gaMaxIter" title="GA: Maksimum iterasyon">İter:</label>
+          <input id="gaMaxIter" type="number" value="100" min="1" max="10000" style="width:56px;" title="GA Maksimum iterasyon" />
+          <label for="saMaxTemp" title="SA: Başlangıç sıcaklığı">Temp:</label>
+          <input id="saMaxTemp" type="number" value="100" min="1" max="100000" style="width:64px;" title="SA Başlangıç sıcaklığı" />
           <button id="btnPipelinePDF" class="btn btn-outline" disabled title="Pipeline çalıştıktan sonra aktif olur">PDF İndir</button>
         </div>
       </div>
@@ -1956,9 +1962,17 @@
       const pipeData = await pipeRes.json();
       if (!pipeData.success) throw new Error(pipeData.error || 'Pipeline basarisiz');
 
+      const popSize = Math.max(1, parseInt(document.getElementById('gaPopSize')?.value || '100', 10) || 100);
+      const maxIterations = Math.max(1, parseInt(document.getElementById('gaMaxIter')?.value || '100', 10) || 100);
+      const maxTemperature = Math.max(1, parseInt(document.getElementById('saMaxTemp')?.value || '100', 10) || 100);
+
       info.textContent = 'SA/GA optimizasyonu calisiyor...';
       setStatus('SA/GA optimizasyonu calisiyor...');
-      const runRes = await fetch('/api/optimize/run', { method: 'POST' });
+      const runRes = await fetch('/api/optimize/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pop_size: popSize, max_iterations: maxIterations, max_temperature: maxTemperature }),
+      });
       if (!runRes.ok) throw new Error('Optimize run API hatasi: ' + runRes.status);
       const runData = await runRes.json();
       if (!runData.success) throw new Error(runData.error || 'SA/GA basarisiz');

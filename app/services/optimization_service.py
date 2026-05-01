@@ -137,7 +137,11 @@ def run_pipeline(n: int, k: int) -> Dict:
     }
 
 
-def run_sa_ga_optimization() -> Dict:
+def run_sa_ga_optimization(
+    pop_size: int = 100,
+    max_iterations: int = 100,
+    max_temperature: int = 100,
+) -> Dict:
     """
     scripts/optimization/main.py'yi çalıştırarak SA ve GA sonuçlarını üretir.
     Önkoşul: pipeline_result.csv mevcut olmalı.
@@ -152,7 +156,12 @@ def run_sa_ga_optimization() -> Dict:
         env = os.environ.copy()
         env["KORU_DISABLE_PLOTS"] = "1"
         proc = subprocess.run(
-            [sys.executable, str(main_script)],
+            [
+                sys.executable, str(main_script),
+                "--pop-size", str(pop_size),
+                "--max-iterations", str(max_iterations),
+                "--max-temperature", str(max_temperature),
+            ],
             capture_output=True,
             text=True,
             timeout=300,
