@@ -2,11 +2,13 @@ from typing import Optional, Tuple
 
 from fastapi import APIRouter, HTTPException, Query
 
+from app.services.geo_service_client import GeoServiceClient
 from app.services.resource_proximity_service import ResourceProximityService
 
 router = APIRouter(prefix="/api/proximity", tags=["proximity"])
 
 service = ResourceProximityService()
+geo_client = GeoServiceClient()
 MAX_BBOX_AREA_DEG2 = 1.5
 MIN_CELL_SIZE = 0.005
 
@@ -79,6 +81,17 @@ async def get_high_medium_proximity_grid(
     """
     bbox = _build_bbox(min_lat=min_lat, min_lon=min_lon, max_lat=max_lat, max_lon=max_lon)
     _validate_grid_request(cell_size=cell_size, bbox=bbox)
+    if geo_client.enabled:
+        try:
+            return geo_client.get_high_medium_grid(
+                cell_size=cell_size,
+                min_lat=min_lat,
+                min_lon=min_lon,
+                max_lat=max_lat,
+                max_lon=max_lon,
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail=f"Geo service error: {exc}")
 
     cells = service.build_high_medium_grid_with_proximity(
         cell_size=cell_size,

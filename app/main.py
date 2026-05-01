@@ -9,7 +9,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-import app.models
 from app.api.routers.accessibility import router as accessibility_router
 from app.api.routers.air_accessibility import router as air_accessibility_router
 from app.api.routers.auth import router as auth_router
@@ -24,27 +23,8 @@ from app.api.routers.pipelines import router as pipelines_router
 from app.api.routers.resource_proximity import router as resource_proximity_router
 from app.api.routers.routing import router as routing_router
 from app.core.config import settings
-from app.core.database import engine
-from app.db.base import Base
 from app.services.fire_monitor import monitor_loop
 from app.scenario.router import router as scenario_router
-
-
-def _ensure_database_tables() -> None:
-    failed_tables: list[tuple[str, str]] = []
-
-    for table in Base.metadata.sorted_tables:
-        try:
-            Base.metadata.create_all(bind=engine, tables=[table], checkfirst=True)
-        except Exception as exc:
-            failed_tables.append((table.name, str(exc)))
-
-    if failed_tables:
-        print("Database table creation completed with partial failures:")
-        for table_name, error in failed_tables:
-            print(f"  - {table_name}: {error}")
-    else:
-        print("Database tables checked/created successfully.")
 
 
 def create_app() -> FastAPI:
@@ -87,12 +67,7 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     async def on_startup():
         print(f"APP_ENV={settings.APP_ENV}")
-        print(f"DATABASE_CONFIGURED={bool(settings.DATABASE_URL)}")
-        print("METADATA TABLES:", Base.metadata.tables.keys())
-        try:
-            _ensure_database_tables()
-        except Exception as e:
-            print(f"DB table creation skipped: {e}")
+        print(f"FIREBASE_PROJECT_ID={settings.FIREBASE_PROJECT_ID}")
         asyncio.create_task(monitor_loop())
 
     app.include_router(core_router)
