@@ -49,7 +49,7 @@ def list_my_scenarios(current_user: dict = Depends(get_current_user)):
 
 
 @router.get("/get/{scenario_id}")
-def get_scenario(scenario_id: int):
+def get_scenario(scenario_id: str):
     scenario = service.load_scenario(scenario_id)
     if not scenario:
         raise HTTPException(status_code=404, detail="Senaryo bulunamadı")
@@ -89,7 +89,7 @@ def persist_scenario(
 
 
 @router.get("/export/json/{scenario_id}")
-def export_json(scenario_id: int):
+def export_json(scenario_id: str):
     scenario = service.load_scenario(scenario_id)
     if not scenario:
         raise HTTPException(status_code=404, detail="Senaryo bulunamadı")
@@ -108,7 +108,7 @@ def export_json(scenario_id: int):
 
 
 @router.get("/export/pdf/{scenario_id}")
-def export_pdf(scenario_id: int):
+def export_pdf(scenario_id: str):
     scenario = service.load_scenario(scenario_id)
     if not scenario:
         raise HTTPException(status_code=404, detail="Senaryo bulunamadı")

@@ -945,11 +945,15 @@ function _jwtRole(token) {
   } catch { return 'user'; }
 }
 async function getFirebaseAuthContext(){
-  if (window.koruFirebaseAuth && window.koruFirebaseAuthApi) {
-    return {
-      auth: window.koruFirebaseAuth,
-      api: window.koruFirebaseAuthApi,
-    };
+  const deadline = Date.now() + 10000;
+  while (Date.now() < deadline) {
+    if (window.koruFirebaseAuth && window.koruFirebaseAuthApi) {
+      return {
+        auth: window.koruFirebaseAuth,
+        api: window.koruFirebaseAuthApi,
+      };
+    }
+    await new Promise((r) => setTimeout(r, 50));
   }
 
   const firebaseConfig = {
