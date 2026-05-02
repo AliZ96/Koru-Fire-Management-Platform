@@ -43,6 +43,13 @@ venv.bak/
 # ===============================
 .env
 .env.local
+.env.*
+!.env.example
+
+# Firebase / secrets
+secrets/
+*.serviceAccount.json
+*firebase*adminsdk*.json
 
 # ===============================
 # IDE / Editor Settings
@@ -86,3 +93,4 @@ logs/
 *.joblib
 *.h5
 *.onnx
+secrets/koru-41307-firebase-adminsdk-fbsvc-e3ce4d69c4.json

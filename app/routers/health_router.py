@@ -1,12 +1,11 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from sqlalchemy import text
+from fastapi import APIRouter
 
-from app.core.deps import get_db
+from app.services.firestore_store import FirestoreStore
 
 router = APIRouter(prefix="/health", tags=["health"])
 
 @router.get("/db")
-def health_db(db: Session = Depends(get_db)):
-    db.execute(text("SELECT 1"))
-    return {"ok": True, "db": "connected"}
+def health_db():
+    store = FirestoreStore()
+    store.db.collection("_health").document("ping").set({"at": "ok"}, merge=True)
+    return {"ok": True, "db": "connected", "provider": "firestore"}

@@ -49,6 +49,13 @@ class Settings(BaseSettings):
         default=60,
         alias="ACCESS_TOKEN_EXPIRE_MINUTES"
     )
+    FIREBASE_PROJECT_ID: str = Field(default="koru-41307", alias="FIREBASE_PROJECT_ID")
+    FIREBASE_CREDENTIALS_PATH: Optional[str] = Field(
+        default=None,
+        alias="FIREBASE_CREDENTIALS_PATH",
+    )
+    FIREBASE_WEB_API_KEY: Optional[str] = Field(default=None, alias="FIREBASE_WEB_API_KEY")
+    GEO_SERVICE_BASE_URL: Optional[str] = Field(default=None, alias="GEO_SERVICE_BASE_URL")
 
     # Admin
     ADMIN_EMAILS: str = Field(

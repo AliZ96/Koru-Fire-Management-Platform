@@ -4,11 +4,8 @@ import logging
 from datetime import datetime, timezone
 from typing import Awaitable, Callable, Dict, Set
 
-from sqlalchemy.orm import Session
-
-from app.core.database import SessionLocal
-from app.models.fire_spread import FireScenario, SpreadAlert, SpreadSnapshot, UserLocation
 from app.services.fire_spread_engine import compute_eta, compute_spread_polygon, haversine_km
+from app.services.firestore_store import FirestoreStore
 from app.services.weather_service import get_hourly_weather, get_wind
 
 logger = logging.getLogger(__name__)
@@ -41,20 +38,22 @@ async def broadcast(scenario_id: int, payload: dict) -> None:
 
 
 async def refresh_scenario(scenario_id: int) -> None:
-    db: Session = SessionLocal()
+    store = FirestoreStore()
     try:
-        scenario = db.get(FireScenario, scenario_id)
-        if not scenario or scenario.status != "active":
+        scenario = store.get_fire_scenario(str(scenario_id))
+        if not scenario or scenario.get("status") != "active":
             return
 
-        wind = get_wind(scenario.origin_lat, scenario.origin_lon)
+        origin_lat = float(scenario.get("origin_lat", 0.0))
+        origin_lon = float(scenario.get("origin_lon", 0.0))
+        wind = get_wind(origin_lat, origin_lon)
         wind_speed = float(wind.get("speed_ms", 6.0))
         wind_dir = float(wind.get("deg", 240.0))
 
         humidity = 50.0
         temperature_c = 25.0
         try:
-            hourly = get_hourly_weather(scenario.origin_lat, scenario.origin_lon)
+            hourly = get_hourly_weather(origin_lat, origin_lon)
             h = hourly.get("hourly", {})
             times = h.get("time", [])
             current_hr = datetime.now().strftime("%Y-%m-%dT%H:00")
@@ -64,47 +63,51 @@ async def refresh_scenario(scenario_id: int) -> None:
         except Exception:
             pass
 
-        scenario.elapsed_minutes = (scenario.elapsed_minutes or 0.0) + STEP_DURATION_MINUTES
-        scenario.updated_at = datetime.now(timezone.utc)
+        elapsed_minutes = float(scenario.get("elapsed_minutes", 0.0)) + STEP_DURATION_MINUTES
+        store.update_fire_scenario(str(scenario_id), {"elapsed_minutes": elapsed_minutes})
 
         feature = compute_spread_polygon(
-            center_lat=scenario.origin_lat,
-            center_lon=scenario.origin_lon,
+            center_lat=origin_lat,
+            center_lon=origin_lon,
             wind_dir_deg=wind_dir,
             wind_speed_ms=wind_speed,
-            elapsed_minutes=scenario.elapsed_minutes,
+            elapsed_minutes=elapsed_minutes,
             humidity=humidity,
             temperature_c=temperature_c,
         )
 
-        step_num = db.query(SpreadSnapshot).filter_by(scenario_id=scenario.id).count()
-        snap = SpreadSnapshot(
-            scenario_id=scenario.id,
-            step=step_num,
-            elapsed_minutes=scenario.elapsed_minutes,
-            polygon_geojson=json.dumps(feature),
-            wind_speed_ms=wind_speed,
-            wind_dir_deg=wind_dir,
-            humidity=humidity,
-            temperature_c=temperature_c,
-        )
-        db.add(snap)
+        step_num = store.count_spread_snapshots(str(scenario_id))
+        store.create_spread_snapshot(str(scenario_id), {
+            "step": step_num,
+            "elapsed_minutes": elapsed_minutes,
+            "polygon_geojson": json.dumps(feature),
+            "wind_speed_ms": wind_speed,
+            "wind_dir_deg": wind_dir,
+            "humidity": humidity,
+            "temperature_c": temperature_c,
+        })
+        snap = store.get_latest_spread_snapshot(str(scenario_id)) or {"step": step_num}
 
         alert_payloads = []
-        user_locs = db.query(UserLocation).filter_by(notifications_enabled=True).all()
+        user_locs = store.get_enabled_user_locations()
         for uloc in user_locs:
-            dist_km = haversine_km(scenario.origin_lat, scenario.origin_lon, uloc.lat, uloc.lon)
+            user_lat = float(uloc.get("lat", 0.0))
+            user_lon = float(uloc.get("lon", 0.0))
+            user_key = str(uloc.get("user_key"))
+            if not user_key:
+                continue
+            dist_km = haversine_km(origin_lat, origin_lon, user_lat, user_lon)
             if dist_km > 80:
                 continue
 
             eta_min = compute_eta(
-                fire_lat=scenario.origin_lat,
-                fire_lon=scenario.origin_lon,
-                user_lat=uloc.lat,
-                user_lon=uloc.lon,
+                fire_lat=origin_lat,
+                fire_lon=origin_lon,
+                user_lat=user_lat,
+                user_lon=user_lon,
                 wind_dir_deg=wind_dir,
                 wind_speed_ms=wind_speed,
-                elapsed_minutes=scenario.elapsed_minutes,
+                elapsed_minutes=elapsed_minutes,
                 humidity=humidity,
                 temperature_c=temperature_c,
             )
@@ -127,41 +130,36 @@ async def refresh_scenario(scenario_id: int) -> None:
                 severity = "low"
                 msg = f"Bilgi: Yangın {dist_km:.1f} km uzakta. Tahmini: {eta_min:.0f} dk."
 
-            existing = (
-                db.query(SpreadAlert)
-                .filter_by(scenario_id=scenario.id, user_id=uloc.user_id)
-                .order_by(SpreadAlert.created_at.desc())
-                .first()
-            )
-            if not existing or existing.severity != severity:
-                db.add(SpreadAlert(
-                    scenario_id=scenario.id,
-                    user_id=uloc.user_id,
-                    distance_km=round(dist_km, 2),
-                    eta_minutes=round(eta_min, 1),
-                    severity=severity,
-                    message=msg,
-                ))
+            existing = store.get_latest_alert(str(scenario_id), user_key)
+            if not existing or existing.get("severity") != severity:
+                store.create_alert(
+                    {
+                        "scenario_id": str(scenario_id),
+                        "user_key": user_key,
+                        "distance_km": round(dist_km, 2),
+                        "eta_minutes": round(eta_min, 1),
+                        "severity": severity,
+                        "message": msg,
+                        "is_read": False,
+                    }
+                )
 
             alert_payloads.append({
-                "user_id": uloc.user_id,
+                "user_id": user_key,
                 "distance_km": round(dist_km, 2),
                 "eta_minutes": round(eta_min, 1),
                 "severity": severity,
                 "message": msg,
             })
 
-        db.commit()
-        db.refresh(snap)
-
-        await broadcast(scenario.id, {
+        await broadcast(str(scenario_id), {
             "event": "spread_update",
-            "scenario_id": scenario.id,
-            "scenario_name": scenario.name,
-            "origin": {"lat": scenario.origin_lat, "lon": scenario.origin_lon},
-            "elapsed_minutes": scenario.elapsed_minutes,
-            "step": snap.step,
-            "spread_polygon": json.loads(snap.polygon_geojson),
+            "scenario_id": str(scenario_id),
+            "scenario_name": scenario.get("name"),
+            "origin": {"lat": origin_lat, "lon": origin_lon},
+            "elapsed_minutes": elapsed_minutes,
+            "step": snap.get("step", step_num),
+            "spread_polygon": json.loads(snap.get("polygon_geojson", "{}")),
             "weather": {
                 "wind_speed_ms": wind_speed,
                 "wind_dir_deg": wind_dir,
@@ -173,25 +171,14 @@ async def refresh_scenario(scenario_id: int) -> None:
 
     except Exception as e:
         logger.error(f"refresh_scenario error ({scenario_id}): {e}", exc_info=True)
-        try:
-            db.rollback()
-        except Exception:
-            pass
-    finally:
-        db.close()
 
 
 async def monitor_loop() -> None:
     logger.info("Fire spread monitor loop started")
     while True:
         await asyncio.sleep(UPDATE_INTERVAL_SECONDS)
-        db: Session = SessionLocal()
-        try:
-            ids = [r.id for r in db.query(FireScenario).filter_by(status="active").all()]
-        except Exception:
-            ids = []
-        finally:
-            db.close()
+        store = FirestoreStore()
+        ids = store.list_active_scenario_ids()
         for sid in ids:
             try:
                 await refresh_scenario(sid)

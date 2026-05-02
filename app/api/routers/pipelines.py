@@ -6,11 +6,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from fpdf import FPDF
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 
-from app.core.deps import get_db
 from app.core.security import get_current_user
-from app.models.pipeline import UserPipeline
+from app.services.firestore_store import FirestoreStore
 
 router = APIRouter(prefix="/api/pipelines", tags=["Pipelines"])
 
@@ -24,7 +22,7 @@ class PipelineSaveRequest(BaseModel):
 
 
 class PipelineResponse(BaseModel):
-    id: int
+    id: str
     name: str
     n: int
     k: int
@@ -36,21 +34,22 @@ class PipelineResponse(BaseModel):
 
 
 # ── Helper ────────────────────────────────────────────────────
-def _serialize(p: UserPipeline, include_snapshot: bool = True) -> dict:
+def _serialize(p: dict[str, Any], include_snapshot: bool = True) -> dict:
     snap = None
-    if p.snapshot_json:
+    snapshot_json = p.get("snapshot_json")
+    if snapshot_json:
         try:
-            snap = json.loads(p.snapshot_json)
+            snap = json.loads(snapshot_json)
         except Exception:
             snap = None
     return {
-        "id": p.id,
-        "name": p.name,
-        "n": p.n,
-        "k": p.k,
+        "id": str(p.get("id")),
+        "name": p.get("name"),
+        "n": int(p.get("n", 0)),
+        "k": int(p.get("k", 0)),
         "has_snapshot": snap is not None,
         "snapshot": snap if include_snapshot else None,
-        "created_at": p.created_at.isoformat() if p.created_at else "",
+        "created_at": str(p.get("created_at") or ""),
     }
 
 
@@ -58,15 +57,9 @@ def _serialize(p: UserPipeline, include_snapshot: bool = True) -> dict:
 @router.get("")
 def list_pipelines(
     current_user: Dict[str, Any] = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     username = current_user["sub"]
-    rows = (
-        db.query(UserPipeline)
-        .filter(UserPipeline.username == username)
-        .order_by(UserPipeline.created_at.desc())
-        .all()
-    )
+    rows = FirestoreStore().list_pipelines(username=username)
     return [_serialize(r) for r in rows]
 
 
@@ -74,70 +67,56 @@ def list_pipelines(
 def save_pipeline(
     payload: PipelineSaveRequest,
     current_user: Dict[str, Any] = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     username = current_user["sub"]
     snap_json = json.dumps(payload.snapshot) if payload.snapshot else None
-    row = UserPipeline(
+    row = FirestoreStore().create_pipeline(
         username=username,
         name=payload.name,
         n=payload.n,
         k=payload.k,
         snapshot_json=snap_json,
     )
-    db.add(row)
-    db.commit()
-    db.refresh(row)
     return _serialize(row)
 
 
 @router.delete("/{pipeline_id}", status_code=204)
 def delete_pipeline(
-    pipeline_id: int,
+    pipeline_id: str,
     current_user: Dict[str, Any] = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     username = current_user["sub"]
-    row = db.query(UserPipeline).filter(
-        UserPipeline.id == pipeline_id,
-        UserPipeline.username == username,
-    ).first()
-    if not row:
+    deleted = FirestoreStore().delete_pipeline(pipeline_id=pipeline_id, username=username)
+    if not deleted:
         raise HTTPException(status_code=404, detail="Pipeline bulunamadı")
-    db.delete(row)
-    db.commit()
 
 
 @router.get("/{pipeline_id}/pdf")
 def download_pipeline_pdf(
-    pipeline_id: int,
+    pipeline_id: str,
     current_user: Dict[str, Any] = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     username = current_user["sub"]
-    row = db.query(UserPipeline).filter(
-        UserPipeline.id == pipeline_id,
-        UserPipeline.username == username,
-    ).first()
+    row = FirestoreStore().get_pipeline(pipeline_id=pipeline_id, username=username)
     if not row:
         raise HTTPException(status_code=404, detail="Pipeline bulunamad\u0131")
 
     snap = {}
-    if row.snapshot_json:
+    if row.get("snapshot_json"):
         try:
-            snap = json.loads(row.snapshot_json)
+            snap = json.loads(row.get("snapshot_json") or "{}")
         except Exception:
             snap = {}
 
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 10, _safe(f"KORU - Pipeline Raporu #{row.id}"), new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 10, _safe(f"KORU - Pipeline Raporu #{row.get('id')}"), new_x="LMARGIN", new_y="NEXT")
     pdf.set_font("Helvetica", "", 10)
-    pdf.cell(0, 7, _safe(f"Ad: {row.name}"), new_x="LMARGIN", new_y="NEXT")
-    pdf.cell(0, 7, _safe(f"Kullanici: {row.username}"), new_x="LMARGIN", new_y="NEXT")
-    pdf.cell(0, 7, _safe(f"Tarih: {row.created_at}"), new_x="LMARGIN", new_y="NEXT")
-    pdf.cell(0, 7, _safe(f"Nokta sayisi (n): {row.n}  |  Kume sayisi (k): {row.k}"), new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 7, _safe(f"Ad: {row.get('name')}"), new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 7, _safe(f"Kullanici: {row.get('username')}"), new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 7, _safe(f"Tarih: {row.get('created_at')}"), new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 7, _safe(f"Nokta sayisi (n): {row.get('n')}  |  Kume sayisi (k): {row.get('k')}"), new_x="LMARGIN", new_y="NEXT")
     pdf.ln(4)
 
     # ── İtfaiye İstasyonları ──
@@ -199,7 +178,7 @@ def download_pipeline_pdf(
         pdf.cell(0, 7, _safe(f"Ozet: Toplam {len(pipeline_points)} nokta  |  HIGH risk: {high_count}  |  LOW risk: {len(pipeline_points) - high_count}"), new_x="LMARGIN", new_y="NEXT")
 
     pdf_bytes = pdf.output()
-    filename = f"koru_pipeline_{row.id}.pdf"
+    filename = f"koru_pipeline_{row.get('id')}.pdf"
     return StreamingResponse(
         io.BytesIO(bytes(pdf_bytes)),
         media_type="application/pdf",

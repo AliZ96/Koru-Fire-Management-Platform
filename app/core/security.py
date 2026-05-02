@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
 from fastapi import Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from passlib.exc import UnknownHashError
@@ -14,8 +14,8 @@ from app.core.config import settings
 # tamamen ortadan kaldırır.
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
-# FastAPI OAuth2 - tokenUrl Swagger için önemli, Postman için değil
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/user/login")
+# Swagger authorize penceresinde dogrudan Bearer token yapistirmak icin.
+http_bearer = HTTPBearer(auto_error=False)
 
 
 def hash_password(password: str) -> str:
@@ -54,7 +54,14 @@ def decode_access_token(token: str) -> Dict[str, Any]:
         raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
 
 
-def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any]:
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(http_bearer),
+) -> Dict[str, Any]:
+    if not credentials or not credentials.credentials:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if credentials.scheme.lower() != "bearer":
+        raise HTTPException(status_code=401, detail="Invalid authentication scheme")
+    token = credentials.credentials
     payload = decode_access_token(token)
 
     sub = payload.get("sub")
