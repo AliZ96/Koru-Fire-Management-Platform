@@ -194,3 +194,18 @@ def export_pdf(scenario_id: str):
         media_type="application/pdf",
         filename=f"scenario_{scenario_id}.pdf",
     )
+
+
+@router.delete("/{scenario_id}")
+def delete_scenario(scenario_id: int, current_user: dict = Depends(get_current_user)):
+    username = str(current_user.get("sub") or "")
+    role = str(current_user.get("role") or "user")
+    if not username:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    try:
+        deleted = service.delete_scenario(scenario_id, username=username, role=role)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Senaryo bulunamadı")
+    return {"ok": True, "scenario_id": scenario_id}
