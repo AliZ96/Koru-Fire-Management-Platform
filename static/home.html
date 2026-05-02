@@ -820,15 +820,15 @@ h2.sec-title{font-size:clamp(32px,5vw,48px);font-weight:800;line-height:1.15;mar
     <!-- LOGIN FORM - İtfaiyeci -->
     <form class="auth-form" id="formFirefighter" hidden onsubmit="handleFirefighterLogin(event)">
       <div class="auth-field">
-        <label>Kullanıcı Adı</label>
-        <input type="text" id="ffUsername" placeholder="yetkili_kullanici" required/>
+        <label>E-posta (Firebase)</label>
+        <input type="email" id="ffUsername" placeholder="personel@izmir.bel.tr" required autocomplete="username"/>
       </div>
       <div class="auth-field">
         <label>Şifre</label>
         <input type="password" id="ffPassword" placeholder="••••••••" required/>
       </div>
       <button type="submit" class="auth-submit" style="background:linear-gradient(135deg,#b91c1c,#ef4444)">Yetkili Girişi →</button>
-      <div class="auth-footer" style="color:#ef4444;opacity:.7">🔒 Sadece kayıtlı personel</div>
+      <div class="auth-footer" style="color:#ef4444;opacity:.7">🔒 Firestore’da admin rolü tanımlı hesaplar</div>
     </form>
     <!-- SIGNUP FORM -->
     <form class="auth-form" id="formSignup" hidden onsubmit="handleSignup(event)">
@@ -1023,7 +1023,7 @@ async function handleLogin(e){
       backendToken,
       uid: credential.user.uid,
       username: credential.user.displayName || email,
-      role: 'user',
+      role: userRole,
     });
     sessionStorage.setItem('access_token', backendToken);
     sessionStorage.setItem('username', credential.user.displayName || email);
@@ -1040,35 +1040,37 @@ async function handleLogin(e){
 
 async function handleFirefighterLogin(e) {
   e.preventDefault();
-  const username = document.getElementById('ffUsername')?.value?.trim() || '';
+  const email = document.getElementById('ffUsername')?.value?.trim().toLowerCase() || '';
   const password = document.getElementById('ffPassword')?.value || '';
   const button = e.target.querySelector('.auth-submit');
 
-  if (!username || !password) { alert('Kullanıcı adı ve şifre zorunlu.'); return; }
+  if (!email || !password) { alert('E-posta ve şifre zorunlu.'); return; }
 
   button.textContent = '⏳ Giriş Yapılıyor...';
   button.disabled = true;
 
   try {
-    const res = await fetch('/auth/firefighter/login', {
+    const res = await fetch('/auth/personnel/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username: email, password }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Giriş başarısız. Kullanıcı adı veya şifre hatalı.');
+      const d = err.detail;
+      const msg = typeof d === 'string' ? d : (Array.isArray(d) && d[0]?.msg) ? d[0].msg : 'Giriş başarısız.';
+      throw new Error(msg);
     }
     const { access_token } = await res.json();
     sessionStorage.setItem('access_token', access_token);
-    sessionStorage.setItem('username', username);
-    sessionStorage.setItem('email', username);
-    sessionStorage.setItem('role', 'firefighter');
+    sessionStorage.setItem('username', email);
+    sessionStorage.setItem('email', email);
+    sessionStorage.setItem('role', 'admin');
     closeAuth();
     window.location.href = '/firefighter';
   } catch (error) {
     alert(error.message);
-    button.textContent = 'İtfaiyeci Girişi →';
+    button.textContent = 'Yetkili Girişi →';
     button.disabled = false;
   }
 }

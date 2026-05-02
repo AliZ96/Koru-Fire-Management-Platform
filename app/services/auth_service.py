@@ -1,5 +1,6 @@
 from fastapi import HTTPException
 
+from app.core.config import settings
 from app.core.security import hash_password, verify_password, create_access_token
 from app.repositories.auth_repo import AuthRepositoryPG
 from app.services.firestore_store import FirestoreStore
@@ -16,6 +17,35 @@ def _validate_password(password: str) -> str:
 
 
 class AuthService:
+    @staticmethod
+    def resolve_jwt_role_for_firebase_email(email: str) -> str:
+        """Firebase e-postası için JWT rolü: ADMIN_EMAILS veya Firestore'da admin kaydı."""
+        email = (email or "").strip().lower()
+        if not email:
+            return "user"
+        if email in settings.admin_emails_list:
+            return "admin"
+        store = FirestoreStore()
+        if store.get_user(email, "admin"):
+            return "admin"
+        return "user"
+
+    @staticmethod
+    def login_personnel_firebase(email: str, password: str) -> str:
+        """Yetkili personel: Firebase e-posta/şifre + Firestore'da admin rolü zorunlu."""
+        email = (email or "").strip().lower()
+        if not email:
+            raise HTTPException(status_code=400, detail="E-posta zorunlu.")
+        _validate_password(password)
+        FirebaseIdentityService.sign_in_with_email_password(email, password)
+        store = FirestoreStore()
+        if not store.get_user(email, "admin"):
+            raise HTTPException(
+                status_code=403,
+                detail="Yetkili giriş için hesabın Firestore'da admin rolü ile tanımlı olması gerekir.",
+            )
+        return create_access_token({"sub": email, "email": email, "role": "admin"})
+
     @staticmethod
     def sync_user_profile(
         *,
