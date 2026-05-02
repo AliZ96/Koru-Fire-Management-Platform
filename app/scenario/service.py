@@ -220,3 +220,21 @@ def list_user_scenarios(username: str, limit: int = 50) -> list[dict[str, Any]]:
     rows.sort(key=lambda x: str(x.get("created_at") or ""), reverse=True)
     rows = rows[:limit]
     return rows
+
+
+def delete_scenario(scenario_id: int | str, *, username: str, role: str) -> bool:
+    """Senaryoyu Firestore'dan siler. Admin tümü, diğer kullanıcılar sadece kendişerini silebilir."""
+    store = FirestoreStore()
+    docs = store.db.collection(_COLLECTION).where(
+        filter=FieldFilter("scenario_id", "==", int(scenario_id))
+    ).stream()
+    doc_list = list(docs)
+    if not doc_list:
+        return False
+    doc = doc_list[0]
+    data = doc.to_dict() or {}
+    owner = str(data.get("owner_username") or "")
+    if role != "admin" and owner and owner != username:
+        raise PermissionError("Bu senaryoyu silme yetkiniz yok")
+    doc.reference.delete()
+    return True

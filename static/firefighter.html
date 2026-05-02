@@ -251,11 +251,10 @@
     <div class="topbar-divider"></div>
     <div class="topbar-status" id="info"></div>
     <div class="topbar-right">
-      <a href="/" class="citizen-btn">👁 Vatandaş Görünümü</a>
       <div class="user-dropdown">
         <span id="userDisplay" class="user-dropdown-toggle"></span>
         <div id="userDropdownMenu" class="user-dropdown-menu">
-          <a href="/" id="citizenLink">👁 Vatandaş Haritası</a>
+          <a href="/" id="citizenLink">Vatandaş Haritası</a>
           <a href="#" id="profileLink">Profil</a>
           <a href="#" id="logoutLink">Oturum Kapat</a>
         </div>
@@ -310,16 +309,26 @@
           <div class="acc-body">
             <div class="inner">
               <div class="row">
-                <button id="btnFireRisk" class="btn btn-outline">ML Risk</button>
+                <button id="btnFireRisk" class="btn btn-outline">Riskli Bölgeler</button>
                 <button id="btnHeatmap" class="btn btn-outline">Isıl Harita</button>
-                <button id="btnFirePoints" class="btn btn-outline">High/Low</button>
+                <button id="btnFirePoints" class="btn btn-outline">High / Low Noktalar</button>
+                <button id="btnPipeline" class="btn btn-outline">Pipeline Sonucu</button>
               </div>
               <div class="row">
-                <button id="btnPipeline" class="btn btn-outline">Pipeline</button>
                 <label for="pipelineN">n:</label>
-                <input id="pipelineN" type="number" value="20" min="1" max="554"/>
+                <input id="pipelineN" type="number" value="20" min="1" max="554" style="width:64px;" />
                 <label for="pipelineK">k:</label>
-                <input id="pipelineK" type="number" value="4" min="1" max="100" style="width:46px"/>
+                <input id="pipelineK" type="number" value="4" min="1" max="100" style="width:56px;" />
+                <button id="btnSavePipeline" class="btn btn-outline" title="Mevcut pipeline sonucunu kaydet">Pipeline Kaydet</button>
+                <button id="btnSaveScenario" class="btn btn-outline" title="Mevcut n/k sonucu için senaryo kaydet">Senaryo Kaydet</button>
+              </div>
+              <div class="row">
+                <label for="gaPopSize" title="GA: Popülasyon boyutu">Pop:</label>
+                <input id="gaPopSize" type="number" value="100" min="1" max="10000" style="width:56px;" title="GA Popülasyon boyutu" />
+                <label for="gaMaxIter" title="GA: Maksimum iterasyon">İter:</label>
+                <input id="gaMaxIter" type="number" value="100" min="1" max="10000" style="width:56px;" title="GA Maksimum iterasyon" />
+                <label for="saMaxTemp" title="SA: Başlangıç sıcaklığı">Temp:</label>
+                <input id="saMaxTemp" type="number" value="100" min="1" max="100000" style="width:64px;" title="SA Başlangıç sıcaklığı" />
               </div>
               <div class="row">
                 <button id="btnPipelinePDF" class="btn btn-outline" disabled title="Pipeline çalıştıktan sonra aktif olur">⬇ PDF İndir</button>
@@ -380,20 +389,22 @@
           </div>
         </div>
 
-        <!-- Operasyonel Araçlar -->
+
         <div class="acc open">
           <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
             <div class="acc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 17H5a2 2 0 01-2-2V5a2 2 0 012-2h4m6 14h4a2 2 0 002-2V5a2 2 0 00-2-2h-4m-5 2v14"/></svg></div>
-            <span class="acc-label">Operasyonel Araçlar</span>
+            <span class="acc-label">Kaydedilenler</span>
             <span class="acc-arrow">▼</span>
           </div>
           <div class="acc-body">
             <div class="inner">
-              <div class="sb-sub-title">Kaydedilmiş Planlar</div>
+              <div class="sb-sub-title">Kaydedilmiş Senaryolar</div>
               <div class="row">
-                <button id="btnSidebarRefreshPlans" class="btn btn-outline" style="width:100%">↺ Planları Yükle</button>
+                <button id="btnSidebarRefreshPlans" class="btn btn-outline" style="width:100%">↺ Planları &amp; Senaryoları Yükle</button>
               </div>
               <div id="sidebarPipelineList" style="margin-top:6px"><span style="font-size:11px;color:var(--text2)">Planları yüklemek için butona tıklayın.</span></div>
+              <div class="sb-sub-title" style="margin-top:12px">Kaydedilmiş Pipeline'lar</div>
+              <div id="sidebarScenarioList" style="margin-top:6px"><span style="font-size:11px;color:var(--text2)">Senaryoları yüklemek için butona tıklayın.</span></div>
             </div>
           </div>
         </div>
@@ -440,7 +451,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
   <script src="https://d3js.org/d3-contour.v2.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script type="module" src="/static/firebase-init.js?v=koru-firebase-2"></script>
+  <script type="module" src="/static/firebase-init.js?v=koru-firebase-4"></script>
   <script>
     (function checkLogin(){
       const accessToken = sessionStorage.getItem('access_token')
@@ -1954,6 +1965,9 @@
     let routeIndex = [];
     let selectedRouteId = '';
     let lastOptimizationScenarioKey = null;
+    let lastCreatedScenarioId = null;
+    let lastOptimizationResults = { SA: null, GA: null };
+    let savedPipelineSnapshot = null;
 
     // SA: soğuk aile (mavi/cyan/yeşil) | GA: sıcak aile (turuncu/kırmızı/amber)
     const SA_VEHICLE_COLORS = ['#2563eb', '#06b6d4', '#10b981'];
@@ -2078,6 +2092,52 @@
       if (btn) btn.disabled = false;
     }
 
+    async function saveCurrentScenario() {
+      const n = Math.max(1, parseInt(document.getElementById('pipelineN')?.value || '20', 10) || 20);
+      const k = Math.max(1, parseInt(document.getElementById('pipelineK')?.value || '4', 10) || 4);
+      const accessToken = sessionStorage.getItem('access_token');
+      if (!accessToken) { setStatus('Senaryo kaydetmek için giriş yapmalısın'); return; }
+      setStatus('Senaryo kaydediliyor...');
+      const res = await fetch('/api/scenario/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken },
+        body: JSON.stringify({ name: `Pipeline n=${n} k=${k}` }),
+      });
+      if (!res.ok) throw new Error('Senaryo kaydetme API hatası: ' + res.status);
+      const data = await res.json().catch(() => ({}));
+      if (!data || data.scenario_id == null) throw new Error('Senaryo ID dönmedi');
+      lastCreatedScenarioId = data.scenario_id;
+      enablePipelinePDF();
+      setStatus(`Senaryo kaydedildi (#${lastCreatedScenarioId})`);
+    }
+
+    async function saveCurrentPipeline() {
+      const n = Math.max(1, parseInt(document.getElementById('pipelineN')?.value || '20', 10) || 20);
+      const k = Math.max(1, parseInt(document.getElementById('pipelineK')?.value || '4', 10) || 4);
+      const accessToken = sessionStorage.getItem('access_token');
+      if (!accessToken) { setStatus('Pipeline kaydetmek için giriş yapmalısın'); return; }
+      if (!window._lastPipelineSnapshot) {
+        await ensureOptimizationScenario();
+      }
+      const snap = window._lastPipelineSnapshot;
+      if (!snap) throw new Error('Pipeline snapshot hazır değil');
+      const snapshotToSave = {
+        ...snap,
+        optimization: {
+          ...(snap.optimization || {}),
+          ...(lastOptimizationResults.SA ? { SA: lastOptimizationResults.SA } : {}),
+          ...(lastOptimizationResults.GA ? { GA: lastOptimizationResults.GA } : {}),
+        },
+      };
+      const res = await fetch('/api/pipelines', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken },
+        body: JSON.stringify({ name: `Pipeline Sonucu – n=${n} k=${k}`, n, k, snapshot: snapshotToSave }),
+      });
+      if (!res.ok) throw new Error('Pipeline kaydetme API hatası: ' + res.status);
+      setStatus(`Pipeline kaydedildi (n=${n}, k=${k})`);
+    }
+
     async function ensureOptimizationScenario() {
       const nInput = document.getElementById('pipelineN');
       const kInput = document.getElementById('pipelineK');
@@ -2102,26 +2162,58 @@
       const pipeData = await pipeRes.json();
       if (!pipeData.success) throw new Error(pipeData.error || 'Pipeline basarisiz');
 
+      const popSize = Math.max(1, parseInt(document.getElementById('gaPopSize')?.value || '100', 10) || 100);
+      const maxIterations = Math.max(1, parseInt(document.getElementById('gaMaxIter')?.value || '100', 10) || 100);
+      const maxTemperature = Math.max(1, parseInt(document.getElementById('saMaxTemp')?.value || '100', 10) || 100);
+
       info.textContent = 'SA/GA optimizasyonu calisiyor...';
       setStatus('SA/GA optimizasyonu calisiyor...');
-      const runRes = await fetch('/api/optimize/run', { method: 'POST' });
+      const runRes = await fetch('/api/optimize/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pop_size: popSize, max_iterations: maxIterations, max_temperature: maxTemperature }),
+      });
       if (!runRes.ok) throw new Error('Optimize run API hatasi: ' + runRes.status);
       const runData = await runRes.json();
       if (!runData.success) throw new Error(runData.error || 'SA/GA basarisiz');
 
-      try {
-        await fetch('/api/scenario/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: `Pipeline n=${n} k=${k}` }),
-        });
-      } catch (e) {
-        console.warn('Senaryo olusturma hatasi:', e);
-      }
+      // Senaryo otomatik oluşturulmaz — kullanıcı "Senaryo Kaydet"e basınca oluşur.
+      // lastCreatedScenarioId, saveCurrentScenario() tarafından set edilir.
 
       lastOptimizationScenarioKey = key;
       enablePipelinePDF();
       return { n, k };
+    }
+
+    async function persistCurrentScenarioOptimization(algo, data) {
+      const sid = Number(lastCreatedScenarioId || 0);
+      if (!sid) return;
+      const accessToken = sessionStorage.getItem('access_token');
+      if (!accessToken) return;
+      const snapshot = window._lastPipelineSnapshot
+        ? {
+            ...window._lastPipelineSnapshot,
+            optimization: {
+              ...(window._lastPipelineSnapshot.optimization || {}),
+              ...(lastOptimizationResults.SA ? { SA: lastOptimizationResults.SA } : {}),
+              ...(lastOptimizationResults.GA ? { GA: lastOptimizationResults.GA } : {}),
+            },
+          }
+        : null;
+      const body = {
+        ...(algo === 'SA' ? { sa_result: Array.isArray(data?.stations) ? data.stations : null } : {}),
+        ...(algo === 'GA' ? { ga_result: Array.isArray(data?.stations) ? data.stations : null } : {}),
+        ...(snapshot ? { pipeline_snapshot: snapshot } : {}),
+      };
+      try {
+        await fetch(`/api/scenario/persist/${sid}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken },
+          body: JSON.stringify(body),
+        });
+      } catch (e) {
+        console.warn('Senaryo persist uyarisi:', e);
+      }
     }
 
     async function loadOptimizationRoutes(algorithm) {
@@ -2130,34 +2222,28 @@
       if (algo !== 'SA' && algo !== 'GA') return;
 
       try {
-        const { k } = await ensureOptimizationScenario();
+        const renderRoutes = (data, k) => {
+          const stations = Array.isArray(data.stations) ? data.stations : [];
+          if (!stations.length) throw new Error('Rota bulunamadi');
 
-        optimizationRouteLayers = optimizationRouteLayers.filter(layer => {
-          if (layer && layer._algorithm === algo) {
-            try { map.removeLayer(layer); } catch (e) {}
-            return false;
-          }
-          return true;
-        });
-        vehicleIconLayers = vehicleIconLayers.filter(layer => {
-          if (layer && layer._algorithm === algo) {
-            try { map.removeLayer(layer); } catch (e) {}
-            return false;
-          }
-          return true;
-        });
-        loadedAlgorithms.delete(algo);
-        routeIndex = routeIndex.filter(r => r.algorithm !== algo);
+          optimizationRouteLayers = optimizationRouteLayers.filter(layer => {
+            if (layer && layer._algorithm === algo) {
+              try { map.removeLayer(layer); } catch (e) {}
+              return false;
+            }
+            return true;
+          });
+          vehicleIconLayers = vehicleIconLayers.filter(layer => {
+            if (layer && layer._algorithm === algo) {
+              try { map.removeLayer(layer); } catch (e) {}
+              return false;
+            }
+            return true;
+          });
+          loadedAlgorithms.delete(algo);
+          routeIndex = routeIndex.filter(r => r.algorithm !== algo);
 
-        info.textContent = `${algo} rotalari yukleniyor...`;
-        setStatus(`${algo} rotalari yukleniyor...`);
-        const res = await fetch(`/api/optimize/${algo.toLowerCase()}`);
-        if (!res.ok) throw new Error('API hatasi: ' + res.status);
-        const data = await res.json();
-        const stations = Array.isArray(data.stations) ? data.stations : [];
-        if (!stations.length) throw new Error('Rota bulunamadi');
-
-        if (!map.getPane('routePane')) {
+          if (!map.getPane('routePane')) {
           map.createPane('routePane');
           map.getPane('routePane').style.zIndex = 780;
         }
@@ -2252,6 +2338,29 @@
 
         info.textContent = `${algo} rotalari aktif (${features.length} rota)`;
         setStatus(`${algo} rotalari aktif (${features.length} rota)`);
+        };
+
+        // Kaydedilmiş pipeline gösterimindeysek, SA/GA'yi yeniden hesaplama yerine snapshot'tan çiz.
+        const savedOpt = savedPipelineSnapshot && savedPipelineSnapshot.optimization
+          ? savedPipelineSnapshot.optimization[algo]
+          : null;
+        if (savedOpt) {
+          info.textContent = `${algo} rotalari (kayitli snapshot) yukleniyor...`;
+          setStatus(`${algo} rotalari (kayitli snapshot) yukleniyor...`);
+          renderRoutes(savedOpt, Number(savedPipelineSnapshot.k || 0));
+          return;
+        }
+
+        const { k } = await ensureOptimizationScenario();
+        savedPipelineSnapshot = null;
+        info.textContent = `${algo} rotalari yukleniyor...`;
+        setStatus(`${algo} rotalari yukleniyor...`);
+        const res = await fetch(`/api/optimize/${algo.toLowerCase()}`);
+        if (!res.ok) throw new Error('API hatasi: ' + res.status);
+        const data = await res.json();
+        lastOptimizationResults[algo] = data;
+        await persistCurrentScenarioOptimization(algo, data);
+        renderRoutes(data, k);
       } catch (e) {
         info.textContent = `${algo} rota hatasi: ${e.message}`;
         console.error(`${algo} route error:`, e);
@@ -2443,6 +2552,9 @@
           sa_routes: snapshotSaRoutes,
           ga_routes: snapshotGaRoutes,
         };
+        savedPipelineSnapshot = null;
+        lastOptimizationResults.SA = null;
+        lastOptimizationResults.GA = null;
         info.textContent = `Pipeline: ${pipelinePoints.length} nokta + ${stationFeatures.length} istasyon (n=${n}, k=${k})`;
         setStatus(`Pipeline aktif (${pipelinePoints.length} nokta)`);
       } catch (e) {
@@ -2520,6 +2632,23 @@
         if (Array.isArray(snapshot.ga_routes) && snapshot.ga_routes.length > 0) {
           renderRoutesFromSnapshot(snapshot.ga_routes, 'GA');
         }
+
+        // SA/GA sonuçlarını lastOptimizationResults'a set et (persist için)
+        if (Array.isArray(snapshot.sa_routes) && snapshot.sa_routes.length > 0) {
+          lastOptimizationResults.SA = { stations: snapshot.sa_routes };
+        }
+        if (Array.isArray(snapshot.ga_routes) && snapshot.ga_routes.length > 0) {
+          lastOptimizationResults.GA = { stations: snapshot.ga_routes };
+        }
+        // savedPipelineSnapshot'u optimization ile güncelle (savedOpt kontrolü için)
+        savedPipelineSnapshot = {
+          ...snapshot,
+          optimization: {
+            ...(snapshot.optimization || {}),
+            ...(Array.isArray(snapshot.sa_routes) && snapshot.sa_routes.length > 0 ? { SA: { stations: snapshot.sa_routes } } : {}),
+            ...(Array.isArray(snapshot.ga_routes) && snapshot.ga_routes.length > 0 ? { GA: { stations: snapshot.ga_routes } } : {}),
+          }
+        };
 
         // Haritayı yangın noktaları üzerine ortala
         const lats = pipelinePoints.map(p => Number(p.lat));
@@ -3530,6 +3659,21 @@
     safeBind('btnProximity', 'click', toggleProximityGrid);
     safeBind('btnIntegrated', 'click', toggleIntegratedLayer);
     safeBind('btnPipelinePDF', 'click', () => { window.open('/api/scenario/export/pdf/1', '_blank'); });
+    safeBind('btnSaveScenario', 'click', async () => {
+      try {
+        await ensureOptimizationScenario();
+        await saveCurrentScenario();
+      } catch (e) {
+        setStatus(`Senaryo kaydetme hatası: ${e.message || e}`);
+      }
+    });
+    safeBind('btnSavePipeline', 'click', async () => {
+      try {
+        await saveCurrentPipeline();
+      } catch (e) {
+        setStatus(`Pipeline kaydetme hatası: ${e.message || e}`);
+      }
+    });
     safeBind('btnRouteSA', 'click', () => loadOptimizationRoutes('SA'));
     safeBind('btnRouteGA', 'click', () => loadOptimizationRoutes('GA'));
     safeBind('btnRouteClear', 'click', () => {
@@ -3559,7 +3703,9 @@
     safeBind('btnSidebarRefreshPlans', 'click', async function() {
       const el = document.getElementById('sidebarPipelineList');
       if (el) el.innerHTML = '<span style="font-size:11px;color:var(--text2)">⏳ Yükleniyor...</span>';
-      await loadAndRenderPipelines(false);
+      const sel = document.getElementById('sidebarScenarioList');
+      if (sel) sel.innerHTML = '<span style="font-size:11px;color:var(--text2)">⏳ Yükleniyor...</span>';
+      await Promise.all([loadAndRenderPipelines(false), loadAndRenderScenarios(false)]);
     });
 
     map.on('moveend zoomend', ()=>{ if (riskActive) loadRiskForView(); });
@@ -4179,7 +4325,8 @@
       </div>
       <div class="pm-tabs">
         <button class="pm-tab active" data-tab="info">👤 Profil</button>
-        <button class="pm-tab" data-tab="pipelines">📋 Pipeline'larım</button>
+        <button class="pm-tab" data-tab="pipelines">🧭 Senaryolarım</button>
+        <button class="pm-tab" data-tab="scenarios">📋 Pipeline'larım</button>
       </div>
       <div class="pm-body">
         <!-- Tab: Profil -->
@@ -4207,6 +4354,10 @@
                 <div class="pm-stat-lbl">Kayıtlı Pipeline</div>
               </div>
               <div class="pm-stat">
+                <div class="pm-stat-val" id="pmStatScenarios">0</div>
+                <div class="pm-stat-lbl">Kayıtlı Senaryo</div>
+              </div>
+              <div class="pm-stat">
                 <div class="pm-stat-val" id="pmStatLastRun">—</div>
                 <div class="pm-stat-lbl">Son Çalıştırma</div>
               </div>
@@ -4220,6 +4371,15 @@
             <div class="pm-section-title">Kaydedilen Pipeline Sonuçları</div>
             <div class="pm-pipeline-list" id="pmPipelineList">
               <div class="pm-empty"><div class="pm-empty-icon">📭</div>Henüz kaydedilen pipeline yok.<br>PDF İndir butonunu kullanarak pipeline'ları buraya kaydedin.</div>
+            </div>
+          </div>
+        </div>
+        <!-- Tab: Senaryolarım -->
+        <div id="pmTabScenarios" style="display:none">
+          <div class="pm-section">
+            <div class="pm-section-title">Kaydedilen Senaryolar</div>
+            <div class="pm-pipeline-list" id="pmScenarioList">
+              <div class="pm-empty"><div class="pm-empty-icon">📭</div>Henüz kaydedilen senaryo yok.</div>
             </div>
           </div>
         </div>
@@ -4291,10 +4451,13 @@
     const pmRoleInput = document.getElementById('pmRoleInput');
     const pmSaveBtn = document.getElementById('pmSaveBtn');
     const pmStatPipelines = document.getElementById('pmStatPipelines');
+    const pmStatScenarios = document.getElementById('pmStatScenarios');
     const pmStatLastRun = document.getElementById('pmStatLastRun');
     const pmPipelineList = document.getElementById('pmPipelineList');
+    const pmScenarioList = document.getElementById('pmScenarioList');
 
     let _pipelineCache = [];
+    let _scenarioCache = [];
 
     // ── Tab geçişi ─────────────────────────────────────────
     document.querySelectorAll('.pm-tab').forEach(btn => {
@@ -4304,7 +4467,9 @@
         const tab = this.dataset.tab;
         document.getElementById('pmTabInfo').style.display = tab === 'info' ? '' : 'none';
         document.getElementById('pmTabPipelines').style.display = tab === 'pipelines' ? '' : 'none';
+        document.getElementById('pmTabScenarios').style.display = tab === 'scenarios' ? '' : 'none';
         if (tab === 'pipelines') loadAndRenderPipelines();
+        if (tab === 'scenarios') loadAndRenderScenarios();
       });
     });
 
@@ -4328,9 +4493,11 @@
       document.querySelectorAll('.pm-tab')[0].classList.add('active');
       document.getElementById('pmTabInfo').style.display = '';
       document.getElementById('pmTabPipelines').style.display = 'none';
+      document.getElementById('pmTabScenarios').style.display = 'none';
 
       // İstatistikleri API'den çek
       loadAndRenderPipelines(true);
+      loadAndRenderScenarios(true);
 
       modal.classList.add('open');
       document.body.style.overflow = 'hidden';
@@ -4384,6 +4551,114 @@
         }
         renderSidebarPipelines();
       }
+    }
+
+    async function loadAndRenderScenarios(statsOnly = false) {
+      if (pmScenarioList) pmScenarioList.innerHTML = '<div class="pm-empty"><div class="pm-empty-icon">⏳</div>Yükleniyor...</div>';
+      try {
+        const data = await apiFetch('/api/scenario/mine');
+        _scenarioCache = data || [];
+        if (pmStatScenarios) pmStatScenarios.textContent = _scenarioCache.length;
+        if (!statsOnly) renderScenarioList();
+        renderSidebarScenarios();
+      } catch (e) {
+        _scenarioCache = [];
+        if (pmStatScenarios) pmStatScenarios.textContent = '0';
+        if (!statsOnly && pmScenarioList) {
+          pmScenarioList.innerHTML = '<div class="pm-empty"><div class="pm-empty-icon">⚠️</div>Yüklenemedi. Oturum açık mı?</div>';
+        }
+        renderSidebarScenarios();
+      }
+    }
+
+    function renderScenarioList() {
+      if (!pmScenarioList) return;
+      if (!_scenarioCache.length) {
+        pmScenarioList.innerHTML = '<div class="pm-empty"><div class="pm-empty-icon">📭</div>Henüz kaydedilen senaryo yok.</div>';
+        return;
+      }
+      pmScenarioList.innerHTML = '';
+      _scenarioCache.forEach(item => {
+        const sid = item.scenario_id;
+        const summary = item.summary || {};
+        const div = document.createElement('div');
+        div.className = 'pm-pipeline-item';
+        div.innerHTML =
+          '<div class="pm-pipeline-icon">🧭</div>' +
+          '<div class="pm-pipeline-info">' +
+            `<div class="pm-pipeline-name">${item.name || ('Senaryo #' + sid)}</div>` +
+            `<div class="pm-pipeline-meta">ID=${sid} • Nokta=${summary.total_points ?? '-'} • HIGH=${summary.high_count ?? '-'} • ${formatDate(item.created_at)}</div>` +
+          '</div>' +
+          '<div class="pm-pipeline-actions">' +
+            `<button class="pm-pipeline-btn map" title="Haritada Göster">🗺 Göster</button>` +
+            `<button class="pm-pipeline-btn pdf" title="PDF İndir">⬇ PDF</button>` +
+            `<button class="pm-pipeline-btn show" title="JSON Göster">🗂 JSON</button>` +
+            `<button class="pm-pipeline-btn del" data-sid="${sid}" title="Sil">✕</button>` +
+          '</div>';
+        div.querySelector('.map').addEventListener('click', async function() {
+          try {
+            closeModal();
+            if (typeof window.loadSavedScenarioOnMap === 'function') await window.loadSavedScenarioOnMap(sid);
+          } catch (e) { alert('Senaryo haritada açılamadı: ' + e.message); }
+        });
+        div.querySelector('.pdf').addEventListener('click', function() {
+          window.open(`/api/scenario/export/pdf/${sid}`, '_blank');
+        });
+        div.querySelector('.show').addEventListener('click', function() {
+          window.open(`/api/scenario/export/json/${sid}`, '_blank');
+        });
+        div.querySelector('.del').addEventListener('click', async function() {
+          const self = this;
+          self.disabled = true;
+          self.textContent = '⏳';
+          try {
+            await apiFetch(`/api/scenario/${sid}`, { method: 'DELETE' });
+            _scenarioCache = _scenarioCache.filter(s => s.scenario_id !== sid);
+            if (pmStatScenarios) pmStatScenarios.textContent = _scenarioCache.length;
+            renderScenarioList();
+          } catch (e) {
+            self.disabled = false;
+            self.textContent = '✕';
+            alert('Silinemedi: ' + e.message);
+          }
+        });
+        pmScenarioList.appendChild(div);
+      });
+    }
+
+    function renderSidebarScenarios() {
+      const el = document.getElementById('sidebarScenarioList');
+      if (!el) return;
+      if (!_scenarioCache || !_scenarioCache.length) {
+        el.innerHTML = '<span style="font-size:11px;color:var(--text2)">Henüz kaydedilmiş senaryo yok.</span>';
+        return;
+      }
+      el.innerHTML = '';
+      _scenarioCache.slice(0, 6).forEach(item => {
+        const sid = item.scenario_id;
+        const summary = item.summary || {};
+        const d = formatDate(item.created_at).split(' ').slice(0, 2).join(' ');
+        const div = document.createElement('div');
+        div.className = 'sb-plan-item';
+        div.innerHTML =
+          '<div class="sb-plan-info">' +
+            `<div class="sb-plan-name" title="${item.name || ('Senaryo #' + sid)}">${item.name || ('Senaryo #' + sid)}</div>` +
+            `<div class="sb-plan-meta">ID=${sid} · Nokta=${summary.total_points ?? '-'} · ${d}</div>` +
+          '</div>' +
+          '<div style="display:flex;gap:4px">' +
+            '<button class="sb-plan-btn sc-map" title="Haritada Göster">🗺 Göster</button>' +
+            '<button class="sb-plan-btn sc-pdf" title="PDF İndir">⬇ PDF</button>' +
+          '</div>';
+        div.querySelector('.sc-map').addEventListener('click', async function() {
+          try {
+            if (typeof window.loadSavedScenarioOnMap === 'function') await window.loadSavedScenarioOnMap(sid);
+          } catch (e) { alert('Senaryo açılamadı: ' + e.message); }
+        });
+        div.querySelector('.sc-pdf').addEventListener('click', function() {
+          window.open(`/api/scenario/export/pdf/${sid}`, '_blank');
+        });
+        el.appendChild(div);
+      });
     }
 
     function renderSidebarPipelines() {
@@ -4512,6 +4787,36 @@
 
     // ── Global: modal aç ──────────────────────────────────
     window.openProfileModal = openModal;
+
+    // ── Senaryoyu haritada göster ───────────────────────────
+    window.loadSavedScenarioOnMap = async function(scenarioId) {
+      const info = document.getElementById('info');
+      if (info) { info.textContent = 'Senaryo yükleniyor...'; }
+      try {
+        const data = await apiFetch(`/api/scenario/get/${scenarioId}`);
+        if (!data) throw new Error('Senaryo verisi boş');
+        const snapshot = data.pipeline_snapshot || null;
+        if (snapshot && typeof window.loadPipelineOnMap === 'function') {
+          // SA/GA sonuçlarını snapshot'a entegre et
+          if (!snapshot.optimization) snapshot.optimization = {};
+          if (Array.isArray(data.sa_result) && data.sa_result.length) {
+            snapshot.optimization.SA = { stations: data.sa_result };
+            if (!snapshot.sa_routes) snapshot.sa_routes = data.sa_result;
+          }
+          if (Array.isArray(data.ga_result) && data.ga_result.length) {
+            snapshot.optimization.GA = { stations: data.ga_result };
+            if (!snapshot.ga_routes) snapshot.ga_routes = data.ga_result;
+          }
+          await window.loadPipelineOnMap(snapshot);
+          if (info) info.textContent = `Senaryo #${scenarioId} haritaya yüklendi`;
+        } else {
+          if (info) info.textContent = 'Bu senaryonun harita verisi yok';
+        }
+      } catch (e) {
+        if (info) info.textContent = 'Senaryo yüklenemedi: ' + e.message;
+        throw e;
+      }
+    };
 
     // ── PDF İndir butonunu pipeline DB'ye kaydet ───────────
     // (Script sayfanın en altında olduğundan DOMContentLoaded gerekmez)

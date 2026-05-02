@@ -193,102 +193,6 @@
   <div class="panel">
     <button class="panel-close-btn" id="panelCloseBtn" title="Paneli Kapat">×</button>
 
-    <!-- Yangın Takibi -->
-    <div class="acc">
-      <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
-        <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M12 2c-4 4-7 8-7 12a7 7 0 0014 0c0-4-3-8-7-12z"/></svg></div>
-        <span class="acc-label">Yangın Takibi</span>
-        <span class="acc-count">2</span>
-        <span class="acc-arrow">▼</span>
-      </div>
-      <div class="acc-body">
-        <div class="row">
-          <label for="dr">Aralık</label>
-          <select id="dr">
-            <option value="1">Son 24 saat</option>
-            <option value="7">Son 1 hafta</option>
-          </select>
-          <button id="btnFires" class="btn btn-outline">Göster</button>
-          <button id="btnLiveTracking" class="btn btn-primary">Canlı Takip</button>
-        </div>
-      </div>
-    </div>
-    <!-- Risk Analizi -->
-    <div class="acc">
-      <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
-        <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M3 12l4-4 4 4 4-4 4 4"/></svg></div>
-        <span class="acc-label">Risk Analizi</span>
-        <span class="acc-count">4</span>
-        <span class="acc-arrow">▼</span>
-      </div>
-      <div class="acc-body">
-        <div class="row">
-          <button id="btnFireRisk" class="btn btn-outline">Riskli Bölgeler</button>
-          <button id="btnHeatmap" class="btn btn-outline">Isıl Harita</button>
-          <button id="btnFirePoints" class="btn btn-outline">High / Low Noktalar</button>
-          <button id="btnPipeline" class="btn btn-outline">Pipeline Sonucu</button>
-          <label for="pipelineN">n:</label>
-          <input id="pipelineN" type="number" value="20" min="1" max="554" style="width:64px;" />
-          <label for="pipelineK">k:</label>
-          <input id="pipelineK" type="number" value="4" min="1" max="100" style="width:56px;" />
-          <button id="btnSavePipeline" class="btn btn-outline" title="Mevcut pipeline sonucunu kaydet">Pipeline Kaydet</button>
-          <button id="btnSaveScenario" class="btn btn-outline" title="Mevcut n/k sonucu için senaryo kaydet">Senaryo Kaydet</button>
-          <button id="btnPipelinePDF" class="btn btn-outline" disabled title="Kaydedilen senaryo için PDF indir">PDF İndir</button>
-          <label for="gaPopSize" title="GA: Popülasyon boyutu">Pop:</label>
-          <input id="gaPopSize" type="number" value="100" min="1" max="10000" style="width:56px;" title="GA Popülasyon boyutu" />
-          <label for="gaMaxIter" title="GA: Maksimum iterasyon">İter:</label>
-          <input id="gaMaxIter" type="number" value="100" min="1" max="10000" style="width:56px;" title="GA Maksimum iterasyon" />
-          <label for="saMaxTemp" title="SA: Başlangıç sıcaklığı">Temp:</label>
-          <input id="saMaxTemp" type="number" value="100" min="1" max="100000" style="width:64px;" title="SA Başlangıç sıcaklığı" />
-          <button id="btnPipelinePDF" class="btn btn-outline" disabled title="Pipeline çalıştıktan sonra aktif olur">PDF İndir</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Su Kaynakları -->
-    <div class="acc">
-      <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
-        <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M12 2c-4 5-7 9-7 13a7 7 0 0014 0c0-4-3-8-7-13z"/><path d="M9.5 16a2.5 2.5 0 005 0" opacity=".5"/></svg></div>
-        <span class="acc-label">Su Kaynakları</span>
-        <span class="acc-count">4</span>
-        <span class="acc-arrow">▼</span>
-      </div>
-      <div class="acc-body">
-        <div class="row">
-          <button id="btnReservoirs" class="btn btn-outline">Rezervuarlar</button>
-          <button id="btnWaterSources" class="btn btn-outline">Su Kaynakları</button>
-          <button id="btnWaterTanks" class="btn btn-outline">Su Tankları</button>
-          <button id="btnLakes" class="btn btn-outline">Göl ve Göletler</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Erişim & Müdahale -->
-    <div class="acc">
-      <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
-        <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M9 20l-5.447-2.724A2 2 0 013 15.382V5.618a2 2 0 011.106-1.789L9 1m0 19l6-3m-6 3V1m6 16l4.553 2.276A2 2 0 0021 17.382V7.618a2 2 0 00-.894-1.664L15 2m0 15V2m0 0L9 1"/></svg></div>
-        <span class="acc-label">Erişim & Müdahale</span>
-        <span class="acc-count">6</span>
-        <span class="acc-arrow">▼</span>
-      </div>
-      <div class="acc-body">
-        <div class="row">
-          <button id="btnFireStations" class="btn btn-outline">İtfaiye İstasyonları</button>
-          <button id="btnProximity" class="btn btn-outline">Kaynak Yakınlık</button>
-          <button id="btnIntegrated" class="btn btn-outline">Entegre Katman</button>
-          <button id="btnRouteSA" class="btn btn-outline">SA Rotaları</button>
-          <button id="btnRouteGA" class="btn btn-outline">GA Rotaları</button>
-          <button id="btnRouteClear" class="btn">Rotaları Temizle</button>
-        </div>
-        <div class="row">
-          <label for="routeSelect">Seçili Rota</label>
-          <select id="routeSelect" style="min-width:220px;">
-            <option value="">Tümü (highlight kapalı)</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
     <!-- Yangın Yayılım Takibi -->
     <div class="acc open">
       <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
@@ -313,20 +217,16 @@
       </div>
     </div>
 
-    <!-- Sıfırla + Durum -->
-    <div style="padding:12px 0;display:flex;flex-direction:column;gap:8px">
-      <div class="row">
-        <button id="btnReset" class="btn">Sıfırla</button>
-        <span id="info" style="margin-left:6px;color:var(--text2)"></span>
-      </div>
-      <div id="firePointInfo" style="display:none; margin-top:10px; padding:10px; border:1px solid var(--border); border-radius:8px; background:rgba(14,30,12,.6); font-size:12px; color:var(--text);"></div>
-    </div>
+    <!-- Durum (hidden shims for JS compat) -->
+    <span id="info" style="display:none"></span>
+    <div id="firePointInfo" style="display:none;"></div>
+    <button id="btnReset" style="display:none;"></button>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
   <script src="https://d3js.org/d3-contour.v2.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script type="module" src="/static/firebase-init.js?v=koru-firebase-2"></script>
+  <script type="module" src="/static/firebase-init.js?v=koru-firebase-3"></script>
   <script>
     (function checkLogin(){
       const accessToken = sessionStorage.getItem('access_token')
@@ -4095,8 +3995,6 @@
       </div>
       <div class="pm-tabs">
         <button class="pm-tab active" data-tab="info">👤 Profil</button>
-        <button class="pm-tab" data-tab="pipelines">📋 Pipeline'larım</button>
-        <button class="pm-tab" data-tab="scenarios">🧭 Senaryolarım</button>
       </div>
       <div class="pm-body">
         <!-- Tab: Profil -->
@@ -4116,43 +4014,9 @@
               <input type="text" id="pmRoleInput" readonly/>
             </div>
           </div>
-          <div class="pm-section">
-            <div class="pm-section-title">İstatistikler</div>
-            <div class="pm-stat-row">
-              <div class="pm-stat">
-                <div class="pm-stat-val" id="pmStatPipelines">0</div>
-                <div class="pm-stat-lbl">Kayıtlı Pipeline</div>
-              </div>
-              <div class="pm-stat">
-                <div class="pm-stat-val" id="pmStatScenarios">0</div>
-                <div class="pm-stat-lbl">Kayıtlı Senaryo</div>
-              </div>
-              <div class="pm-stat">
-                <div class="pm-stat-val" id="pmStatLastRun">—</div>
-                <div class="pm-stat-lbl">Son Çalıştırma</div>
-              </div>
-            </div>
-          </div>
           <button class="pm-save-btn" id="pmSaveBtn">Değişiklikleri Kaydet</button>
         </div>
-        <!-- Tab: Pipeline'larım -->
-        <div id="pmTabPipelines" style="display:none">
-          <div class="pm-section">
-            <div class="pm-section-title">Kaydedilen Pipeline Sonuçları</div>
-            <div class="pm-pipeline-list" id="pmPipelineList">
-              <div class="pm-empty"><div class="pm-empty-icon">📭</div>Henüz kaydedilen pipeline yok.<br>PDF İndir butonunu kullanarak pipeline'ları buraya kaydedin.</div>
-            </div>
-          </div>
-        </div>
-        <!-- Tab: Senaryolarım -->
-        <div id="pmTabScenarios" style="display:none">
-          <div class="pm-section">
-            <div class="pm-section-title">Kaydedilen Senaryolar</div>
-            <div class="pm-pipeline-list" id="pmScenarioList">
-              <div class="pm-empty"><div class="pm-empty-icon">📭</div>Henüz kaydedilen senaryo yok.</div>
-            </div>
-          </div>
-        </div>
+
       </div>
     </div>
   </div>
@@ -4220,8 +4084,6 @@
     const pmEmailInput = document.getElementById('pmEmailInput');
     const pmRoleInput = document.getElementById('pmRoleInput');
     const pmSaveBtn = document.getElementById('pmSaveBtn');
-    const pmStatPipelines = document.getElementById('pmStatPipelines');
-    const pmStatScenarios = document.getElementById('pmStatScenarios');
     const pmStatLastRun = document.getElementById('pmStatLastRun');
     const pmPipelineList = document.getElementById('pmPipelineList');
     const pmScenarioList = document.getElementById('pmScenarioList');
@@ -4234,12 +4096,6 @@
       btn.addEventListener('click', function() {
         document.querySelectorAll('.pm-tab').forEach(t => t.classList.remove('active'));
         this.classList.add('active');
-        const tab = this.dataset.tab;
-        document.getElementById('pmTabInfo').style.display = tab === 'info' ? '' : 'none';
-        document.getElementById('pmTabPipelines').style.display = tab === 'pipelines' ? '' : 'none';
-        document.getElementById('pmTabScenarios').style.display = tab === 'scenarios' ? '' : 'none';
-        if (tab === 'pipelines') loadAndRenderPipelines();
-        if (tab === 'scenarios') loadAndRenderScenarios();
       });
     });
 
@@ -4262,12 +4118,6 @@
       document.querySelectorAll('.pm-tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.pm-tab')[0].classList.add('active');
       document.getElementById('pmTabInfo').style.display = '';
-      document.getElementById('pmTabPipelines').style.display = 'none';
-      document.getElementById('pmTabScenarios').style.display = 'none';
-
-      // İstatistikleri API'den çek
-      loadAndRenderPipelines(true);
-      loadAndRenderScenarios(true);
 
       modal.classList.add('open');
       document.body.style.overflow = 'hidden';
@@ -4300,12 +4150,11 @@
 
     // ── API: pipeline listesi yükle ────────────────────────
     async function loadAndRenderPipelines(statsOnly = false) {
-      pmPipelineList.innerHTML = '<div class="pm-empty"><div class="pm-empty-icon">⏳</div>Yükleniyor...</div>';
+      if (!pmPipelineList) return;
       try {
         const data = await apiFetch('/api/pipelines');
         _pipelineCache = data || [];
-        pmStatPipelines.textContent = _pipelineCache.length;
-        if (_pipelineCache.length > 0) {
+        if (pmStatLastRun && _pipelineCache.length > 0) {
           const last = _pipelineCache[0]; // desc sıralı geliyor
           pmStatLastRun.textContent = formatDate(last.created_at).split(' ').slice(0,2).join(' ');
         } else {
@@ -4314,24 +4163,21 @@
         if (!statsOnly) renderPipelineList();
       } catch(e) {
         _pipelineCache = [];
-        pmStatPipelines.textContent = '0';
-        if (!statsOnly) {
+        if (!statsOnly && pmPipelineList) {
           pmPipelineList.innerHTML = '<div class="pm-empty"><div class="pm-empty-icon">⚠️</div>Yüklenemedi. Oturum açık mı?</div>';
         }
       }
     }
 
     async function loadAndRenderScenarios(statsOnly = false) {
-      pmScenarioList.innerHTML = '<div class="pm-empty"><div class="pm-empty-icon">⏳</div>Yükleniyor...</div>';
+      if (!pmScenarioList) return;
       try {
         const data = await apiFetch('/api/scenario/mine');
         _scenarioCache = data || [];
-        pmStatScenarios.textContent = _scenarioCache.length;
         if (!statsOnly) renderScenarioList();
       } catch (e) {
         _scenarioCache = [];
-        pmStatScenarios.textContent = '0';
-        if (!statsOnly) {
+        if (!statsOnly && pmScenarioList) {
           pmScenarioList.innerHTML = '<div class="pm-empty"><div class="pm-empty-icon">⚠️</div>Yüklenemedi. Oturum açık mı?</div>';
         }
       }
@@ -4358,6 +4204,7 @@
             `<button class="pm-pipeline-btn map" title="Haritada Göster">🗺 Göster</button>` +
             `<button class="pm-pipeline-btn pdf" title="PDF İndir">⬇ PDF</button>` +
             `<button class="pm-pipeline-btn show" title="JSON Göster">🗂 JSON</button>` +
+            `<button class="pm-pipeline-btn del" data-sid="${sid}" title="Sil">✕</button>` +
           '</div>';
 
         div.querySelector('.map').addEventListener('click', async function() {
@@ -4373,6 +4220,21 @@
         });
         div.querySelector('.show').addEventListener('click', function() {
           window.open(`/api/scenario/export/json/${sid}`, '_blank');
+        });
+        div.querySelector('.del').addEventListener('click', async function() {
+          const self = this;
+          self.disabled = true;
+          self.textContent = '⏳';
+          try {
+            await apiFetch(`/api/scenario/${sid}`, { method: 'DELETE' });
+            _scenarioCache = _scenarioCache.filter(s => s.scenario_id !== sid);
+            if (pmStatScenarios) pmStatScenarios.textContent = _scenarioCache.length;
+            renderScenarioList();
+          } catch (e) {
+            self.disabled = false;
+            self.textContent = '✕';
+            alert('Silinemedi: ' + e.message);
+          }
         });
         pmScenarioList.appendChild(div);
       });
@@ -4464,7 +4326,6 @@
           try {
             await apiFetch(`/api/pipelines/${id}`, { method: 'DELETE' });
             _pipelineCache = _pipelineCache.filter(p => String(p.id) !== String(id));
-            pmStatPipelines.textContent = _pipelineCache.length;
             renderPipelineList();
           } catch(e) {
             this.disabled = false;
