@@ -54,7 +54,12 @@ class Settings(BaseSettings):
         default=None,
         alias="FIREBASE_CREDENTIALS_PATH",
     )
-    FIREBASE_WEB_API_KEY: Optional[str] = Field(default=None, alias="FIREBASE_WEB_API_KEY")
+    # Varsayılan, static/firebase-init.js ile aynıdır (web client key'i). Ekibin ortak .env doldurmaması için repoda kalır.
+    # Üretimde farklı proje/key için .env ile override edilir.
+    FIREBASE_WEB_API_KEY: str = Field(
+        default="AIzaSyCconhCySW2Lrg_2DwvyjBjw7Fm7w6owGU",
+        alias="FIREBASE_WEB_API_KEY",
+    )
     GEO_SERVICE_BASE_URL: Optional[str] = Field(default=None, alias="GEO_SERVICE_BASE_URL")
 
     # Admin
