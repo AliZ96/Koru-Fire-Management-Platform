@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from google.api_core.exceptions import FailedPrecondition
+from google.cloud.firestore import FieldFilter
 
 from app.services.optimization_service import get_scenario_info
 from app.services.firestore_store import FirestoreStore
@@ -189,7 +190,7 @@ def list_user_scenarios(username: str, limit: int = 50) -> list[dict[str, Any]]:
     try:
         docs = (
             store.db.collection(_COLLECTION)
-            .where("owner_username", "==", username)
+            .where(filter=FieldFilter("owner_username", "==", username))
             .stream()
         )
         for doc in docs:

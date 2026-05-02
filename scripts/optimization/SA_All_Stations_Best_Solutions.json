@@ -1,136 +1,127 @@
 [
   {
-    "station_id": 594,
+    "station_id": 587,
     "assigned_fire_points": [
-      44,
-      33,
-      208,
-      231,
-      168,
-      50,
-      233,
-      221
+      222,
+      199,
+      223,
+      372,
+      200,
+      24,
+      128,
+      202,
+      82
     ],
-    "total_distance": 3.5181,
+    "total_distance": 2.7136,
     "vehicles": [
       {
         "vehicle_index": 0,
         "tour": [
-          594,
-          168,
-          208,
-          594
+          587,
+          128,
+          372,
+          82,
+          222,
+          223,
+          202,
+          200,
+          587
         ],
-        "load": 133,
-        "distance": 1.3281
+        "load": 194,
+        "distance": 1.8268
       },
       {
         "vehicle_index": 1,
         "tour": [
-          594,
-          44,
-          50,
-          33,
-          594
+          587,
+          24,
+          199,
+          587
         ],
-        "load": 191,
-        "distance": 0.5082
-      },
-      {
-        "vehicle_index": 2,
-        "tour": [
-          594,
-          233,
-          221,
-          231,
-          594
-        ],
-        "load": 177,
-        "distance": 2.399
+        "load": 43,
+        "distance": 1.0882
       }
     ]
   },
   {
-    "station_id": 596,
+    "station_id": 577,
     "assigned_fire_points": [
-      416,
-      404,
-      406
+      307,
+      317,
+      136,
+      213
     ],
-    "total_distance": 0.2739,
+    "total_distance": 0.6686,
     "vehicles": [
       {
         "vehicle_index": 0,
         "tour": [
-          596,
-          404,
-          416,
-          406,
-          596
+          577,
+          136,
+          317,
+          307,
+          213,
+          577
         ],
-        "load": 200,
-        "distance": 0.2696
+        "load": 182,
+        "distance": 0.7313
       }
     ]
   },
   {
-    "station_id": 557,
+    "station_id": 574,
     "assigned_fire_points": [
-      225,
-      288,
-      53,
-      149,
-      102,
-      226
+      119,
+      71,
+      195,
+      51
     ],
-    "total_distance": 2.0576,
+    "total_distance": 1.0051,
     "vehicles": [
       {
         "vehicle_index": 0,
         "tour": [
-          557,
-          149,
-          102,
-          225,
-          226,
-          557
+          574,
+          51,
+          119,
+          574
         ],
-        "load": 160,
-        "distance": 0.8271
+        "load": 154,
+        "distance": 0.5987
       },
       {
         "vehicle_index": 1,
         "tour": [
-          557,
-          53,
-          288,
-          557
+          574,
+          71,
+          195,
+          574
         ],
-        "load": 63,
-        "distance": 1.1133
+        "load": 61,
+        "distance": 0.4039
       }
     ]
   },
   {
-    "station_id": 569,
+    "station_id": 555,
     "assigned_fire_points": [
-      489,
-      544,
-      546
+      525,
+      429,
+      473
     ],
-    "total_distance": 1.1863,
+    "total_distance": 1.3478,
     "vehicles": [
       {
         "vehicle_index": 0,
         "tour": [
-          569,
-          546,
-          489,
-          544,
-          569
+          555,
+          525,
+          473,
+          429,
+          555
         ],
-        "load": 114,
-        "distance": 1.4149
+        "load": 145,
+        "distance": 1.0816
       }
     ]
   }

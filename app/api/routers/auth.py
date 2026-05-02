@@ -6,7 +6,6 @@ from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse
 from app.core.security import create_access_token
 from app.services.auth_service import AuthService
 from app.core.security import get_current_user, create_access_token
-from app.core.config import settings
 from app.db.session import get_db
 from app.core.security import get_current_user
 
@@ -37,6 +36,13 @@ def firefighter_login(payload: LoginRequest):
     return TokenResponse(access_token=token)
 
 
+@router.post("/personnel/login", response_model=TokenResponse)
+def personnel_firebase_login(payload: LoginRequest):
+    """Yetkili personel: Firebase e-posta/şifre; Firestore users'da role=admin olmalı."""
+    token = AuthService.login_personnel_firebase(payload.username, payload.password)
+    return TokenResponse(access_token=token)
+
+
 @router.get("/me")
 def read_me(current_user: dict = Depends(get_current_user)):
     return current_user
@@ -64,7 +70,7 @@ def firebase_token_exchange(payload: FirebaseTokenRequest):
     if not email:
         raise HTTPException(status_code=400, detail="Firebase token'da email bulunamadı")
 
-    role = "admin" if email.lower() in settings.admin_emails_list else "user"
+    role = AuthService.resolve_jwt_role_for_firebase_email(email)
     backend_token = create_access_token(data={"sub": email, "email": email, "role": role})
     return TokenResponse(access_token=backend_token)
 

@@ -1,3 +1,5 @@
+from google.cloud.firestore import FieldFilter
+
 from app.services.firestore_store import FirestoreStore
 
 
@@ -5,7 +7,12 @@ class UserRepository:
     @staticmethod
     def get_by_username(db, username: str):
         store = FirestoreStore()
-        docs = store.db.collection("users").where("username", "==", username).limit(1).stream()
+        docs = (
+            store.db.collection("users")
+            .where(filter=FieldFilter("username", "==", username))
+            .limit(1)
+            .stream()
+        )
         for doc in docs:
             data = doc.to_dict() or {}
             data["id"] = doc.id
