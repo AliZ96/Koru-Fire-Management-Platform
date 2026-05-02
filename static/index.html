@@ -108,9 +108,13 @@
     .acc-count{font-size:10px;font-weight:600;color:var(--text2);background:rgba(74,124,58,.12);border-radius:10px;padding:2px 8px}
     .acc-arrow{font-size:10px;color:var(--text2);transition:transform .25s ease;margin-left:4px}
     .acc.open .acc-arrow{transform:rotate(180deg)}
-    .acc-body{max-height:0;overflow:hidden;transition:max-height .3s ease}
-    .acc.open .acc-body{max-height:560px}
+    .acc-body{max-height:0;overflow:hidden;transition:max-height .35s ease}
+    /* Risk Analizi vb. satırda çok kontrol var; 620px alt satırları (GA/SA) kesiyordu */
+    .acc.open .acc-body{max-height:min(2400px,92vh);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+    .btn.btn-active{background:rgba(245,158,11,.18)!important;border-color:#f59e0b!important;color:#fde68a!important;box-shadow:0 0 0 2px rgba(245,158,11,.25)!important}
     .acc-body .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:0 0 12px 0}
+    .acc-body .row.row-ga{border-top:1px solid rgba(74,124,58,.2);padding-top:10px;margin-top:2px}
+    .acc-ga-title{flex:1 0 100%;font-size:11px;font-weight:700;letter-spacing:.3px;color:var(--text2);margin:0 0 4px 0}
     @media (max-width:480px){ .panel{width:100%;top:76px;right:0;height:calc(100% - 76px - 60px);transform:translateX(100%)} .panel-toggle{right:12px} .panel-toggle.open{right:12px} .map-frame{top:88px; left:8px; right:8px; bottom:68px; border-width:1px} .header{padding:10px 12px} .logo{height:34px} .header .title{font-size:14px; letter-spacing:.05px; white-space:nowrap} .footer{height:64px} .footer img{height:44px; max-width:45vw} .footer .contact{font-size:11px} }
   </style>
 </head>
@@ -171,7 +175,18 @@
           <input id="pipelineN" type="number" value="20" min="1" max="554" style="width:64px;" />
           <label for="pipelineK">k:</label>
           <input id="pipelineK" type="number" value="4" min="1" max="100" style="width:56px;" />
-          <button id="btnPipelinePDF" class="btn btn-outline" disabled title="Pipeline çalıştıktan sonra aktif olur">PDF İndir</button>
+          <button id="btnSavePipeline" class="btn btn-outline" title="Mevcut pipeline sonucunu kaydet">Pipeline Kaydet</button>
+          <button id="btnSaveScenario" class="btn btn-outline" title="Mevcut n/k sonucu için senaryo kaydet">Senaryo Kaydet</button>
+          <button id="btnPipelinePDF" class="btn btn-outline" disabled title="Kaydedilen senaryo için PDF indir">PDF İndir</button>
+        </div>
+        <div class="row row-ga">
+          <span class="acc-ga-title">Optimizasyon (SA / GA)</span>
+          <label for="gaPopSize" title="GA: Popülasyon boyutu">Pop:</label>
+          <input id="gaPopSize" type="number" value="100" min="1" max="10000" style="width:56px;" title="GA Popülasyon boyutu" />
+          <label for="gaMaxIter" title="GA: Maksimum iterasyon">İter:</label>
+          <input id="gaMaxIter" type="number" value="100" min="1" max="10000" style="width:56px;" title="GA Maksimum iterasyon" />
+          <label for="saMaxTemp" title="SA: Başlangıç sıcaklığı">Temp:</label>
+          <input id="saMaxTemp" type="number" value="100" min="1" max="100000" style="width:64px;" title="SA Başlangıç sıcaklığı" />
         </div>
       </div>
     </div>
