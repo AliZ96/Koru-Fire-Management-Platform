@@ -97,6 +97,26 @@ def stop_scenario(scenario_id: str):
     return {"status": "stopped"}
 
 
+@router.delete("/scenarios")
+def delete_all_scenarios():
+    """Tüm yangın yayılım senaryolarını ve snapshot alt koleksiyonlarını sil."""
+    store = _store()
+    scenario_docs = list(store.db.collection("fire_scenarios").stream())
+    deleted = 0
+    for scenario_doc in scenario_docs:
+        snapshot_docs = list(
+            store.db.collection("fire_scenarios")
+            .document(scenario_doc.id)
+            .collection("snapshots")
+            .stream()
+        )
+        for snap_doc in snapshot_docs:
+            snap_doc.reference.delete()
+        scenario_doc.reference.delete()
+        deleted += 1
+    return {"deleted": True, "scenario_count": deleted}
+
+
 @router.get("/scenarios/{scenario_id}/eta")
 def get_eta_for_point(
     scenario_id: str, lat: float, lon: float

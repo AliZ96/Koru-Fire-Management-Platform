@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Optional
 
+from google.api_core.exceptions import FailedPrecondition
+
 from app.core.firebase import get_firestore_client
 
 
@@ -14,26 +16,38 @@ class FirestoreStore:
     def __init__(self):
         self.db = get_firestore_client()
 
-    # ---- users ----
     def get_user(self, username: str, role: str) -> Optional[dict[str, Any]]:
-        docs = (
-            self.db.collection("users")
-            .where("username", "==", username)
-            .where("role", "==", role)
-            .limit(1)
-            .stream()
-        )
-        for doc in docs:
+        normalized_role = str(role or "user").lower()
+        try:
+            docs = (
+                self.db.collection("users")
+                .where("username", "==", username)
+                .stream()
+            )
+            for doc in docs:
+                data = doc.to_dict() or {}
+                if str(data.get("role") or "").lower() != normalized_role:
+                    continue
+                data["id"] = doc.id
+                return data
+        except FailedPrecondition:
+            pass
+        for doc in self.db.collection("users").stream():
             data = doc.to_dict() or {}
+            if data.get("username") != username:
+                continue
+            if str(data.get("role") or "").lower() != normalized_role:
+                continue
             data["id"] = doc.id
             return data
         return None
 
     def create_user(self, username: str, hashed_password: str, role: str) -> dict[str, Any]:
+        normalized_role = str(role or "user").lower()
         payload = {
             "username": username,
             "hashed_password": hashed_password,
-            "role": role,
+            "role": normalized_role,
             "created_at": _now_iso(),
             "updated_at": _now_iso(),
         }
@@ -42,7 +56,74 @@ class FirestoreStore:
         payload["id"] = ref.id
         return payload
 
-    # ---- fire scenarios ----
+    def upsert_user_profile(
+        self,
+        *,
+        username: str,
+        role: str,
+        firebase_uid: str | None = None,
+        display_name: str | None = None,
+    ) -> dict[str, Any]:
+        normalized_role = str(role or "user").lower()
+        existing = None
+        same_username_doc = None
+        try:
+            docs = (
+                self.db.collection("users")
+                .where("username", "==", username)
+                .stream()
+            )
+            for doc in docs:
+                if same_username_doc is None:
+                    same_username_doc = doc
+                data = doc.to_dict() or {}
+                if str(data.get("role") or "").lower() == normalized_role:
+                    existing = doc
+                    break
+        except FailedPrecondition:
+            # Bileşik index yoksa: tüm users üzerinden filtrele (küçük koleksiyonlar için uygun).
+            for doc in self.db.collection("users").stream():
+                data = doc.to_dict() or {}
+                if data.get("username") != username:
+                    continue
+                if same_username_doc is None:
+                    same_username_doc = doc
+                if str(data.get("role") or "").lower() == normalized_role:
+                    existing = doc
+                    break
+
+        if existing is None:
+            # Legacy USER/user farkında aynı username için tek kaydı normalize ederek tekrar kullanım.
+            existing = same_username_doc
+
+        patch = {
+            "updated_at": _now_iso(),
+            "auth_provider": "firebase",
+            "role": normalized_role,
+        }
+        if firebase_uid:
+            patch["firebase_uid"] = firebase_uid
+        if display_name:
+            patch["display_name"] = display_name
+
+        if existing is not None:
+            existing.reference.set(patch, merge=True)
+            data = (existing.reference.get().to_dict() or {})
+            data["id"] = existing.id
+            return data
+
+        payload = {
+            "username": username,
+            "hashed_password": "FIREBASE_AUTH_MANAGED",
+            "role": normalized_role,
+            "created_at": _now_iso(),
+            **patch,
+        }
+        ref = self.db.collection("users").document()
+        ref.set(payload)
+        payload["id"] = ref.id
+        return payload
+
     def create_fire_scenario(self, payload: dict[str, Any]) -> dict[str, Any]:
         body = payload.copy()
         body["created_at"] = _now_iso()
@@ -83,7 +164,6 @@ class FirestoreStore:
         docs = self.db.collection("fire_scenarios").where("status", "==", "active").stream()
         return [doc.id for doc in docs]
 
-    # ---- spread snapshots ----
     def create_spread_snapshot(self, scenario_id: str, payload: dict[str, Any]) -> None:
         body = payload.copy()
         body["scenario_id"] = str(scenario_id)
@@ -110,7 +190,6 @@ class FirestoreStore:
             return data
         return None
 
-    # ---- user locations ----
     def upsert_user_location(self, user_key: str, payload: dict[str, Any]) -> None:
         body = payload.copy()
         body["updated_at"] = _now_iso()
@@ -125,7 +204,6 @@ class FirestoreStore:
             rows.append(data)
         return rows
 
-    # ---- alerts ----
     def create_alert(self, payload: dict[str, Any]) -> None:
         body = payload.copy()
         body["created_at"] = _now_iso()
@@ -160,3 +238,71 @@ class FirestoreStore:
             data["id"] = doc.id
             rows.append(data)
         return rows
+
+    # ---- pipelines ----
+    def list_pipelines(self, username: str) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        try:
+            docs = (
+                self.db.collection("pipelines")
+                .where("username", "==", username)
+                .stream()
+            )
+            for doc in docs:
+                data = doc.to_dict() or {}
+                data["id"] = doc.id
+                rows.append(data)
+        except FailedPrecondition:
+            # Fallback: index gerektiren sorgu hatasında tüm koleksiyondan filtrele.
+            docs = self.db.collection("pipelines").stream()
+            for doc in docs:
+                data = doc.to_dict() or {}
+                if data.get("username") != username:
+                    continue
+                data["id"] = doc.id
+                rows.append(data)
+        rows.sort(key=lambda x: str(x.get("created_at") or ""), reverse=True)
+        return rows
+
+    def create_pipeline(
+        self,
+        *,
+        username: str,
+        name: str,
+        n: int,
+        k: int,
+        snapshot_json: Optional[str],
+    ) -> dict[str, Any]:
+        payload = {
+            "username": username,
+            "name": name,
+            "n": n,
+            "k": k,
+            "snapshot_json": snapshot_json,
+            "created_at": _now_iso(),
+            "updated_at": _now_iso(),
+        }
+        ref = self.db.collection("pipelines").document()
+        ref.set(payload)
+        payload["id"] = ref.id
+        return payload
+
+    def get_pipeline(self, pipeline_id: str, username: str) -> Optional[dict[str, Any]]:
+        doc = self.db.collection("pipelines").document(str(pipeline_id)).get()
+        if not doc.exists:
+            return None
+        data = doc.to_dict() or {}
+        if data.get("username") != username:
+            return None
+        data["id"] = doc.id
+        return data
+
+    def delete_pipeline(self, pipeline_id: str, username: str) -> bool:
+        doc = self.db.collection("pipelines").document(str(pipeline_id)).get()
+        if not doc.exists:
+            return False
+        data = doc.to_dict() or {}
+        if data.get("username") != username:
+            return False
+        doc.reference.delete()
+        return True

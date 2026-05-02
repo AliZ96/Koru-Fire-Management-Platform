@@ -120,6 +120,30 @@
       border-color:var(--border-hi);
       color:var(--accent);
     }
+    .topbar-user-wrap { position:relative; }
+    .topbar-user-btn {
+      display:flex; align-items:center; gap:6px;
+      font-size:12px; color:var(--text-2);
+      background:none; border:1px solid var(--border);
+      border-radius:8px; padding:6px 12px;
+      cursor:pointer; font-family:'Inter',sans-serif;
+      transition:all .2s;
+    }
+    .topbar-user-btn:hover { border-color:var(--border-hi); color:var(--accent); }
+    .topbar-user-dropdown {
+      display:none; position:absolute; top:calc(100% + 8px); right:0;
+      background:rgba(6,18,9,.97); border:1px solid var(--border);
+      border-radius:12px; overflow:hidden; min-width:160px;
+      box-shadow:0 12px 40px rgba(0,0,0,.45); z-index:9999;
+    }
+    .topbar-user-dropdown.open { display:block; }
+    .topbar-user-dropdown a {
+      display:block; padding:11px 16px;
+      font-size:13px; font-weight:600;
+      color:var(--text-2); text-decoration:none;
+      transition:all .15s;
+    }
+    .topbar-user-dropdown a:hover { background:rgba(74,124,58,.12); color:var(--accent); }
 
     /* Main area */
     .main {
@@ -336,6 +360,47 @@
       .footer { gap:16px; padding:12px 20px; }
       .footer-divider { display:none; }
     }
+
+    /* ═══ PROFİL MODAL ═══ */
+    #profileModal{position:fixed;inset:0;z-index:20000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s ease}
+    #profileModal.open{opacity:1;pointer-events:auto}
+    #profileModal .pm-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px)}
+    #profileModal .pm-sheet{position:relative;background:rgba(8,21,16,.97);border:1px solid rgba(74,124,58,.35);border-radius:16px;width:min(520px,94vw);max-height:86vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.6);transform:translateY(20px) scale(.97);transition:transform .25s ease;font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+    #profileModal.open .pm-sheet{transform:translateY(0) scale(1)}
+    .pm-header{padding:20px 24px 0;display:flex;align-items:flex-start;gap:16px;flex-shrink:0}
+    .pm-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#10b981);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff;flex-shrink:0;letter-spacing:-1px;box-shadow:0 4px 16px rgba(37,99,235,.4)}
+    .pm-headinfo{flex:1;min-width:0}
+    .pm-name{font-size:18px;font-weight:700;color:#d1fae5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .pm-email{font-size:12px;color:#6b8f7a;margin-top:2px}
+    .pm-role-badge{display:inline-block;margin-top:6px;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase}
+    .pm-role-badge.admin{background:rgba(239,68,68,.18);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+    .pm-role-badge.user{background:rgba(37,99,235,.18);color:#93c5fd;border:1px solid rgba(37,99,235,.3)}
+    .pm-close{background:none;border:none;color:#6b8f7a;cursor:pointer;font-size:20px;padding:0;line-height:1;transition:color .15s;flex-shrink:0}
+    .pm-close:hover{color:#d1fae5}
+    .pm-tabs{display:flex;gap:0;border-bottom:1px solid rgba(74,124,58,.2);margin:16px 24px 0;flex-shrink:0}
+    .pm-tab{padding:8px 16px;font-size:12px;font-weight:600;color:#6b8f7a;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
+    .pm-tab.active{color:#4ade80;border-bottom-color:#4ade80}
+    .pm-tab:hover:not(.active){color:#d1fae5}
+    .pm-body{flex:1;overflow-y:auto;padding:20px 24px 24px}
+    .pm-body::-webkit-scrollbar{width:4px}
+    .pm-body::-webkit-scrollbar-track{background:transparent}
+    .pm-body::-webkit-scrollbar-thumb{background:rgba(74,124,58,.3);border-radius:2px}
+    .pm-section{margin-bottom:20px}
+    .pm-section-title{font-size:10px;font-weight:700;color:#6b8f7a;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(74,124,58,.12)}
+    .pm-field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+    .pm-field label{font-size:11px;font-weight:600;color:#6b8f7a;letter-spacing:.4px}
+    .pm-field input{background:rgba(255,255,255,.05);border:1px solid rgba(74,124,58,.25);border-radius:8px;padding:9px 12px;color:#d1fae5;font-size:13px;font-weight:500;font-family:inherit;outline:none;transition:border-color .15s}
+    .pm-field input:focus{border-color:#4ade80}
+    .pm-field input[readonly]{opacity:.55;cursor:default}
+    .pm-stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+    .pm-stat{background:rgba(255,255,255,.04);border:1px solid rgba(74,124,58,.15);border-radius:10px;padding:12px 14px}
+    .pm-stat-val{font-size:20px;font-weight:800;color:#4ade80}
+    .pm-stat-lbl{font-size:10px;font-weight:600;color:#6b8f7a;margin-top:2px;letter-spacing:.4px}
+    .pm-save-btn{width:100%;padding:10px;background:linear-gradient(135deg,#2563eb,#10b981);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s;letter-spacing:.3px}
+    .pm-save-btn:hover{opacity:.85}
+    .pm-save-btn:disabled{opacity:.4;cursor:default}
+    .pm-empty{text-align:center;padding:32px 0;color:#6b8f7a;font-size:13px}
+    .pm-empty-icon{font-size:40px;margin-bottom:10px}
   </style>
 </head>
 <body>
@@ -351,11 +416,17 @@
       <span class="topbar-name">KORU</span>
     </a>
     <div class="topbar-right">
-      <div class="topbar-user">
-        <span>👤</span>
-        <span>Admin — Test Kullanıcı</span>
+      <div class="topbar-user-wrap">
+        <button class="topbar-user-btn" id="topbarUserBtn">
+          <span>👤</span>
+          <span id="topbarUserName">Kullanıcı</span>
+          <span style="font-size:9px;opacity:.7;">▼</span>
+        </button>
+        <div class="topbar-user-dropdown" id="topbarUserDropdown">
+          <a href="/app" id="topbarProfilLink">Profil</a>
+          <a href="#" id="topbarLogoutLink">Oturum Kapat</a>
+        </div>
       </div>
-      <button class="topbar-logout" onclick="window.location.href='/'">Çıkış</button>
     </div>
   </header>
 
@@ -437,5 +508,141 @@
     <div class="footer-item">✉️ <a href="mailto:him@izmir.bel.tr" style="color:var(--text-2);text-decoration:none;">him@izmir.bel.tr</a></div>
   </footer>
   <script type="module" src="./firebase-init.js"></script>
+
+  <!-- PROFİL MODAL -->
+  <div id="profileModal" role="dialog" aria-modal="true" aria-label="Kullanıcı Profili">
+    <div class="pm-backdrop" id="pmBackdrop"></div>
+    <div class="pm-sheet">
+      <div class="pm-header">
+        <div class="pm-avatar" id="pmAvatar">??</div>
+        <div class="pm-headinfo">
+          <div class="pm-name" id="pmName">—</div>
+          <div class="pm-email" id="pmEmail">—</div>
+          <span class="pm-role-badge user" id="pmRoleBadge">Kullanıcı</span>
+        </div>
+        <button class="pm-close" id="pmClose" title="Kapat">✕</button>
+      </div>
+      <div class="pm-tabs">
+        <button class="pm-tab active" data-tab="info">👤 Profil</button>
+      </div>
+      <div class="pm-body">
+        <div id="pmTabInfo">
+          <div class="pm-section">
+            <div class="pm-section-title">Hesap Bilgileri</div>
+            <div class="pm-field">
+              <label>Görünen Ad</label>
+              <input type="text" id="pmDisplayName" placeholder="Adınızı girin" maxlength="60"/>
+            </div>
+            <div class="pm-field">
+              <label>E-posta</label>
+              <input type="text" id="pmEmailInput" readonly/>
+            </div>
+            <div class="pm-field">
+              <label>Rol</label>
+              <input type="text" id="pmRoleInput" readonly/>
+            </div>
+          </div>
+          <button class="pm-save-btn" id="pmSaveBtn">Değişiklikleri Kaydet</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    const username = sessionStorage.getItem('username') || sessionStorage.getItem('email') || 'Kullanıcı';
+    const displayName = localStorage.getItem('koru_display_name') || username;
+    const nameEl = document.getElementById('topbarUserName');
+    if (nameEl) nameEl.textContent = displayName;
+
+    const btn = document.getElementById('topbarUserBtn');
+    const menu = document.getElementById('topbarUserDropdown');
+    if (btn && menu) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        menu.classList.toggle('open');
+      });
+      document.addEventListener('click', function() {
+        menu.classList.remove('open');
+      });
+    }
+    const logoutLink = document.getElementById('topbarLogoutLink');
+    if (logoutLink) {
+      logoutLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        sessionStorage.clear();
+        window.location.href = '/';
+      });
+    }
+
+    // ── Profil Modal ──────────────────────────────────────
+    function getInitials(name) {
+      if (!name || name === '—') return '?';
+      return name.split(/[\s@]/)[0].slice(0, 2).toUpperCase();
+    }
+
+    const modal = document.getElementById('profileModal');
+    const pmClose = document.getElementById('pmClose');
+    const pmBackdrop = document.getElementById('pmBackdrop');
+    const pmAvatar = document.getElementById('pmAvatar');
+    const pmName = document.getElementById('pmName');
+    const pmEmail = document.getElementById('pmEmail');
+    const pmRoleBadge = document.getElementById('pmRoleBadge');
+    const pmDisplayName = document.getElementById('pmDisplayName');
+    const pmEmailInput = document.getElementById('pmEmailInput');
+    const pmRoleInput = document.getElementById('pmRoleInput');
+    const pmSaveBtn = document.getElementById('pmSaveBtn');
+
+    function openProfileModal() {
+      const uname = sessionStorage.getItem('username') || sessionStorage.getItem('email') || 'Kullanıcı';
+      const role = sessionStorage.getItem('role') || 'user';
+      const dname = localStorage.getItem('koru_display_name') || uname;
+
+      pmAvatar.textContent = getInitials(dname);
+      pmName.textContent = dname;
+      pmEmail.textContent = uname;
+      pmDisplayName.value = dname;
+      pmEmailInput.value = uname;
+      pmRoleInput.value = role === 'admin' ? 'Yönetici (Admin)' : 'Kullanıcı';
+      pmRoleBadge.textContent = role === 'admin' ? 'Admin' : 'Kullanıcı';
+      pmRoleBadge.className = 'pm-role-badge ' + (role === 'admin' ? 'admin' : 'user');
+      modal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeProfileModal() {
+      modal.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    if (pmClose) pmClose.addEventListener('click', closeProfileModal);
+    if (pmBackdrop) pmBackdrop.addEventListener('click', closeProfileModal);
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeProfileModal(); });
+
+    if (pmSaveBtn) {
+      pmSaveBtn.addEventListener('click', function() {
+        const newName = pmDisplayName.value.trim();
+        if (!newName) return;
+        localStorage.setItem('koru_display_name', newName);
+        pmName.textContent = newName;
+        pmAvatar.textContent = getInitials(newName);
+        const nameEl2 = document.getElementById('topbarUserName');
+        if (nameEl2) nameEl2.textContent = newName;
+        pmSaveBtn.textContent = '✓ Kaydedildi';
+        pmSaveBtn.disabled = true;
+        setTimeout(function() { pmSaveBtn.textContent = 'Değişiklikleri Kaydet'; pmSaveBtn.disabled = false; }, 1800);
+      });
+    }
+
+    const profilLink = document.getElementById('topbarProfilLink');
+    if (profilLink) {
+      profilLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (menu) menu.classList.remove('open');
+        openProfileModal();
+      });
+    }
+  })();
+  </script>
 </body>
 </html>

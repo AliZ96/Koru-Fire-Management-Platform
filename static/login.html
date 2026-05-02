@@ -564,30 +564,34 @@
       return { auth, api };
     }
 
-    async function pingFirestoreUser({ idToken, uid, username, role = 'USER' }) {
-      const nowIso = new Date().toISOString();
-      const url = `https://firestore.googleapis.com/v1/projects/koru-41307/databases/(default)/documents/users/${uid}`;
-      const body = {
-        fields: {
-          username: { stringValue: username || uid },
-          password_hash: { stringValue: 'FIREBASE_AUTH_MANAGED' },
-          role: { stringValue: String(role || 'USER').toUpperCase() },
-          created_at: { timestampValue: nowIso },
-        },
-      };
-
-      const response = await fetch(url, {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${idToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Firestore ping failed: ${errText || response.status}`);
+    /** Sync basarisiz olsa bile giris tamamlanir; Firestore/index gecikmesinde zaman asimi var. */
+    async function syncUserWithBackend({ backendToken, uid, username, role = 'user' }) {
+      if (!backendToken) return;
+      const ctrl = new AbortController();
+      const timeoutMs = 12000;
+      const t = setTimeout(() => ctrl.abort(), timeoutMs);
+      try {
+        const response = await fetch('/auth/user/sync', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${backendToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            firebase_uid: uid,
+            display_name: username || '',
+            role: String(role || 'user').toLowerCase(),
+          }),
+          signal: ctrl.signal,
+        });
+        if (!response.ok) {
+          const errText = await response.text();
+          console.warn('User sync yanit:', response.status, errText);
+        }
+      } catch (e) {
+        console.warn('User sync zaman asimi / ag (giris devam):', e);
+      } finally {
+        clearTimeout(t);
       }
     }
 
@@ -628,13 +632,19 @@
         const credential = await api.signInWithEmailAndPassword(auth, email, password);
         const token = await credential.user.getIdToken();
         const userName = credential.user.displayName || email;
-        await pingFirestoreUser({
-          idToken: token,
+        const bResp = await fetch('/auth/firebase-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ firebase_token: token }),
+        });
+        const backendToken = bResp.ok ? (await bResp.json()).access_token : token;
+        await syncUserWithBackend({
+          backendToken,
           uid: credential.user.uid,
           username: userName,
-          role: 'USER',
+          role: 'user',
         });
-        sessionStorage.setItem('access_token', token);
+        sessionStorage.setItem('access_token', backendToken);
         sessionStorage.setItem('username', userName);
         sessionStorage.setItem('email', email);
         sessionStorage.setItem('role', 'user');
@@ -696,14 +706,20 @@
         const credential = await api.createUserWithEmailAndPassword(auth, email, password);
         await api.updateProfile(credential.user, { displayName: username });
         const token = await credential.user.getIdToken();
-        await pingFirestoreUser({
-          idToken: token,
+        const bResp = await fetch('/auth/firebase-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ firebase_token: token }),
+        });
+        const backendToken = bResp.ok ? (await bResp.json()).access_token : token;
+        await syncUserWithBackend({
+          backendToken,
           uid: credential.user.uid,
           username,
-          role: 'USER',
+          role: 'user',
         });
 
-        sessionStorage.setItem('access_token', token);
+        sessionStorage.setItem('access_token', backendToken);
         sessionStorage.setItem('username', username);
         sessionStorage.setItem('role', role);
         sessionStorage.setItem('email', email);
