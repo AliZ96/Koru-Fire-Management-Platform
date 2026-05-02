@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from google.api_core.exceptions import FailedPrecondition
+from google.cloud.firestore import FieldFilter
 
 from app.core.firebase import get_firestore_client
 
@@ -21,7 +22,7 @@ class FirestoreStore:
         try:
             docs = (
                 self.db.collection("users")
-                .where("username", "==", username)
+                .where(filter=FieldFilter("username", "==", username))
                 .stream()
             )
             for doc in docs:
@@ -70,7 +71,7 @@ class FirestoreStore:
         try:
             docs = (
                 self.db.collection("users")
-                .where("username", "==", username)
+                .where(filter=FieldFilter("username", "==", username))
                 .stream()
             )
             for doc in docs:
@@ -161,7 +162,7 @@ class FirestoreStore:
         return rows
 
     def list_active_scenario_ids(self) -> list[str]:
-        docs = self.db.collection("fire_scenarios").where("status", "==", "active").stream()
+        docs = self.db.collection("fire_scenarios").where(filter=FieldFilter("status", "==", "active")).stream()
         return [doc.id for doc in docs]
 
     def create_spread_snapshot(self, scenario_id: str, payload: dict[str, Any]) -> None:
@@ -196,7 +197,9 @@ class FirestoreStore:
         self.db.collection("user_locations").document(str(user_key)).set(body, merge=True)
 
     def get_enabled_user_locations(self) -> list[dict[str, Any]]:
-        docs = self.db.collection("user_locations").where("notifications_enabled", "==", True).stream()
+        docs = self.db.collection("user_locations").where(
+            filter=FieldFilter("notifications_enabled", "==", True)
+        ).stream()
         rows: list[dict[str, Any]] = []
         for doc in docs:
             data = doc.to_dict() or {}
@@ -212,8 +215,8 @@ class FirestoreStore:
     def get_latest_alert(self, scenario_id: str, user_key: str) -> Optional[dict[str, Any]]:
         docs = (
             self.db.collection("spread_alerts")
-            .where("scenario_id", "==", str(scenario_id))
-            .where("user_key", "==", str(user_key))
+            .where(filter=FieldFilter("scenario_id", "==", str(scenario_id)))
+            .where(filter=FieldFilter("user_key", "==", str(user_key)))
             .order_by("created_at", direction="DESCENDING")
             .limit(1)
             .stream()
@@ -227,7 +230,7 @@ class FirestoreStore:
     def list_alerts_for_user(self, user_key: str, limit: int = 20) -> list[dict[str, Any]]:
         docs = (
             self.db.collection("spread_alerts")
-            .where("user_key", "==", str(user_key))
+            .where(filter=FieldFilter("user_key", "==", str(user_key)))
             .order_by("created_at", direction="DESCENDING")
             .limit(limit)
             .stream()
@@ -245,7 +248,7 @@ class FirestoreStore:
         try:
             docs = (
                 self.db.collection("pipelines")
-                .where("username", "==", username)
+                .where(filter=FieldFilter("username", "==", username))
                 .stream()
             )
             for doc in docs:
