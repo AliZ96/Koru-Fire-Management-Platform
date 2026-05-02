@@ -1,12 +1,23 @@
+import 'package:flutter/foundation.dart';
+
 /// Backend API configuration.
-/// Change [baseUrl] to your server's address.
+/// Automatically chooses a sensible `baseUrl` depending on runtime platform.
 class ApiConfig {
   // For Android emulator use 10.0.2.2 instead of localhost
   // For physical device use your computer's local IP (e.g. 192.168.1.x)
-  static const String baseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'http://127.0.0.1:8000',
-  );
+  static String get baseUrl {
+    // Allow overriding at build time using --dart-define=API_BASE_URL=...
+    const fromEnv = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+    if (fromEnv.isNotEmpty) return fromEnv;
+
+    // On Android emulator use host alias
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:8000';
+    }
+
+    // Default to localhost for web/desktop/iOS (iOS simulator uses localhost)
+    return 'http://127.0.0.1:8000';
+  }
 
   // Auth endpoints
   static const String loginUser = '/auth/user/login';
