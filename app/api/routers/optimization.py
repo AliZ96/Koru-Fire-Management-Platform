@@ -18,6 +18,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from app.services.ga20_road_service import run_ga20_road
 from app.services.optimization_service import (
     get_optimization_results,
     get_scenario_info,
@@ -26,6 +27,13 @@ from app.services.optimization_service import (
 )
 
 router = APIRouter(prefix="/api/optimize", tags=["optimization"])
+
+
+class GA20RoadRunRequest(BaseModel):
+    """OSRM karayolu mesafesiyle GA 2.0 parametreleri."""
+    pop_size: int = Field(default=80, ge=1, le=1000, description="GA 2.0 popülasyon boyutu")
+    max_iterations: int = Field(default=80, ge=1, le=1000, description="GA 2.0 nesil sayısı")
+    random_seed: int = Field(default=42, description="Tekrarlanabilirlik için seed")
 
 
 # ── Request Schemas ──────────────────────────────────────────────────────────
@@ -105,6 +113,22 @@ async def get_ga_results():
     result = get_optimization_results("GA")
     if not result.get("success"):
         raise HTTPException(status_code=404, detail=result)
+    return result
+
+
+@router.post("/ga20-road", summary="GA 2.0 Karayolu Rotalama")
+async def run_ga20_road_routes(request: GA20RoadRunRequest = GA20RoadRunRequest()):
+    """
+    Lokal OSRM kullanarak karayolu mesafelerine dayalı GA 2.0 rotalarını üretir.
+    Önce /api/optimize/pipeline çalışmış ve OSRM_BASE_URL ayakta olmalıdır.
+    """
+    result = run_ga20_road(
+        population_size=request.pop_size,
+        generations=request.max_iterations,
+        random_seed=request.random_seed,
+    )
+    if not result.get("success"):
+        raise HTTPException(status_code=503, detail=result)
     return result
 
 

@@ -61,6 +61,8 @@ class Settings(BaseSettings):
         alias="FIREBASE_WEB_API_KEY",
     )
     GEO_SERVICE_BASE_URL: Optional[str] = Field(default=None, alias="GEO_SERVICE_BASE_URL")
+    OSRM_BASE_URL: str = Field(default="http://127.0.0.1:5000", alias="OSRM_BASE_URL")
+    OSRM_PROFILE: str = Field(default="driving", alias="OSRM_PROFILE")
 
     # Admin
     ADMIN_EMAILS: str = Field(

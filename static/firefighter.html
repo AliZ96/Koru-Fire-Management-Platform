@@ -364,7 +364,7 @@
           <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
             <div class="acc-icon"><svg viewBox="0 0 24 24"><path d="M9 20l-5.447-2.724A2 2 0 013 15.382V5.618a2 2 0 011.106-1.789L9 1m0 19l6-3m-6 3V1m6 16l4.553 2.276A2 2 0 0021 17.382V7.618a2 2 0 00-.894-1.664L15 2m0 15V2m0 0L9 1"/></svg></div>
             <span class="acc-label">Erişim &amp; Müdahale</span>
-            <span class="acc-count">6</span>
+            <span class="acc-count">7</span>
             <span class="acc-arrow">▼</span>
           </div>
           <div class="acc-body">
@@ -378,6 +378,7 @@
                 <button id="btnRouteSA" class="btn btn-outline">SA Rotaları</button>
                 <button id="btnRouteGA" class="btn btn-outline">GA Rotaları</button>
                 <button id="btnRouteClear" class="btn">Temizle</button>
+                <button id="btnGA20" class="btn btn-outline">GA 2.0</button>
               </div>
               <div class="row">
                 <label for="routeSelect" style="flex-shrink:0">Rota</label>
@@ -1960,6 +1961,8 @@
     let pipelineLegendCtl = null;
     let optimizationRouteLayers = [];
     let vehicleIconLayers = [];
+    let animatedVehicleLayers = [];
+    let vehicleAnimationFrame = null;
     let loadedAlgorithms = new Set();
     let routeLegendCtl = null;
     let routeIndex = [];
@@ -1972,8 +1975,9 @@
     // SA: soğuk aile (mavi/cyan/yeşil) | GA: sıcak aile (turuncu/kırmızı/amber)
     const SA_VEHICLE_COLORS = ['#2563eb', '#06b6d4', '#10b981'];
     const GA_VEHICLE_COLORS = ['#f97316', '#ef4444', '#f59e0b'];
+    const GA20_VEHICLE_COLORS = ['#a855f7', '#ec4899', '#84cc16'];
     function getVehicleColors(algo) {
-      return algo === 'GA' ? GA_VEHICLE_COLORS : SA_VEHICLE_COLORS;
+      return algo === 'GA20' ? GA20_VEHICLE_COLORS : (algo === 'GA' ? GA_VEHICLE_COLORS : SA_VEHICLE_COLORS);
     }
 
     // Chaikin corner-cutting: köşeleri yumuşatır, daha gerçekçi rota görünümü
@@ -1997,14 +2001,119 @@
       const props = feature.properties || {};
       const selected = selectedRouteId && selectedRouteId === props.route_id;
       const isGA = props.algorithm === 'GA';
+      const isGA20 = props.algorithm === 'GA20';
       return {
         color: props.vehicle_color || props.base_color || '#6b7280',
         weight: selectedRouteId ? (selected ? 6 : 2) : 4,
         opacity: selectedRouteId ? (selected ? 0.95 : 0.3) : 0.88,
-        dashArray: isGA ? '10 7' : null,
+        dashArray: isGA20 ? '2 7' : (isGA ? '10 7' : null),
         lineCap: 'round',
         lineJoin: 'round',
       };
+    }
+
+    function vehicleIconHtml(color, title, pulse = false) {
+      const pulseStyle = pulse ? 'animation:blink 1.1s ease-in-out infinite;' : '';
+      return `<div style="background:${color};color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.55);cursor:default;${pulseStyle}" title="${title}">🚒</div>`;
+    }
+
+    function clearAnimatedVehicles(algo = null) {
+      animatedVehicleLayers = animatedVehicleLayers.filter(item => {
+        if (!algo || item.algorithm === algo) {
+          try { map.removeLayer(item.marker); } catch (e) {}
+          return false;
+        }
+        return true;
+      });
+      if (!animatedVehicleLayers.length && vehicleAnimationFrame) {
+        cancelAnimationFrame(vehicleAnimationFrame);
+        vehicleAnimationFrame = null;
+      }
+    }
+
+    function prepareRouteDistances(coords) {
+      const distances = [0];
+      let total = 0;
+      for (let i = 1; i < coords.length; i++) {
+        const a = coords[i - 1], b = coords[i];
+        total += Math.hypot(Number(b[0]) - Number(a[0]), Number(b[1]) - Number(a[1]));
+        distances.push(total);
+      }
+      return { distances, total };
+    }
+
+    function pointAtRouteProgress(coords, distances, total, progress) {
+      if (!coords.length) return null;
+      if (coords.length === 1 || total <= 0) return [Number(coords[0][1]), Number(coords[0][0])];
+      const target = total * progress;
+      let idx = 1;
+      while (idx < distances.length && distances[idx] < target) idx++;
+      const prevIdx = Math.max(0, idx - 1);
+      const segStart = distances[prevIdx];
+      const segEnd = distances[idx] || segStart;
+      const ratio = segEnd === segStart ? 0 : (target - segStart) / (segEnd - segStart);
+      const a = coords[prevIdx], b = coords[idx] || coords[prevIdx];
+      const lon = Number(a[0]) + (Number(b[0]) - Number(a[0])) * ratio;
+      const lat = Number(a[1]) + (Number(b[1]) - Number(a[1])) * ratio;
+      return [lat, lon];
+    }
+
+    function tickVehicleAnimation(timestamp) {
+      animatedVehicleLayers.forEach(item => {
+        const progress = ((timestamp + item.offsetMs) % item.durationMs) / item.durationMs;
+        const latLng = pointAtRouteProgress(item.coords, item.distances, item.totalDistance, progress);
+        if (latLng) {
+          try { item.marker.setLatLng(latLng); } catch (e) {}
+        }
+      });
+      vehicleAnimationFrame = animatedVehicleLayers.length
+        ? requestAnimationFrame(tickVehicleAnimation)
+        : null;
+    }
+
+    function startVehicleAnimations(algo, features) {
+      clearAnimatedVehicles(algo);
+      if (!map.getPane('routePane')) {
+        map.createPane('routePane');
+        map.getPane('routePane').style.zIndex = 780;
+      }
+      features.forEach((feature, index) => {
+        const props = feature.properties || {};
+        const coords = Array.isArray(feature.geometry?.coordinates) ? feature.geometry.coordinates : [];
+        const cleanCoords = coords
+          .filter(p => Array.isArray(p) && p.length >= 2)
+          .map(p => [Number(p[0]), Number(p[1])])
+          .filter(p => Number.isFinite(p[0]) && Number.isFinite(p[1]));
+        if (cleanCoords.length < 2) return;
+        const { distances, total } = prepareRouteDistances(cleanCoords);
+        if (total <= 0) return;
+        const color = props.vehicle_color || '#6b7280';
+        const label = props.vehicle_label || `Araç ${index + 1}`;
+        const icon = L.divIcon({
+          className: '',
+          html: vehicleIconHtml(color, `GA 2.0 - ${label}`, true),
+          iconSize: [26, 26],
+          iconAnchor: [13, 13],
+        });
+        const marker = L.marker(pointAtRouteProgress(cleanCoords, distances, total, 0), {
+          icon,
+          pane: 'routePane',
+          interactive: false
+        }).addTo(map);
+        marker._algorithm = algo;
+        animatedVehicleLayers.push({
+          algorithm: algo,
+          marker,
+          coords: cleanCoords,
+          distances,
+          totalDistance: total,
+          durationMs: 24000 + (index % 3) * 4500,
+          offsetMs: index * 2600,
+        });
+      });
+      if (animatedVehicleLayers.length && !vehicleAnimationFrame) {
+        vehicleAnimationFrame = requestAnimationFrame(tickVehicleAnimation);
+      }
     }
 
     function clearOptimizationRoutes() {
@@ -2016,9 +2125,11 @@
         try { map.removeLayer(layer); } catch (e) {}
       });
       vehicleIconLayers = [];
+      clearAnimatedVehicles();
       loadedAlgorithms.clear();
       setBtnActive('btnRouteSA', false);
       setBtnActive('btnRouteGA', false);
+      setBtnActive('btnGA20', false);
       routeIndex = [];
       selectedRouteId = '';
 
@@ -2077,6 +2188,15 @@
           GA_VEHICLE_COLORS.forEach((c, i) => {
             html += `<div style="display:flex;align-items:center;gap:7px;padding:3px 0">` +
               `<span style="display:inline-block;width:24px;height:3px;border-top:3px dashed ${c};flex-shrink:0"></span>` +
+              `<span style="font-size:13px">🚒</span>` +
+              `<span style="color:${c};font-weight:600">Araç ${i + 1}</span></div>`;
+          });
+        }
+        if (loadedAlgorithms.has('GA20')) {
+          html += '<div style="margin:8px 0 4px;font-weight:700;opacity:0.6;font-size:10px;letter-spacing:1.2px">· · GA 2.0 KARAYOLU · ·</div>';
+          GA20_VEHICLE_COLORS.forEach((c, i) => {
+            html += `<div style="display:flex;align-items:center;gap:7px;padding:3px 0">` +
+              `<span style="display:inline-block;width:24px;height:3px;border-top:3px dotted ${c};flex-shrink:0"></span>` +
               `<span style="font-size:13px">🚒</span>` +
               `<span style="color:${c};font-weight:600">Araç ${i + 1}</span></div>`;
           });
@@ -2240,6 +2360,7 @@
             }
             return true;
           });
+          clearAnimatedVehicles(algo);
           loadedAlgorithms.delete(algo);
           routeIndex = routeIndex.filter(r => r.algorithm !== algo);
 
@@ -2364,6 +2485,137 @@
       } catch (e) {
         info.textContent = `${algo} rota hatasi: ${e.message}`;
         console.error(`${algo} route error:`, e);
+      }
+    }
+
+    function renderRoadRouteResponse(data, algo = 'GA20') {
+      const stations = Array.isArray(data.stations) ? data.stations : [];
+      if (!stations.length) throw new Error('Rota bulunamadi');
+
+      optimizationRouteLayers = optimizationRouteLayers.filter(layer => {
+        if (layer && layer._algorithm === algo) {
+          try { map.removeLayer(layer); } catch (e) {}
+          return false;
+        }
+        return true;
+      });
+      vehicleIconLayers = vehicleIconLayers.filter(layer => {
+        if (layer && layer._algorithm === algo) {
+          try { map.removeLayer(layer); } catch (e) {}
+          return false;
+        }
+        return true;
+      });
+      clearAnimatedVehicles(algo);
+      loadedAlgorithms.delete(algo);
+      routeIndex = routeIndex.filter(r => r.algorithm !== algo);
+
+      if (!map.getPane('routePane')) {
+        map.createPane('routePane');
+        map.getPane('routePane').style.zIndex = 780;
+      }
+
+      const vehicleColors = getVehicleColors(algo);
+      const features = [];
+      stations.forEach(station => {
+        const vehicles = Array.isArray(station.vehicles) ? station.vehicles : [];
+        if (!vehicles.length) return;
+
+        const routeId = `${algo}-${station.station_id}`;
+        routeIndex.push({
+          route_id: routeId,
+          algorithm: algo,
+          station_id: station.station_id,
+          distance: station.total_distance || 0,
+        });
+
+        vehicles.forEach((v, vIdx) => {
+          const raw = Array.isArray(v.road_geometry) && v.road_geometry.length
+            ? v.road_geometry
+            : (Array.isArray(v.polyline) ? v.polyline.map(p => [Number(p[1]), Number(p[0])]) : []);
+          const coords = raw
+            .filter(p => Array.isArray(p) && p.length >= 2)
+            .map(p => [Number(p[0]), Number(p[1])]);
+          if (coords.length < 2) return;
+
+          const vColor = vehicleColors[vIdx] || vehicleColors[vehicleColors.length - 1];
+          features.push({
+            type: 'Feature',
+            geometry: { type: 'LineString', coordinates: coords },
+            properties: {
+              route_id: routeId,
+              algorithm: algo,
+              station_id: station.station_id,
+              station_name: station.station_name || `Station ${station.station_id}`,
+              distance: v.distance || station.total_distance || 0,
+              duration_min: v.duration_min || 0,
+              vehicle_index: vIdx,
+              vehicle_label: `Araç ${vIdx + 1}`,
+              vehicle_count: vehicles.length,
+              fire_point_count: Array.isArray(station.assigned_fire_points) ? station.assigned_fire_points.length : 0,
+              vehicle_color: vColor,
+            }
+          });
+        });
+      });
+
+      if (!features.length) throw new Error('OSRM yol geometrisi cizilemedi');
+
+      const layer = L.geoJSON({ type: 'FeatureCollection', features }, {
+        pane: 'routePane',
+        style: routeStyle,
+        onEachFeature: (feature, routeLayer) => {
+          const p = feature.properties || {};
+          const vcColor = p.vehicle_color || '#6b7280';
+          routeLayer.bindPopup(
+            `<b>GA 2.0 Karayolu – <span style="color:${vcColor}">${p.vehicle_label || 'Araç'}</span></b><br>` +
+            `<strong>İstasyon:</strong> ${p.station_name} (${p.station_id})<br>` +
+            `<strong>Yol mesafesi:</strong> ${Number(p.distance || 0).toFixed(2)} km<br>` +
+            `<strong>Süre:</strong> ${Number(p.duration_min || 0).toFixed(1)} dk`
+          );
+        }
+      }).addTo(map);
+
+      layer._algorithm = algo;
+      optimizationRouteLayers.push(layer);
+
+      startVehicleAnimations(algo, features);
+
+      loadedAlgorithms.add(algo);
+      rebuildRouteLegend();
+      rebuildRouteSelect();
+      refreshRouteStyles();
+      setBtnActive('btnGA20', true);
+      info.textContent = `GA 2.0 karayolu rotalari aktif (${features.length} rota)`;
+      setStatus(`GA 2.0 karayolu rotalari aktif (${features.length} rota)`);
+    }
+
+    async function loadGA20RoadRoutes() {
+      const info = document.getElementById('info');
+      try {
+        await ensureOptimizationScenario();
+        savedPipelineSnapshot = null;
+        info.textContent = 'GA 2.0 karayolu rotalari hesaplaniyor...';
+        setStatus('OSRM karayolu mesafeleri aliniyor...');
+
+        const popSize = Math.max(1, parseInt(document.getElementById('gaPopSize')?.value || '80', 10) || 80);
+        const maxIterations = Math.max(1, parseInt(document.getElementById('gaMaxIter')?.value || '80', 10) || 80);
+        const res = await fetch('/api/optimize/ga20-road', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pop_size: popSize, max_iterations: maxIterations, random_seed: 42 }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          const detail = err.detail || {};
+          throw new Error(detail.error || detail.detail?.error || err.detail || ('API hatasi: ' + res.status));
+        }
+        const data = await res.json();
+        renderRoadRouteResponse(data, 'GA20');
+      } catch (e) {
+        info.textContent = `GA 2.0 hata: ${e.message}`;
+        setStatus('GA 2.0 hata');
+        console.error('GA 2.0 route error:', e);
       }
     }
 
@@ -3676,6 +3928,7 @@
     });
     safeBind('btnRouteSA', 'click', () => loadOptimizationRoutes('SA'));
     safeBind('btnRouteGA', 'click', () => loadOptimizationRoutes('GA'));
+    safeBind('btnGA20', 'click', loadGA20RoadRoutes);
     safeBind('btnRouteClear', 'click', () => {
       clearOptimizationRoutes();
       const info = document.getElementById('info');
