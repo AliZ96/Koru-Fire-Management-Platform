@@ -5,10 +5,16 @@ import 'services/api_service.dart';
 import 'services/auth_service.dart';
 import 'services/map_data_service.dart';
 import 'screens/login_screen.dart';
-import 'screens/welcome_screen.dart';
+import 'screens/map_screen.dart';
 
-void main() {
+import 'package:firebase_core/firebase_core.dart';
+import 'config/firebase_options.dart';
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   final apiService = ApiService();
   final authService = AuthService(apiService);
   final mapDataService = MapDataService(apiService);
@@ -65,7 +71,7 @@ class _SplashGateState extends State<_SplashGate> {
   @override
   Widget build(BuildContext context) {
     if (!_ready) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: AppTheme.darkGreen,
         body: Center(
           child: Column(
@@ -80,7 +86,7 @@ class _SplashGateState extends State<_SplashGate> {
                   letterSpacing: 3,
                 ),
               ),
-              SizedBox(height: 24),
+              Container(height: 24),
               CircularProgressIndicator(color: Colors.white),
             ],
           ),
@@ -90,7 +96,7 @@ class _SplashGateState extends State<_SplashGate> {
 
     final auth = context.watch<AuthService>();
     if (auth.isLoggedIn) {
-      return const WelcomeScreen();
+      return const MapScreen();
     }
     return const LoginScreen();
   }

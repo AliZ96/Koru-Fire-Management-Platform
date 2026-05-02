@@ -38,11 +38,16 @@ class AuthService:
             raise HTTPException(status_code=400, detail="E-posta zorunlu.")
         _validate_password(password)
         FirebaseIdentityService.sign_in_with_email_password(email, password)
+        
+        # Check hardcoded whitelist first (no Firestore quota used)
+        if email in settings.admin_emails_list:
+            return create_access_token({"sub": email, "email": email, "role": "admin"})
+            
         store = FirestoreStore()
         if not store.get_user(email, "admin"):
             raise HTTPException(
                 status_code=403,
-                detail="Yetkili giriş için hesabın Firestore'da admin rolü ile tanımlı olması gerekir.",
+                detail="Yetkili giriş için hesabın Firestore'da admin rolü ile tanımlı olması gerekir. (Quota uyarısı alıyorsanız ADMIN_EMAILS listesine ekleyin)",
             )
         return create_access_token({"sub": email, "email": email, "role": "admin"})
 
@@ -64,7 +69,10 @@ class AuthService:
 
     @staticmethod
     def register_user(username: str, password: str, db=None) -> str:
-        repo = AuthRepositoryPG(db)
+        try:
+            repo = AuthRepositoryPG(db)
+        except Exception:
+            raise HTTPException(status_code=503, detail="Storage service unavailable")
 
         existing = repo.get_by_username_and_role(username, "user")
         if existing:
@@ -78,36 +86,57 @@ class AuthService:
 
     @staticmethod
     def login_user(username: str, password: str, db=None) -> str:
-        repo = AuthRepositoryPG(db)
         password = _validate_password(password)
-        user = repo.get_by_username_and_role(username, "user")
-        user_hash = ""
+        
+        # Try to lookup user in local store (optional)
+        repo = None
+        user = None
+        try:
+            repo = AuthRepositoryPG(db)
+            user = repo.get_by_username_and_role(username, "user")
+        except Exception:
+            # Firestore unavailable — skip local lookup
+            pass
+        
+        # If user found locally and password matches, return token
         if user:
             user_hash = str(user.get("hashed_password") or user.get("password_hash") or "")
-        if user and verify_password(password, user_hash):
-            return create_access_token({"sub": username, "role": "user"})
-
-        # Fallback: Firebase email/password login (Swagger ve frontend parity)
-        firebase_payload = FirebaseIdentityService.sign_in_with_email_password(username, password)
-        firebase_email = str(firebase_payload.get("email") or username)
-        firebase_uid = str(firebase_payload.get("localId") or "")
-
-        existing = repo.get_by_username_and_role(firebase_email, "user")
-        if not existing:
-            repo.create_user(firebase_email, hash_password(password), "user")
-
-        return create_access_token(
-            {
-                "sub": firebase_email,
-                "role": "user",
-                "auth_provider": "firebase_password",
-                "firebase_uid": firebase_uid,
-            }
-        )
+            if verify_password(password, user_hash):
+                return create_access_token({"sub": username, "role": "user"})
+        
+        # Fallback: Firebase email/password login (always available)
+        try:
+            firebase_payload = FirebaseIdentityService.sign_in_with_email_password(username, password)
+            firebase_email = str(firebase_payload.get("email") or username)
+            firebase_uid = str(firebase_payload.get("localId") or "")
+            
+            # Try to save user to store (optional)
+            if repo:
+                try:
+                    existing = repo.get_by_username_and_role(firebase_email, "user")
+                    if not existing:
+                        repo.create_user(firebase_email, hash_password(password), "user")
+                except Exception:
+                    pass
+            
+            return create_access_token(
+                {
+                    "sub": firebase_email,
+                    "role": "user",
+                    "auth_provider": "firebase_password",
+                    "firebase_uid": firebase_uid,
+                }
+            )
+        except Exception as e:
+            # Firebase auth failed
+            raise HTTPException(status_code=401, detail="Invalid credentials")
 
     @staticmethod
     def register_firefighter(username: str, password: str, db=None) -> str:
-        repo = AuthRepositoryPG(db)
+        try:
+            repo = AuthRepositoryPG(db)
+        except Exception:
+            raise HTTPException(status_code=503, detail="Authentication backend unavailable")
 
         existing = repo.get_by_username_and_role(username, "firefighter")
         if existing:
@@ -121,7 +150,10 @@ class AuthService:
 
     @staticmethod
     def login_firefighter(username: str, password: str, db=None) -> str:
-        repo = AuthRepositoryPG(db)
+        try:
+            repo = AuthRepositoryPG(db)
+        except Exception:
+            raise HTTPException(status_code=503, detail="Authentication backend unavailable")
 
         user = repo.get_by_username_and_role(username, "firefighter")
         if not user:
