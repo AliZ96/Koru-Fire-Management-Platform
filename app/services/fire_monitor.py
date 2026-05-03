@@ -10,7 +10,7 @@ from app.services.weather_service import get_hourly_weather, get_wind
 
 logger = logging.getLogger(__name__)
 
-UPDATE_INTERVAL_SECONDS = 30
+UPDATE_INTERVAL_SECONDS = 15 * 60
 STEP_DURATION_MINUTES = 60.0
 
 # scenario_id → set of async send-coroutine callables
