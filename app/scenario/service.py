@@ -10,7 +10,7 @@ from google.api_core.exceptions import FailedPrecondition
 from google.cloud.firestore import FieldFilter
 
 from app.services.optimization_service import get_scenario_info
-from app.services.firestore_store import FirestoreStore
+from app.services.firestore_store import FirestoreStore, compact_snapshot_json
 
 _SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "scripts" / "optimization"
 _SCENARIO_JSON = _SCRIPTS_DIR / "scenario.json"
@@ -177,7 +177,8 @@ def patch_scenario(
         safe_patch["ga_result_json"] = json.dumps(safe_patch.get("ga_result"))
         safe_patch.pop("ga_result", None)
     if "pipeline_snapshot" in safe_patch:
-        safe_patch["pipeline_snapshot_json"] = json.dumps(safe_patch.get("pipeline_snapshot"))
+        snapshot_json = json.dumps(safe_patch.get("pipeline_snapshot"), ensure_ascii=False)
+        safe_patch["pipeline_snapshot_json"] = compact_snapshot_json(snapshot_json)
         safe_patch.pop("pipeline_snapshot", None)
     ref.set(safe_patch, merge=True)
     updated = ref.get().to_dict() or {}

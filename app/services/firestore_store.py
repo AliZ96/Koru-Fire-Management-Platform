@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from typing import Any, Optional
 
@@ -11,6 +12,64 @@ from app.core.firebase import get_firestore_client
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+FIRESTORE_SAFE_FIELD_BYTES = 900_000
+_HEAVY_SNAPSHOT_KEYS = {"road_geometry", "geometry", "polyline", "coordinates"}
+
+
+def _json_size(value: str) -> int:
+    return len(value.encode("utf-8"))
+
+
+def _strip_heavy_route_data(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: _strip_heavy_route_data(item)
+            for key, item in value.items()
+            if key not in _HEAVY_SNAPSHOT_KEYS
+        }
+    if isinstance(value, list):
+        return [_strip_heavy_route_data(item) for item in value]
+    return value
+
+
+def _remove_ga20(snapshot: Any) -> Any:
+    if not isinstance(snapshot, dict):
+        return snapshot
+    compact = dict(snapshot)
+    optimization = compact.get("optimization")
+    if isinstance(optimization, dict):
+        optimization = dict(optimization)
+        optimization.pop("GA20", None)
+        compact["optimization"] = optimization
+    compact.pop("ga20_routes", None)
+    return compact
+
+
+def compact_snapshot_json(snapshot_json: Optional[str]) -> Optional[str]:
+    if not snapshot_json or _json_size(snapshot_json) <= FIRESTORE_SAFE_FIELD_BYTES:
+        return snapshot_json
+    try:
+        snapshot = json.loads(snapshot_json)
+    except (TypeError, ValueError):
+        return None
+
+    for candidate in (
+        _remove_ga20(snapshot),
+        _strip_heavy_route_data(_remove_ga20(snapshot)),
+    ):
+        compact_json = json.dumps(candidate, ensure_ascii=False, separators=(",", ":"))
+        if _json_size(compact_json) <= FIRESTORE_SAFE_FIELD_BYTES:
+            return compact_json
+
+    minimal = {
+        key: snapshot.get(key)
+        for key in ("pipeline_points", "stations", "n", "k", "sa_routes", "ga_routes")
+        if isinstance(snapshot, dict) and key in snapshot
+    }
+    compact_json = json.dumps(minimal, ensure_ascii=False, separators=(",", ":"))
+    return compact_json if _json_size(compact_json) <= FIRESTORE_SAFE_FIELD_BYTES else None
 
 
 class FirestoreStore:
@@ -276,6 +335,7 @@ class FirestoreStore:
         k: int,
         snapshot_json: Optional[str],
     ) -> dict[str, Any]:
+        snapshot_json = compact_snapshot_json(snapshot_json)
         payload = {
             "username": username,
             "name": name,

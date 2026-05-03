@@ -1969,7 +1969,7 @@
     let selectedRouteId = '';
     let lastOptimizationScenarioKey = null;
     let lastCreatedScenarioId = null;
-    let lastOptimizationResults = { SA: null, GA: null };
+    let lastOptimizationResults = { SA: null, GA: null, GA20: null };
     let savedPipelineSnapshot = null;
 
     // SA: soğuk aile (mavi/cyan/yeşil) | GA: sıcak aile (turuncu/kırmızı/amber)
@@ -2231,6 +2231,20 @@
       setStatus(`Senaryo kaydedildi (#${lastCreatedScenarioId})`);
     }
 
+    function compactSnapshotForStorage(snapshot) {
+      if (!snapshot || typeof snapshot !== 'object') return snapshot || null;
+      const compact = {
+        ...snapshot,
+        optimization: { ...(snapshot.optimization || {}) },
+      };
+      delete compact.optimization.GA20;
+      delete compact.ga20_routes;
+      if (!Object.keys(compact.optimization).length) {
+        delete compact.optimization;
+      }
+      return compact;
+    }
+
     async function saveCurrentPipeline() {
       const n = Math.max(1, parseInt(document.getElementById('pipelineN')?.value || '20', 10) || 20);
       const k = Math.max(1, parseInt(document.getElementById('pipelineK')?.value || '4', 10) || 4);
@@ -2247,12 +2261,13 @@
           ...(snap.optimization || {}),
           ...(lastOptimizationResults.SA ? { SA: lastOptimizationResults.SA } : {}),
           ...(lastOptimizationResults.GA ? { GA: lastOptimizationResults.GA } : {}),
+          ...(lastOptimizationResults.GA20 ? { GA20: lastOptimizationResults.GA20 } : {}),
         },
       };
       const res = await fetch('/api/pipelines', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken },
-        body: JSON.stringify({ name: `Pipeline Sonucu – n=${n} k=${k}`, n, k, snapshot: snapshotToSave }),
+        body: JSON.stringify({ name: `Pipeline Sonucu – n=${n} k=${k}`, n, k, snapshot: compactSnapshotForStorage(snapshotToSave) }),
       });
       if (!res.ok) throw new Error('Pipeline kaydetme API hatası: ' + res.status);
       setStatus(`Pipeline kaydedildi (n=${n}, k=${k})`);
@@ -2317,13 +2332,14 @@
               ...(window._lastPipelineSnapshot.optimization || {}),
               ...(lastOptimizationResults.SA ? { SA: lastOptimizationResults.SA } : {}),
               ...(lastOptimizationResults.GA ? { GA: lastOptimizationResults.GA } : {}),
+              ...(lastOptimizationResults.GA20 ? { GA20: lastOptimizationResults.GA20 } : {}),
             },
           }
         : null;
       const body = {
         ...(algo === 'SA' ? { sa_result: Array.isArray(data?.stations) ? data.stations : null } : {}),
         ...(algo === 'GA' ? { ga_result: Array.isArray(data?.stations) ? data.stations : null } : {}),
-        ...(snapshot ? { pipeline_snapshot: snapshot } : {}),
+        ...(snapshot ? { pipeline_snapshot: compactSnapshotForStorage(snapshot) } : {}),
       };
       try {
         await fetch(`/api/scenario/persist/${sid}`, {
@@ -2593,17 +2609,39 @@
     async function loadGA20RoadRoutes() {
       const info = document.getElementById('info');
       try {
-        await ensureOptimizationScenario();
-        savedPipelineSnapshot = null;
+        const savedGa20 = savedPipelineSnapshot?.optimization?.GA20;
+        if (savedGa20?.stations?.length) {
+          info.textContent = 'GA 2.0 rotalari (kayitli snapshot) yukleniyor...';
+          setStatus('GA 2.0 rotalari (kayitli snapshot) yukleniyor...');
+          lastOptimizationResults.GA20 = savedGa20;
+          renderRoadRouteResponse(savedGa20, 'GA20');
+          return;
+        }
+
+        const snapshotForGa20 = savedPipelineSnapshot || window._lastPipelineSnapshot || null;
+        if (!snapshotForGa20?.pipeline_points?.length) {
+          await ensureOptimizationScenario();
+        }
         info.textContent = 'GA 2.0 karayolu rotalari hesaplaniyor...';
         setStatus('OSRM karayolu mesafeleri aliniyor...');
 
         const popSize = Math.max(1, parseInt(document.getElementById('gaPopSize')?.value || '80', 10) || 80);
         const maxIterations = Math.max(1, parseInt(document.getElementById('gaMaxIter')?.value || '80', 10) || 80);
+        const requestBody = {
+          pop_size: popSize,
+          max_iterations: maxIterations,
+          random_seed: 42,
+        };
+        const pipelinePoints = (snapshotForGa20?.pipeline_points?.length)
+          ? snapshotForGa20.pipeline_points
+          : window._lastPipelineSnapshot?.pipeline_points;
+        if (Array.isArray(pipelinePoints) && pipelinePoints.length) {
+          requestBody.pipeline_points = pipelinePoints;
+        }
         const res = await fetch('/api/optimize/ga20-road', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pop_size: popSize, max_iterations: maxIterations, random_seed: 42 }),
+          body: JSON.stringify(requestBody),
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
@@ -2611,6 +2649,20 @@
           throw new Error(detail.error || detail.detail?.error || err.detail || ('API hatasi: ' + res.status));
         }
         const data = await res.json();
+        lastOptimizationResults.GA20 = data;
+        if (savedPipelineSnapshot) {
+          savedPipelineSnapshot.optimization = {
+            ...(savedPipelineSnapshot.optimization || {}),
+            GA20: data,
+          };
+          window._lastPipelineSnapshot = savedPipelineSnapshot;
+        } else if (window._lastPipelineSnapshot) {
+          window._lastPipelineSnapshot.optimization = {
+            ...(window._lastPipelineSnapshot.optimization || {}),
+            GA20: data,
+          };
+        }
+        await persistCurrentScenarioOptimization('GA20', data);
         renderRoadRouteResponse(data, 'GA20');
       } catch (e) {
         info.textContent = `GA 2.0 hata: ${e.message}`;
@@ -2807,6 +2859,7 @@
         savedPipelineSnapshot = null;
         lastOptimizationResults.SA = null;
         lastOptimizationResults.GA = null;
+        lastOptimizationResults.GA20 = null;
         info.textContent = `Pipeline: ${pipelinePoints.length} nokta + ${stationFeatures.length} istasyon (n=${n}, k=${k})`;
         setStatus(`Pipeline aktif (${pipelinePoints.length} nokta)`);
       } catch (e) {
@@ -2892,6 +2945,9 @@
         if (Array.isArray(snapshot.ga_routes) && snapshot.ga_routes.length > 0) {
           lastOptimizationResults.GA = { stations: snapshot.ga_routes };
         }
+        if (snapshot.optimization?.GA20?.stations?.length) {
+          lastOptimizationResults.GA20 = snapshot.optimization.GA20;
+        }
         // savedPipelineSnapshot'u optimization ile güncelle (savedOpt kontrolü için)
         savedPipelineSnapshot = {
           ...snapshot,
@@ -2899,13 +2955,23 @@
             ...(snapshot.optimization || {}),
             ...(Array.isArray(snapshot.sa_routes) && snapshot.sa_routes.length > 0 ? { SA: { stations: snapshot.sa_routes } } : {}),
             ...(Array.isArray(snapshot.ga_routes) && snapshot.ga_routes.length > 0 ? { GA: { stations: snapshot.ga_routes } } : {}),
+            ...(snapshot.optimization?.GA20?.stations?.length ? { GA20: snapshot.optimization.GA20 } : {}),
           }
         };
+        window._lastPipelineSnapshot = savedPipelineSnapshot;
+
+        if (savedPipelineSnapshot.optimization?.GA20?.stations?.length) {
+          renderRoadRouteResponse(savedPipelineSnapshot.optimization.GA20, 'GA20');
+        }
 
         // Haritayı yangın noktaları üzerine ortala
         const lats = pipelinePoints.map(p => Number(p.lat));
         const lons = pipelinePoints.map(p => Number(p.lon));
         map.setView([(Math.min(...lats)+Math.max(...lats))/2, (Math.min(...lons)+Math.max(...lons))/2], 10, {animate:true});
+        info.textContent = `Kaydedilmis pipeline: ${pipelinePoints.length} nokta, SA+GA rotalari (n=${snapN}, k=${snapK})`;
+        setStatus(`Kaydedilmis pipeline yuklendi (${pipelinePoints.length} nokta)`);
+        lastOptimizationScenarioKey = `saved-${snapN}-${snapK}`;
+        return;
 
         info.textContent = `Kaydedilmiş pipeline: ${pipelinePoints.length} nokta, SA+GA rotaları (n=${snapN}, k=${snapK})`;
         setStatus(`Kaydedilmiş pipeline yüklendi (${pipelinePoints.length} nokta)`);
@@ -2952,6 +3018,10 @@
     // ── Snapshot'tan rota çizme (API çağrısı olmadan aynı sonucu üretir) ────────
     function renderRoutesFromSnapshot(stationDataArray, algo) {
       if (!Array.isArray(stationDataArray) || !stationDataArray.length) return;
+      if (algo === 'GA20') {
+        renderRoadRouteResponse({ stations: stationDataArray }, 'GA20');
+        return;
+      }
       if (!map.getPane('routePane')) {
         map.createPane('routePane');
         map.getPane('routePane').style.zIndex = 780;
@@ -5046,6 +5116,7 @@
       const info = document.getElementById('info');
       if (info) { info.textContent = 'Senaryo yükleniyor...'; }
       try {
+        lastCreatedScenarioId = Number(scenarioId) || null;
         const data = await apiFetch(`/api/scenario/get/${scenarioId}`);
         if (!data) throw new Error('Senaryo verisi boş');
         const snapshot = data.pipeline_snapshot || null;
@@ -5059,6 +5130,9 @@
           if (Array.isArray(data.ga_result) && data.ga_result.length) {
             snapshot.optimization.GA = { stations: data.ga_result };
             if (!snapshot.ga_routes) snapshot.ga_routes = data.ga_result;
+          }
+          if (snapshot.optimization.GA20?.stations?.length) {
+            lastOptimizationResults.GA20 = snapshot.optimization.GA20;
           }
           await window.loadPipelineOnMap(snapshot);
           if (info) info.textContent = `Senaryo #${scenarioId} haritaya yüklendi`;
@@ -5086,7 +5160,7 @@
                 name: `Pipeline Sonucu – n=${nVal} k=${kVal}`,
                 n: nVal,
                 k: kVal,
-                snapshot: window._lastPipelineSnapshot || null,
+                snapshot: compactSnapshotForStorage(window._lastPipelineSnapshot || null),
               }),
             });
           } catch(e) {
@@ -5112,7 +5186,7 @@
                   name: `Pipeline Sonucu – n=${nVal} k=${kVal}`,
                   n: nVal,
                   k: kVal,
-                  snapshot: snap,
+                  snapshot: compactSnapshotForStorage(snap),
                 }),
               });
               if (saved) _pipelineCache.unshift(saved);

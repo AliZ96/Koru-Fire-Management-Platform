@@ -13,7 +13,7 @@ Akış:
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -34,6 +34,7 @@ class GA20RoadRunRequest(BaseModel):
     pop_size: int = Field(default=80, ge=1, le=1000, description="GA 2.0 popülasyon boyutu")
     max_iterations: int = Field(default=80, ge=1, le=1000, description="GA 2.0 nesil sayısı")
     random_seed: int = Field(default=42, description="Tekrarlanabilirlik için seed")
+    pipeline_points: Optional[list[dict[str, Any]]] = None
 
 
 # ── Request Schemas ──────────────────────────────────────────────────────────
@@ -126,6 +127,7 @@ async def run_ga20_road_routes(request: GA20RoadRunRequest = GA20RoadRunRequest(
         population_size=request.pop_size,
         generations=request.max_iterations,
         random_seed=request.random_seed,
+        pipeline_points=request.pipeline_points,
     )
     if not result.get("success"):
         raise HTTPException(status_code=503, detail=result)

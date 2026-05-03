@@ -163,8 +163,13 @@ def _optimize_station(
     }
 
 
-def run_ga20_road(population_size: int = 80, generations: int = 80, random_seed: int = 42) -> dict[str, Any]:
-    if not PIPELINE_RESULT_CSV.exists():
+def run_ga20_road(
+    population_size: int = 80,
+    generations: int = 80,
+    random_seed: int = 42,
+    pipeline_points: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    if pipeline_points is None and not PIPELINE_RESULT_CSV.exists():
         return {"success": False, "error": "pipeline_result.csv bulunamadı. Önce Pipeline Sonucu çalıştırın."}
 
     osrm = OSRMClient()
@@ -177,9 +182,9 @@ def run_ga20_road(population_size: int = 80, generations: int = 80, random_seed:
         }
 
     started = time.perf_counter()
-    scenario = get_scenario_info()
+    scenario_points = pipeline_points if pipeline_points is not None else get_scenario_info().get("pipeline_points", [])
     grouped: dict[int, list[dict[str, Any]]] = {}
-    for point in scenario.get("pipeline_points", []):
+    for point in scenario_points:
         grouped.setdefault(int(point["fire_station_id"]), []).append(point)
 
     rng = random.Random(random_seed)
