@@ -202,7 +202,7 @@ def download_pipeline_pdf(
                 pdf.cell(width, 6, _safe(str(value)), border=1)
             pdf.ln()
 
-    pdf_bytes = pdf.output(dest="S").encode("latin-1")
+    pdf_bytes = _pdf_output_bytes(pdf)
     filename = f"koru_pipeline_{row.get('id')}.pdf"
     return StreamingResponse(
         io.BytesIO(pdf_bytes),
@@ -254,6 +254,15 @@ def _vehicle_fire_node_ids(tour: list[Any], station_id: Any) -> list[str]:
             continue
         fire_nodes.append(str(node_id))
     return fire_nodes
+
+
+def _pdf_output_bytes(pdf: FPDF) -> bytes:
+    output = pdf.output(dest="S")
+    if isinstance(output, bytes):
+        return output
+    if isinstance(output, bytearray):
+        return bytes(output)
+    return output.encode("latin-1")
 
 
 def _safe(text: str, maxlen: int = 200) -> str:
