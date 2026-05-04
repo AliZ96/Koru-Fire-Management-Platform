@@ -1,145 +1,144 @@
 [
   {
-    "station_id": 577,
+    "station_id": 592,
     "assigned_fire_points": [
-      291,
-      257
+      265,
+      386,
+      91,
+      264
     ],
-    "total_distance": 0.1745,
+    "total_distance": 1.3016,
     "vehicles": [
       {
         "vehicle_index": 0,
         "tour": [
-          577,
-          291,
-          257,
-          577
+          592,
+          264,
+          265,
+          91,
+          386,
+          592
         ],
-        "load": 107,
-        "distance": 0.1745
+        "load": 196,
+        "distance": 1.1279
+      }
+    ]
+  },
+  {
+    "station_id": 580,
+    "assigned_fire_points": [
+      113,
+      126,
+      226,
+      302
+    ],
+    "total_distance": 1.985,
+    "vehicles": [
+      {
+        "vehicle_index": 0,
+        "tour": [
+          580,
+          302,
+          580
+        ],
+        "load": 19,
+        "distance": 0.306
+      },
+      {
+        "vehicle_index": 1,
+        "tour": [
+          580,
+          226,
+          126,
+          113,
+          580
+        ],
+        "load": 182,
+        "distance": 1.6928
       }
     ]
   },
   {
     "station_id": 574,
     "assigned_fire_points": [
-      162,
-      30,
-      297
+      463,
+      545,
+      495,
+      467
     ],
-    "total_distance": 1.1528,
+    "total_distance": 1.098,
     "vehicles": [
       {
         "vehicle_index": 0,
         "tour": [
-          574,
-          162,
-          297,
-          574
-        ],
-        "load": 163,
-        "distance": 0.9171
-      },
-      {
-        "vehicle_index": 1,
-        "tour": [
-          574,
-          30,
-          574
-        ],
-        "load": 39,
-        "distance": 0.2325
-      }
-    ]
-  },
-  {
-    "station_id": 555,
-    "assigned_fire_points": [
-      509,
-      467,
-      409,
-      452,
-      498,
-      433,
-      394,
-      443
-    ],
-    "total_distance": 2.6504,
-    "vehicles": [
-      {
-        "vehicle_index": 0,
-        "tour": [
-          555,
-          555
-        ],
-        "load": 0,
-        "distance": 0.0
-      },
-      {
-        "vehicle_index": 1,
-        "tour": [
-          555,
-          509,
-          498,
-          443,
-          452,
-          433,
-          555
-        ],
-        "load": 200,
-        "distance": 1.4197
-      },
-      {
-        "vehicle_index": 2,
-        "tour": [
-          555,
-          409,
+          564,
+          495,
+          463,
+          545,
           467,
-          394,
-          555
+          564
         ],
-        "load": 200,
-        "distance": 1.163
+        "load": 168,
+        "distance": 1.3404
       }
     ]
   },
   {
-    "station_id": 557,
+    "station_id": 577,
     "assigned_fire_points": [
-      58,
-      339,
-      206,
-      179,
-      18,
-      11,
-      148
+      186,
+      258,
+      212,
+      185,
+      279
     ],
-    "total_distance": 2.3923,
+    "total_distance": 0.7243,
     "vehicles": [
       {
         "vehicle_index": 0,
         "tour": [
-          557,
-          58,
-          11,
-          179,
-          18,
-          557
+          577,
+          185,
+          258,
+          577
         ],
-        "load": 200,
-        "distance": 1.1392
+        "load": 179,
+        "distance": 0.2872
       },
       {
         "vehicle_index": 1,
         "tour": [
-          557,
-          339,
-          206,
-          148,
-          557
+          577,
+          186,
+          212,
+          279,
+          577
         ],
-        "load": 199,
-        "distance": 1.5554
+        "load": 141,
+        "distance": 0.412
+      }
+    ]
+  },
+  {
+    "station_id": 572,
+    "assigned_fire_points": [
+      389,
+      414,
+      413
+    ],
+    "total_distance": 0.4834,
+    "vehicles": [
+      {
+        "vehicle_index": 0,
+        "tour": [
+          572,
+          413,
+          389,
+          414,
+          572
+        ],
+        "load": 179,
+        "distance": 0.4832
       }
     ]
   }

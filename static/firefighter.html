@@ -5237,37 +5237,31 @@
       }
     };
 
-    // ── PDF İndir butonunu pipeline DB'ye kaydet ───────────
+    // ── PDF İndir butonunu pipeline DB'ye kaydet ve indir ───────────
     // (Script sayfanın en altında olduğundan DOMContentLoaded gerekmez)
     (function bindPipelineSave() {
       const pdfBtn = document.getElementById('btnPipelinePDF');
       if (pdfBtn) {
         pdfBtn.addEventListener('click', async function() {
-          if (pdfBtn.disabled) return;
-          pdfBtn.disabled = true;
-          const oldText = pdfBtn.textContent;
-          pdfBtn.textContent = 'PDF hazırlanıyor...';
           try {
             const saved = await saveCurrentPipeline();
-            if (!saved?.id) throw new Error('Pipeline kaydı oluşturulamadı');
-            let token = sessionStorage.getItem('access_token');
-            let res = await fetch(`/api/pipelines/${saved.id}/pdf`, {
-              headers: token ? { 'Authorization': 'Bearer ' + token } : {},
+            if (!saved?.id) throw new Error('Pipeline ID dönmedi');
+            const accessToken = sessionStorage.getItem('access_token');
+            const pdfRes = await fetch(`/api/pipelines/${saved.id}/pdf`, {
+              headers: accessToken ? { 'Authorization': 'Bearer ' + accessToken } : {},
             });
-            if (!res.ok) throw new Error('PDF oluşturulamadı: ' + res.status);
-            const blob = await res.blob();
+            if (!pdfRes.ok) throw new Error('PDF oluşturulamadı: ' + pdfRes.status);
+            const blob = await pdfRes.blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `koru_pipeline_${saved.id}.pdf`;
+            document.body.appendChild(a);
             a.click();
-            URL.revokeObjectURL(url);
-            setStatus('PDF indirildi');
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
           } catch(e) {
             alert('PDF indirilemedi: ' + (e.message || e));
-          } finally {
-            pdfBtn.disabled = false;
-            pdfBtn.textContent = oldText;
           }
         });
       }

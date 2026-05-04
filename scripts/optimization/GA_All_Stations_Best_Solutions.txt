@@ -1,25 +1,27 @@
-Assigned Fire Points: [291, 257]
+Assigned Fire Points: [265, 386, 91, 264]
+Station 592:
+	Tour: [592, 386, 264, 91, 265, 592], Load: 196 / 200, Distance: 1.07
+	Total Distance:  1.07
+
+Assigned Fire Points: [113, 126, 226, 302]
+Station 580:
+	Tour: [580, 113, 302, 226, 580], Load: 130 / 200, Distance: 1.77
+	Tour: [580, 126, 580], Load: 71 / 200, Distance: 0.03
+	Total Distance:  1.80
+
+Assigned Fire Points: [463, 545, 495, 467]
+Station 564:
+	Tour: [564, 495, 545, 467, 463, 564], Load: 168 / 200, Distance: 0.98
+	Total Distance:  0.98
+
+Assigned Fire Points: [186, 258, 212, 185, 279]
 Station 577:
-	Tour: [577, 291, 257, 577], Load: 107 / 200, Distance: 0.17
-	Total Distance:  0.17
+	Tour: [577, 186, 185, 577], Load: 128 / 200, Distance: 0.18
+	Tour: [577, 258, 279, 212, 577], Load: 192 / 200, Distance: 0.34
+	Total Distance:  0.51
 
-Assigned Fire Points: [162, 30, 297]
-Station 574:
-	Tour: [574, 162, 297, 574], Load: 163 / 200, Distance: 0.92
-	Tour: [574, 30, 574], Load: 39 / 200, Distance: 0.23
-	Total Distance:  1.15
-
-Assigned Fire Points: [509, 467, 409, 452, 498, 433, 394, 443]
-Station 555:
-	Tour: [555, 467, 498, 509, 555], Load: 135 / 200, Distance: 0.89
-	Tour: [555, 409, 433, 452, 555], Load: 126 / 200, Distance: 0.51
-	Tour: [555, 394, 443, 555], Load: 139 / 200, Distance: 0.57
-	Total Distance:  1.97
-
-Assigned Fire Points: [58, 339, 206, 179, 18, 11, 148]
-Station 557:
-	Tour: [557, 206, 11, 58, 557], Load: 155 / 200, Distance: 0.92
-	Tour: [557, 339, 148, 18, 557], Load: 196 / 200, Distance: 0.99
-	Tour: [557, 179, 557], Load: 48 / 200, Distance: 0.13
-	Total Distance:  2.05
+Assigned Fire Points: [389, 414, 413]
+Station 572:
+	Tour: [572, 414, 389, 413, 572], Load: 179 / 200, Distance: 0.48
+	Total Distance:  0.48
 

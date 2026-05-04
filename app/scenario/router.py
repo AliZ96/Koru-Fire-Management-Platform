@@ -173,9 +173,10 @@ def export_pdf(scenario_id: str):
     pdf.set_font("Helvetica", "", 9)
     for station in scenario.get("ga_result", []):
         for v in station.get("vehicles", []):
-            tour_str = " -> ".join(str(t) for t in v.get("tour", []))
+            station_id = station.get("station_id", "")
+            tour_str = " -> ".join(_vehicle_fire_node_ids(v.get("tour", []), station_id))
             row = [
-                str(station.get("station_id", "")),
+                str(station_id),
                 str(v.get("vehicle_index", "")),
                 str(v.get("load", "")),
                 tour_str[:80] + ("..." if len(tour_str) > 80 else ""),
@@ -194,6 +195,20 @@ def export_pdf(scenario_id: str):
         media_type="application/pdf",
         filename=f"scenario_{scenario_id}.pdf",
     )
+
+
+def _vehicle_fire_node_ids(tour: list, station_id) -> list[str]:
+    station_key = str(station_id)
+    fire_nodes: list[str] = []
+    for node in tour:
+        if isinstance(node, dict):
+            node_id = node.get("node_id") or node.get("id")
+        else:
+            node_id = node
+        if node_id is None or str(node_id) == station_key:
+            continue
+        fire_nodes.append(str(node_id))
+    return fire_nodes
 
 
 @router.delete("/{scenario_id}")

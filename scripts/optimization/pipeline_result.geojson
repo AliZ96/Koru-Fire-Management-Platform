@@ -5,36 +5,192 @@
       "type": "Feature",
       "properties": {
         "type": "fire_point",
-        "id": 291,
+        "id": 265,
         "risk_class": "LOW",
         "cluster_id": 0,
-        "demand": 28,
-        "fire_station_id": 577,
-        "station_distance_km": 0.0812
+        "demand": 11,
+        "fire_station_id": 592,
+        "station_distance_km": 0.0936
       }
     },
     {
       "type": "Feature",
       "properties": {
         "type": "fire_point",
-        "id": 162,
+        "id": 113,
         "risk_class": "HIGH",
         "cluster_id": 3,
-        "demand": 99,
-        "fire_station_id": 574,
-        "station_distance_km": 0.2796
+        "demand": 62,
+        "fire_station_id": 580,
+        "station_distance_km": 0.1449
       }
     },
     {
       "type": "Feature",
       "properties": {
         "type": "fire_point",
-        "id": 509,
+        "id": 463,
         "risk_class": "HIGH",
+        "cluster_id": 4,
+        "demand": 67,
+        "fire_station_id": 564,
+        "station_distance_km": 0.1387
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 386,
+        "risk_class": "HIGH",
+        "cluster_id": 0,
+        "demand": 97,
+        "fire_station_id": 592,
+        "station_distance_km": 0.1992
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 545,
+        "risk_class": "LOW",
+        "cluster_id": 4,
+        "demand": 50,
+        "fire_station_id": 564,
+        "station_distance_km": 0.3699
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 91,
+        "risk_class": "LOW",
+        "cluster_id": 0,
+        "demand": 39,
+        "fire_station_id": 592,
+        "station_distance_km": 0.2536
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 126,
+        "risk_class": "HIGH",
+        "cluster_id": 3,
+        "demand": 71,
+        "fire_station_id": 580,
+        "station_distance_km": 0.0148
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 186,
+        "risk_class": "LOW",
+        "cluster_id": 2,
+        "demand": 42,
+        "fire_station_id": 577,
+        "station_distance_km": 0.0667
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 495,
+        "risk_class": "LOW",
+        "cluster_id": 4,
+        "demand": 31,
+        "fire_station_id": 564,
+        "station_distance_km": 0.1389
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 226,
+        "risk_class": "LOW",
+        "cluster_id": 3,
+        "demand": 49,
+        "fire_station_id": 580,
+        "station_distance_km": 0.702
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 258,
+        "risk_class": "HIGH",
+        "cluster_id": 2,
+        "demand": 93,
+        "fire_station_id": 577,
+        "station_distance_km": 0.0732
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 389,
+        "risk_class": "LOW",
         "cluster_id": 1,
-        "demand": 91,
-        "fire_station_id": 555,
-        "station_distance_km": 0.2747
+        "demand": 11,
+        "fire_station_id": 572,
+        "station_distance_km": 0.2362
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 264,
+        "risk_class": "LOW",
+        "cluster_id": 0,
+        "demand": 49,
+        "fire_station_id": 592,
+        "station_distance_km": 0.1863
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 212,
+        "risk_class": "LOW",
+        "cluster_id": 2,
+        "demand": 49,
+        "fire_station_id": 577,
+        "station_distance_km": 0.1403
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 185,
+        "risk_class": "HIGH",
+        "cluster_id": 2,
+        "demand": 86,
+        "fire_station_id": 577,
+        "station_distance_km": 0.0798
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 279,
+        "risk_class": "LOW",
+        "cluster_id": 2,
+        "demand": 50,
+        "fire_station_id": 577,
+        "station_distance_km": 0.134
       }
     },
     {
@@ -43,202 +199,46 @@
         "type": "fire_point",
         "id": 467,
         "risk_class": "LOW",
-        "cluster_id": 1,
-        "demand": 28,
-        "fire_station_id": 555,
-        "station_distance_km": 0.0922
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "type": "fire_point",
-        "id": 58,
-        "risk_class": "HIGH",
-        "cluster_id": 2,
-        "demand": 86,
-        "fire_station_id": 557,
-        "station_distance_km": 0.1524
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "type": "fire_point",
-        "id": 339,
-        "risk_class": "HIGH",
-        "cluster_id": 2,
-        "demand": 82,
-        "fire_station_id": 557,
-        "station_distance_km": 0.2717
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "type": "fire_point",
-        "id": 206,
-        "risk_class": "LOW",
-        "cluster_id": 2,
+        "cluster_id": 4,
         "demand": 20,
-        "fire_station_id": 557,
-        "station_distance_km": 0.2644
+        "fire_station_id": 564,
+        "station_distance_km": 0.2027
       }
     },
     {
       "type": "Feature",
       "properties": {
         "type": "fire_point",
-        "id": 30,
+        "id": 414,
+        "risk_class": "HIGH",
+        "cluster_id": 1,
+        "demand": 96,
+        "fire_station_id": 572,
+        "station_distance_km": 0.0476
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "fire_point",
+        "id": 302,
         "risk_class": "LOW",
         "cluster_id": 3,
-        "demand": 39,
-        "fire_station_id": 574,
-        "station_distance_km": 0.1162
+        "demand": 19,
+        "fire_station_id": 580,
+        "station_distance_km": 0.153
       }
     },
     {
       "type": "Feature",
       "properties": {
         "type": "fire_point",
-        "id": 409,
+        "id": 413,
         "risk_class": "HIGH",
         "cluster_id": 1,
-        "demand": 73,
-        "fire_station_id": 555,
-        "station_distance_km": 0.2481
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "type": "fire_point",
-        "id": 452,
-        "risk_class": "LOW",
-        "cluster_id": 1,
-        "demand": 21,
-        "fire_station_id": 555,
-        "station_distance_km": 0.0673
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "type": "fire_point",
-        "id": 179,
-        "risk_class": "LOW",
-        "cluster_id": 2,
-        "demand": 48,
-        "fire_station_id": 557,
-        "station_distance_km": 0.0666
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "type": "fire_point",
-        "id": 257,
-        "risk_class": "HIGH",
-        "cluster_id": 0,
-        "demand": 79,
-        "fire_station_id": 577,
-        "station_distance_km": 0.0433
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "type": "fire_point",
-        "id": 18,
-        "risk_class": "LOW",
-        "cluster_id": 2,
-        "demand": 17,
-        "fire_station_id": 557,
-        "station_distance_km": 0.2803
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "type": "fire_point",
-        "id": 11,
-        "risk_class": "LOW",
-        "cluster_id": 2,
-        "demand": 49,
-        "fire_station_id": 557,
-        "station_distance_km": 0.2334
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "type": "fire_point",
-        "id": 297,
-        "risk_class": "HIGH",
-        "cluster_id": 3,
-        "demand": 64,
-        "fire_station_id": 574,
-        "station_distance_km": 0.2863
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "type": "fire_point",
-        "id": 148,
-        "risk_class": "HIGH",
-        "cluster_id": 2,
-        "demand": 97,
-        "fire_station_id": 557,
-        "station_distance_km": 0.2771
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "type": "fire_point",
-        "id": 498,
-        "risk_class": "LOW",
-        "cluster_id": 1,
-        "demand": 16,
-        "fire_station_id": 555,
-        "station_distance_km": 0.3459
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "type": "fire_point",
-        "id": 433,
-        "risk_class": "LOW",
-        "cluster_id": 1,
-        "demand": 32,
-        "fire_station_id": 555,
-        "station_distance_km": 0.1793
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "type": "fire_point",
-        "id": 394,
-        "risk_class": "HIGH",
-        "cluster_id": 1,
-        "demand": 99,
-        "fire_station_id": 555,
-        "station_distance_km": 0.2838
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "type": "fire_point",
-        "id": 443,
-        "risk_class": "LOW",
-        "cluster_id": 1,
-        "demand": 40,
-        "fire_station_id": 555,
-        "station_distance_km": 0.1299
+        "demand": 72,
+        "fire_station_id": 572,
+        "station_distance_km": 0.0274
       }
     },
     {
@@ -246,14 +246,14 @@
       "properties": {
         "type": "cluster_info",
         "cluster_id": 0,
-        "medoid_id": 291,
-        "station_id": 577,
-        "total_points": 2,
+        "medoid_id": 265,
+        "station_id": 592,
+        "total_points": 4,
         "high_count": 1,
-        "low_count": 1,
-        "high_pct": 50.0,
-        "risk_level": "YUKSEK",
-        "station_distance_km": 0.0812
+        "low_count": 3,
+        "high_pct": 25.0,
+        "risk_level": "NORMAL",
+        "station_distance_km": 0.0936
       }
     },
     {
@@ -261,44 +261,59 @@
       "properties": {
         "type": "cluster_info",
         "cluster_id": 1,
-        "medoid_id": 452,
-        "station_id": 555,
-        "total_points": 8,
-        "high_count": 3,
-        "low_count": 5,
-        "high_pct": 37.5,
-        "risk_level": "NORMAL",
-        "station_distance_km": 0.0673
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "type": "cluster_info",
-        "cluster_id": 2,
-        "medoid_id": 58,
-        "station_id": 557,
-        "total_points": 7,
-        "high_count": 3,
-        "low_count": 4,
-        "high_pct": 42.9,
-        "risk_level": "YUKSEK",
-        "station_distance_km": 0.1524
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "type": "cluster_info",
-        "cluster_id": 3,
-        "medoid_id": 30,
-        "station_id": 574,
+        "medoid_id": 414,
+        "station_id": 572,
         "total_points": 3,
         "high_count": 2,
         "low_count": 1,
         "high_pct": 66.7,
         "risk_level": "KRITIK",
-        "station_distance_km": 0.1162
+        "station_distance_km": 0.0476
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "cluster_info",
+        "cluster_id": 2,
+        "medoid_id": 258,
+        "station_id": 577,
+        "total_points": 5,
+        "high_count": 2,
+        "low_count": 3,
+        "high_pct": 40.0,
+        "risk_level": "NORMAL",
+        "station_distance_km": 0.0732
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "cluster_info",
+        "cluster_id": 3,
+        "medoid_id": 126,
+        "station_id": 580,
+        "total_points": 4,
+        "high_count": 2,
+        "low_count": 2,
+        "high_pct": 50.0,
+        "risk_level": "YUKSEK",
+        "station_distance_km": 0.0148
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "cluster_info",
+        "cluster_id": 4,
+        "medoid_id": 495,
+        "station_id": 564,
+        "total_points": 4,
+        "high_count": 1,
+        "low_count": 3,
+        "high_pct": 25.0,
+        "risk_level": "NORMAL",
+        "station_distance_km": 0.1389
       }
     }
   ]

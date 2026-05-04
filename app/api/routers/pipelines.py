@@ -118,15 +118,14 @@ def download_pipeline_pdf(
             snap = {}
 
     pipeline_points = snap.get("pipeline_points") or []
-    high_count = sum(
+    stations_by_id = _group_points_by_station(pipeline_points)
+    ga_stations = _ga_stations_from_snapshot(snap)
+    high_count = sum(1 for p in pipeline_points if str(p.get("risk", "")).upper() == "HIGH")
+    critical_count = sum(
         1
-        for p in pipeline_points
-        if str(p.get("risk") or p.get("risk_class") or "").upper() == "HIGH"
+        for points in stations_by_id.values()
+        if any(str(p.get("risk", "")).upper() in {"HIGH", "KRITIK", "CRITICAL"} for p in points)
     )
-    cluster_groups: dict[str, list[dict[str, Any]]] = {}
-    for point in pipeline_points:
-        station_id = str(point.get("fire_station_id") or "-")
-        cluster_groups.setdefault(station_id, []).append(point)
 
     pdf = FPDF()
     pdf.add_page()
@@ -138,8 +137,10 @@ def download_pipeline_pdf(
         0,
         7,
         _safe(
-            f"Total Points: {len(pipeline_points) or row.get('n', '-')}  |  "
-            f"Clusters: {row.get('k', '-')}  |  Critical Clusters: 0  |  HIGH Points: {high_count}"
+            f"Total Points: {len(pipeline_points)}  |  "
+            f"Clusters: {len(stations_by_id)}  |  "
+            f"Critical Clusters: {critical_count}  |  "
+            f"HIGH Points: {high_count}"
         ),
         ln=1,
     )
@@ -148,69 +149,57 @@ def download_pipeline_pdf(
     pdf.set_font("Helvetica", "B", 12)
     pdf.cell(0, 8, "Cluster Details", ln=1)
     pdf.set_font("Helvetica", "B", 9)
-    cluster_col_w = [20, 25, 22, 18, 20, 25, 40]
-    for i, header in enumerate(["Cluster", "Station ID", "Risk Level", "HIGH", "LOW", "Avg Dist (km)", "Fire Points"]):
-        pdf.cell(cluster_col_w[i], 7, header, border=1)
+    cluster_widths = [20, 25, 22, 18, 20, 25, 40]
+    cluster_headers = ["Cluster", "Station ID", "Risk Level", "HIGH", "LOW", "Avg Dist (km)", "Fire Points"]
+    for header, width in zip(cluster_headers, cluster_widths):
+        pdf.cell(width, 7, header, border=1)
     pdf.ln()
 
     pdf.set_font("Helvetica", "", 9)
-    for cluster_idx, (station_id, points) in enumerate(cluster_groups.items()):
-        high = sum(
-            1
-            for p in points
-            if str(p.get("risk") or p.get("risk_class") or "").upper() == "HIGH"
-        )
-        low = len(points) - high
-        distances = [
-            float(p.get("station_distance_km"))
-            for p in points
-            if isinstance(p.get("station_distance_km"), (int, float))
-        ]
-        avg_dist = sum(distances) / len(distances) if distances else 0
-        risk_level = "KRITIK" if high and not low else ("YUKSEK" if high >= low and high > 0 else "NORMAL")
-        fire_points = ", ".join(str(p.get("id", "")) for p in points if p.get("id") is not None)
+    for idx, (station_id, points) in enumerate(stations_by_id.items()):
+        high = sum(1 for p in points if str(p.get("risk", "")).upper() == "HIGH")
+        low = max(0, len(points) - high)
+        avg_dist = _average_distance(points)
+        fire_points = ", ".join(str(p.get("id", "")) for p in points)
         row_data = [
-            str(cluster_idx),
+            str(idx),
             str(station_id),
-            risk_level,
+            _risk_label(high, low),
             str(high),
             str(low),
-            f"{avg_dist:.4f}",
-            fire_points[:35] + ("..." if len(fire_points) > 35 else ""),
+            f"{avg_dist:.4f}" if avg_dist is not None else "",
+            _safe(fire_points, 35),
         ]
-        for i, value in enumerate(row_data):
-            pdf.cell(cluster_col_w[i], 6, _safe(str(value), 80), border=1)
+        for value, width in zip(row_data, cluster_widths):
+            pdf.cell(width, 6, _safe(str(value)), border=1)
         pdf.ln()
 
     pdf.ln(6)
     pdf.set_font("Helvetica", "B", 12)
     pdf.cell(0, 8, "GA Optimization - Vehicle Tours", ln=1)
     pdf.set_font("Helvetica", "B", 9)
-    tour_col_w = [25, 20, 20, 90]
-    for i, header in enumerate(["Station ID", "Vehicle", "Load", "Tour"]):
-        pdf.cell(tour_col_w[i], 7, header, border=1)
+    tour_widths = [25, 20, 20, 90]
+    for header, width in zip(["Station ID", "Vehicle", "Load", "Tour"], tour_widths):
+        pdf.cell(width, 7, header, border=1)
     pdf.ln()
 
-    ga_stations = snap.get("ga_routes")
-    if not isinstance(ga_stations, list):
-        ga_stations = ((snap.get("optimization") or {}).get("GA") or {}).get("stations") or []
     pdf.set_font("Helvetica", "", 9)
     for station in ga_stations:
-        station_id = station.get("station_id", "")
-        assigned = station.get("assigned_fire_points") or []
-        for vehicle in station.get("vehicles", []):
+        station_id = station.get("station_id") or station.get("id") or ""
+        vehicles = station.get("vehicles") or []
+        assigned_points = station.get("assigned_fire_points") or station.get("points") or []
+        for vehicle in vehicles:
             fire_nodes = _vehicle_fire_node_ids(vehicle.get("tour") or [], station_id)
-            if not fire_nodes and len(station.get("vehicles", [])) == 1:
-                fire_nodes = [str(node) for node in assigned]
-            tour_text = " -> ".join(fire_nodes)
+            if not fire_nodes and len(vehicles) == 1:
+                fire_nodes = [str(p.get("id")) for p in assigned_points if p.get("id") is not None]
             row_data = [
                 str(station_id),
-                str(vehicle.get("vehicle_index", "")),
+                str(vehicle.get("vehicle_index", vehicle.get("vehicle", ""))),
                 str(vehicle.get("load", "")),
-                tour_text[:80] + ("..." if len(tour_text) > 80 else ""),
+                _safe(" -> ".join(fire_nodes), 80),
             ]
-            for i, value in enumerate(row_data):
-                pdf.cell(tour_col_w[i], 6, _safe(str(value), 120), border=1)
+            for value, width in zip(row_data, tour_widths):
+                pdf.cell(width, 6, _safe(str(value)), border=1)
             pdf.ln()
 
     pdf_bytes = pdf.output(dest="S").encode("latin-1")
@@ -222,21 +211,49 @@ def download_pipeline_pdf(
     )
 
 
+def _group_points_by_station(points: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for point in points:
+        station_id = point.get("fire_station_id") or point.get("station_id") or point.get("assigned_station_id") or "-"
+        grouped.setdefault(str(station_id), []).append(point)
+    return grouped
+
+
+def _average_distance(points: list[dict[str, Any]]) -> float | None:
+    distances = [p.get("station_distance_km") for p in points if isinstance(p.get("station_distance_km"), (int, float))]
+    if not distances:
+        return None
+    return sum(distances) / len(distances)
+
+
+def _risk_label(high: int, low: int) -> str:
+    if high >= max(1, low):
+        return "KRITIK" if high >= 4 else "YUKSEK"
+    return "NORMAL"
+
+
+def _ga_stations_from_snapshot(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
+    direct = snapshot.get("ga_routes")
+    if isinstance(direct, list):
+        return direct
+    optimization = snapshot.get("optimization") or {}
+    ga = optimization.get("GA") or {}
+    stations = ga.get("stations")
+    return stations if isinstance(stations, list) else []
+
+
 def _vehicle_fire_node_ids(tour: list[Any], station_id: Any) -> list[str]:
     station_key = str(station_id)
-    node_ids: list[str] = []
+    fire_nodes: list[str] = []
     for node in tour:
         if isinstance(node, dict):
             node_id = node.get("node_id") or node.get("id")
         else:
             node_id = node
-        if node_id is None:
+        if node_id is None or str(node_id) == station_key:
             continue
-        node_key = str(node_id)
-        if node_key == station_key:
-            continue
-        node_ids.append(node_key)
-    return node_ids
+        fire_nodes.append(str(node_id))
+    return fire_nodes
 
 
 def _safe(text: str, maxlen: int = 200) -> str:
@@ -248,18 +265,18 @@ def _safe(text: str, maxlen: int = 200) -> str:
         "“": '"',
         "”": '"',
         "…": "...",
-        "ı": "i",
         "İ": "I",
-        "ğ": "g",
-        "Ğ": "G",
-        "ş": "s",
+        "ı": "i",
         "Ş": "S",
-        "ç": "c",
-        "Ç": "C",
-        "ö": "o",
-        "Ö": "O",
-        "ü": "u",
+        "ş": "s",
+        "Ğ": "G",
+        "ğ": "g",
         "Ü": "U",
+        "ü": "u",
+        "Ö": "O",
+        "ö": "o",
+        "Ç": "C",
+        "ç": "c",
     }
     for ch, rep in replacements.items():
         text = text.replace(ch, rep)
