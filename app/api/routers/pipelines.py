@@ -1,6 +1,6 @@
 import io
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -13,11 +13,13 @@ from app.services.firestore_store import FirestoreStore
 router = APIRouter(prefix="/api/pipelines", tags=["Pipelines"])
 
 
-# ── Schemas ───────────────────────────────────────────────────
 class PipelineSaveRequest(BaseModel):
     name: str
     n: int = 20
     k: int = 4
+    pop: Optional[int] = None
+    iter: Optional[int] = None
+    temp: Optional[int] = None
     snapshot: Optional[Dict[str, Any]] = None
 
 
@@ -26,6 +28,9 @@ class PipelineResponse(BaseModel):
     name: str
     n: int
     k: int
+    pop: Optional[int] = None
+    iter: Optional[int] = None
+    temp: Optional[int] = None
     has_snapshot: bool
     snapshot: Optional[Dict[str, Any]] = None
     created_at: str
@@ -33,7 +38,6 @@ class PipelineResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ── Helper ────────────────────────────────────────────────────
 def _serialize(p: dict[str, Any], include_snapshot: bool = True) -> dict:
     snap = None
     snapshot_json = p.get("snapshot_json")
@@ -47,13 +51,15 @@ def _serialize(p: dict[str, Any], include_snapshot: bool = True) -> dict:
         "name": p.get("name"),
         "n": int(p.get("n", 0)),
         "k": int(p.get("k", 0)),
+        "pop": p.get("pop"),
+        "iter": p.get("iter"),
+        "temp": p.get("temp"),
         "has_snapshot": snap is not None,
         "snapshot": snap if include_snapshot else None,
         "created_at": str(p.get("created_at") or ""),
     }
 
 
-# ── Endpoints ─────────────────────────────────────────────────
 @router.get("")
 def list_pipelines(
     current_user: Dict[str, Any] = Depends(get_current_user),
@@ -75,6 +81,9 @@ def save_pipeline(
         name=payload.name,
         n=payload.n,
         k=payload.k,
+        pop=payload.pop,
+        iter=payload.iter,
+        temp=payload.temp,
         snapshot_json=snap_json,
     )
     return _serialize(row)
@@ -88,7 +97,7 @@ def delete_pipeline(
     username = current_user["sub"]
     deleted = FirestoreStore().delete_pipeline(pipeline_id=pipeline_id, username=username)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Pipeline bulunamadı")
+        raise HTTPException(status_code=404, detail="Pipeline bulunamadi")
 
 
 @router.get("/{pipeline_id}/pdf")
@@ -99,98 +108,159 @@ def download_pipeline_pdf(
     username = current_user["sub"]
     row = FirestoreStore().get_pipeline(pipeline_id=pipeline_id, username=username)
     if not row:
-        raise HTTPException(status_code=404, detail="Pipeline bulunamad\u0131")
+        raise HTTPException(status_code=404, detail="Pipeline bulunamadi")
 
-    snap = {}
+    snap: dict[str, Any] = {}
     if row.get("snapshot_json"):
         try:
             snap = json.loads(row.get("snapshot_json") or "{}")
         except Exception:
             snap = {}
 
+    pipeline_points = snap.get("pipeline_points") or []
+    high_count = sum(
+        1
+        for p in pipeline_points
+        if str(p.get("risk") or p.get("risk_class") or "").upper() == "HIGH"
+    )
+    cluster_groups: dict[str, list[dict[str, Any]]] = {}
+    for point in pipeline_points:
+        station_id = str(point.get("fire_station_id") or "-")
+        cluster_groups.setdefault(station_id, []).append(point)
+
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 10, _safe(f"KORU - Pipeline Raporu #{row.get('id')}"), new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 10, _safe(f"KORU - Scenario Report #{row.get('id')}"), ln=1)
     pdf.set_font("Helvetica", "", 10)
-    pdf.cell(0, 7, _safe(f"Ad: {row.get('name')}"), new_x="LMARGIN", new_y="NEXT")
-    pdf.cell(0, 7, _safe(f"Kullanici: {row.get('username')}"), new_x="LMARGIN", new_y="NEXT")
-    pdf.cell(0, 7, _safe(f"Tarih: {row.get('created_at')}"), new_x="LMARGIN", new_y="NEXT")
-    pdf.cell(0, 7, _safe(f"Nokta sayisi (n): {row.get('n')}  |  Kume sayisi (k): {row.get('k')}"), new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 7, _safe(f"Date: {row.get('created_at')}"), ln=1)
+    pdf.cell(
+        0,
+        7,
+        _safe(
+            f"Total Points: {len(pipeline_points) or row.get('n', '-')}  |  "
+            f"Clusters: {row.get('k', '-')}  |  Critical Clusters: 0  |  HIGH Points: {high_count}"
+        ),
+        ln=1,
+    )
     pdf.ln(4)
 
-    # ── İtfaiye İstasyonları ──
-    stations = snap.get("stations", [])
-    if stations:
-        pdf.set_font("Helvetica", "B", 12)
-        pdf.cell(0, 8, "Atanan Itfaiye Istasyonlari", new_x="LMARGIN", new_y="NEXT")
-        pdf.set_font("Helvetica", "B", 9)
-        col_w = [12, 75, 30, 30, 18]
-        for h, w in zip(["#", "Ad", "Enlem", "Boylam", "ID"], col_w):
-            pdf.cell(w, 7, h, border=1)
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 8, "Cluster Details", ln=1)
+    pdf.set_font("Helvetica", "B", 9)
+    cluster_col_w = [20, 25, 22, 18, 20, 25, 40]
+    for i, header in enumerate(["Cluster", "Station ID", "Risk Level", "HIGH", "LOW", "Avg Dist (km)", "Fire Points"]):
+        pdf.cell(cluster_col_w[i], 7, header, border=1)
+    pdf.ln()
+
+    pdf.set_font("Helvetica", "", 9)
+    for cluster_idx, (station_id, points) in enumerate(cluster_groups.items()):
+        high = sum(
+            1
+            for p in points
+            if str(p.get("risk") or p.get("risk_class") or "").upper() == "HIGH"
+        )
+        low = len(points) - high
+        distances = [
+            float(p.get("station_distance_km"))
+            for p in points
+            if isinstance(p.get("station_distance_km"), (int, float))
+        ]
+        avg_dist = sum(distances) / len(distances) if distances else 0
+        risk_level = "KRITIK" if high and not low else ("YUKSEK" if high >= low and high > 0 else "NORMAL")
+        fire_points = ", ".join(str(p.get("id", "")) for p in points if p.get("id") is not None)
+        row_data = [
+            str(cluster_idx),
+            str(station_id),
+            risk_level,
+            str(high),
+            str(low),
+            f"{avg_dist:.4f}",
+            fire_points[:35] + ("..." if len(fire_points) > 35 else ""),
+        ]
+        for i, value in enumerate(row_data):
+            pdf.cell(cluster_col_w[i], 6, _safe(str(value), 80), border=1)
         pdf.ln()
-        pdf.set_font("Helvetica", "", 9)
-        for i, st in enumerate(stations, 1):
-            lat = st.get("lat") or (st.get("geometry", {}).get("coordinates", [None, None])[1])
-            lon = st.get("lon") or (st.get("geometry", {}).get("coordinates", [None, None])[0])
-            name = st.get("name") or st.get("properties", {}).get("name") or str(st.get("id", "-"))
+
+    pdf.ln(6)
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 8, "GA Optimization - Vehicle Tours", ln=1)
+    pdf.set_font("Helvetica", "B", 9)
+    tour_col_w = [25, 20, 20, 90]
+    for i, header in enumerate(["Station ID", "Vehicle", "Load", "Tour"]):
+        pdf.cell(tour_col_w[i], 7, header, border=1)
+    pdf.ln()
+
+    ga_stations = snap.get("ga_routes")
+    if not isinstance(ga_stations, list):
+        ga_stations = ((snap.get("optimization") or {}).get("GA") or {}).get("stations") or []
+    pdf.set_font("Helvetica", "", 9)
+    for station in ga_stations:
+        station_id = station.get("station_id", "")
+        assigned = station.get("assigned_fire_points") or []
+        for vehicle in station.get("vehicles", []):
+            fire_nodes = _vehicle_fire_node_ids(vehicle.get("tour") or [], station_id)
+            if not fire_nodes and len(station.get("vehicles", [])) == 1:
+                fire_nodes = [str(node) for node in assigned]
+            tour_text = " -> ".join(fire_nodes)
             row_data = [
-                str(i),
-                _safe(str(name), 60),
-                f"{lat:.4f}" if lat else "-",
-                f"{lon:.4f}" if lon else "-",
-                str(st.get("id", "-")),
+                str(station_id),
+                str(vehicle.get("vehicle_index", "")),
+                str(vehicle.get("load", "")),
+                tour_text[:80] + ("..." if len(tour_text) > 80 else ""),
             ]
-            for val, w in zip(row_data, col_w):
-                pdf.cell(w, 6, str(val), border=1)
+            for i, value in enumerate(row_data):
+                pdf.cell(tour_col_w[i], 6, _safe(str(value), 120), border=1)
             pdf.ln()
 
-    # ── Pipeline Noktaları ──
-    pipeline_points = snap.get("pipeline_points", [])
-    if pipeline_points:
-        pdf.ln(4)
-        pdf.set_font("Helvetica", "B", 12)
-        pdf.cell(0, 8, f"Yangin/Risk Noktalari ({len(pipeline_points)} nokta)", new_x="LMARGIN", new_y="NEXT")
-        pdf.set_font("Helvetica", "B", 9)
-        col_w2 = [12, 18, 25, 30, 30, 30, 20]
-        for h, w in zip(["#", "ID", "Risk", "Enlem", "Boylam", "Mesafe (km)", "Talep"], col_w2):
-            pdf.cell(w, 7, h, border=1)
-        pdf.ln()
-        pdf.set_font("Helvetica", "", 9)
-        high_count = sum(1 for p in pipeline_points if str(p.get("risk", "")).upper() == "HIGH")
-        for i, pt in enumerate(pipeline_points, 1):
-            row_data2 = [
-                str(i),
-                str(pt.get("id", "-")),
-                str(pt.get("risk", "-")),
-                f"{pt['lat']:.4f}" if pt.get("lat") else "-",
-                f"{pt['lon']:.4f}" if pt.get("lon") else "-",
-                f"{pt.get('station_distance_km', '-'):.3f}" if isinstance(pt.get("station_distance_km"), (int, float)) else "-",
-                str(pt.get("demand", "-")),
-            ]
-            for val, w in zip(row_data2, col_w2):
-                pdf.cell(w, 6, str(val), border=1)
-            pdf.ln()
-
-        # Özet
-        pdf.ln(4)
-        pdf.set_font("Helvetica", "B", 10)
-        pdf.cell(0, 7, _safe(f"Ozet: Toplam {len(pipeline_points)} nokta  |  HIGH risk: {high_count}  |  LOW risk: {len(pipeline_points) - high_count}"), new_x="LMARGIN", new_y="NEXT")
-
-    pdf_bytes = pdf.output()
+    pdf_bytes = pdf.output(dest="S").encode("latin-1")
     filename = f"koru_pipeline_{row.get('id')}.pdf"
     return StreamingResponse(
-        io.BytesIO(bytes(pdf_bytes)),
+        io.BytesIO(pdf_bytes),
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
+def _vehicle_fire_node_ids(tour: list[Any], station_id: Any) -> list[str]:
+    station_key = str(station_id)
+    node_ids: list[str] = []
+    for node in tour:
+        if isinstance(node, dict):
+            node_id = node.get("node_id") or node.get("id")
+        else:
+            node_id = node
+        if node_id is None:
+            continue
+        node_key = str(node_id)
+        if node_key == station_key:
+            continue
+        node_ids.append(node_key)
+    return node_ids
+
+
 def _safe(text: str, maxlen: int = 200) -> str:
-    """Latin-1 dışı karakterleri ASCII eşdeğerleriyle değiştirir."""
-    replacements = {"–": "-", "—": "-", "\u2019": "'", "\u2018": "'",
-                    "\u201c": '"', "\u201d": '"', "\u2026": "...", "\u00e9": "e"}
+    replacements = {
+        "–": "-",
+        "—": "-",
+        "’": "'",
+        "‘": "'",
+        "“": '"',
+        "”": '"',
+        "…": "...",
+        "ı": "i",
+        "İ": "I",
+        "ğ": "g",
+        "Ğ": "G",
+        "ş": "s",
+        "Ş": "S",
+        "ç": "c",
+        "Ç": "C",
+        "ö": "o",
+        "Ö": "O",
+        "ü": "u",
+        "Ü": "U",
+    }
     for ch, rep in replacements.items():
         text = text.replace(ch, rep)
-    # Geri kalan latin-1 dışı karakterleri sil
     return text.encode("latin-1", errors="ignore").decode("latin-1")[:maxlen]

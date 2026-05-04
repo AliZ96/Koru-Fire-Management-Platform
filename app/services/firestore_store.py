@@ -339,7 +339,10 @@ class FirestoreStore:
         name: str,
         n: int,
         k: int,
-        snapshot_json: Optional[str],
+        pop: Optional[int] = None,
+        iter: Optional[int] = None,
+        temp: Optional[int] = None,
+        snapshot_json: Optional[str] = None,
     ) -> dict[str, Any]:
         snapshot_json = compact_snapshot_json(snapshot_json)
         payload = {
@@ -347,6 +350,9 @@ class FirestoreStore:
             "name": name,
             "n": n,
             "k": k,
+            "pop": pop,
+            "iter": iter,
+            "temp": temp,
             "snapshot_json": snapshot_json,
             "created_at": _now_iso(),
             "updated_at": _now_iso(),

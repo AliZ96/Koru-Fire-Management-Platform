@@ -118,21 +118,21 @@ def export_pdf(scenario_id: str):
     pdf.set_font("Helvetica", "B", 16)
 
     # Başlık
-    pdf.cell(0, 10, f"KORU - Scenario Report #{scenario_id}", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 10, f"KORU - Scenario Report #{scenario_id}", ln=1)
     pdf.set_font("Helvetica", "", 10)
-    pdf.cell(0, 7, f"Date: {scenario['created_at']}", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 7, f"Date: {scenario['created_at']}", ln=1)
 
     s = scenario.get("summary", {})
     pdf.cell(0, 7, f"Total Points: {s.get('total_points', '-')}  |  "
                    f"Clusters: {s.get('total_clusters', '-')}  |  "
                    f"Critical Clusters: {s.get('critical_clusters', '-')}  |  "
                    f"HIGH Points: {s.get('high_count', '-')}",
-             new_x="LMARGIN", new_y="NEXT")
+             ln=1)
     pdf.ln(4)
 
     # Küme tablosu
     pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 8, "Cluster Details", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 8, "Cluster Details", ln=1)
     pdf.set_font("Helvetica", "B", 9)
 
     col_w = [20, 25, 22, 18, 20, 25, 40]
@@ -161,7 +161,7 @@ def export_pdf(scenario_id: str):
 
     # GA tur tablosu
     pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 8, "GA Optimization - Vehicle Tours", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 8, "GA Optimization - Vehicle Tours", ln=1)
     pdf.set_font("Helvetica", "B", 9)
 
     tour_col_w = [25, 20, 20, 90]
