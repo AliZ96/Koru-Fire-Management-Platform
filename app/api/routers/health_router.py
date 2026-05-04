@@ -8,9 +8,14 @@ router = APIRouter(prefix="/health", tags=["health"])
 
 @router.get("/db")
 def health_db():
-    store = FirestoreStore()
-    store.db.collection("_health").document("ping").set({"at": "ok"}, merge=True)
-    return {"ok": True, "db": "connected", "provider": "firestore"}
+    try:
+        store = FirestoreStore()
+        # attempt a lightweight write to verify connectivity
+        store.db.collection("_health").document("ping").set({"at": "ok"}, merge=True)
+        return {"ok": True, "db": "connected", "provider": "firestore"}
+    except Exception as e:
+        # If Firestore isn't configured or fails, return a graceful response
+        return {"ok": False, "db": "unavailable", "error": str(e)}
 
 
 @router.get("/geo")

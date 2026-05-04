@@ -67,6 +67,36 @@ class ApiService {
     return _decode(res);
   }
 
+  Future<Map<String, dynamic>> exchangeFirebaseToken(String firebaseToken) async {
+    final res = await http
+        .post(
+          Uri.parse('$baseUrl/auth/firebase-token'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'firebase_token': firebaseToken}),
+        )
+        .timeout(_kTimeout);
+    return _decode(res);
+  }
+
+  Future<Map<String, dynamic>> syncFirebaseUser(
+    String firebaseUid,
+    String displayName,
+    String role,
+  ) async {
+    final res = await http
+        .post(
+          Uri.parse('$baseUrl/auth/user/sync'),
+          headers: _headers,
+          body: jsonEncode({
+            'firebase_uid': firebaseUid,
+            'display_name': displayName,
+            'role': role,
+          }),
+        )
+        .timeout(_kTimeout);
+    return _decode(res);
+  }
+
   // ─── FIRMS / Fires ────────────────────────────────────
 
   Future<Map<String, dynamic>> getFires({int dayRange = 1}) async {
@@ -290,7 +320,7 @@ class ApiService {
     return _decode(res);
   }
 
-  Future<Map<String, dynamic>> getCurrentSpread(int scenarioId) async {
+  Future<Map<String, dynamic>> getCurrentSpread(dynamic scenarioId) async {
     final res = await http
         .get(
           Uri.parse('$baseUrl/api/fire-spread/scenarios/$scenarioId/current'),
@@ -300,7 +330,7 @@ class ApiService {
     return _decode(res);
   }
 
-  Future<Map<String, dynamic>> stopSpreadScenario(int scenarioId) async {
+  Future<Map<String, dynamic>> stopSpreadScenario(dynamic scenarioId) async {
     final res = await http
         .patch(
           Uri.parse('$baseUrl/api/fire-spread/scenarios/$scenarioId/stop'),
@@ -311,7 +341,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getSpreadEta({
-    required int scenarioId,
+    required dynamic scenarioId,
     required double lat,
     required double lon,
   }) async {
@@ -334,7 +364,7 @@ class ApiService {
         .timeout(_kTimeout);
   }
 
-  String getSpreadWsUrl(int scenarioId) {
+  String getSpreadWsUrl(dynamic scenarioId) {
     final wsBase = baseUrl
         .replaceFirst('https://', 'wss://')
         .replaceFirst('http://', 'ws://');

@@ -12,9 +12,7 @@ import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/map_data_service.dart';
 import '../widgets/map_control_panel.dart';
-import '../widgets/map_legend.dart';
 import 'login_screen.dart';
-import 'data_visualization_screen.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -31,8 +29,6 @@ class _MapScreenState extends State<MapScreen> {
   final List<List<LatLng>> _izmirBoundaryLines = [];
 
   // Layer data
-  List<FirePoint> _fires = [];
-  List<FireRiskPoint> _fireRiskPoints = [];
   List<WaterFeature> _reservoirs = [];
   List<WaterFeature> _waterSources = [];
   List<WaterFeature> _waterTanks = [];
@@ -41,17 +37,10 @@ class _MapScreenState extends State<MapScreen> {
   WindData? _windData; // ignore: unused_field – reserved for wind overlay
 
   // Layer visibility toggles
-  bool _showFires = false;
-  bool _showFireRisk = false;
-  bool _showHeatmap = false;
   bool _showReservoirs = false;
   bool _showWaterSources = false;
   bool _showWaterTanks = false;
   bool _showLakes = false;
-
-  // Live tracking
-  bool _isLiveTracking = false;
-  Timer? _liveTimer;
 
   // Loading state
   bool _loading = false;
@@ -60,25 +49,26 @@ class _MapScreenState extends State<MapScreen> {
   // Map type
   bool _useSatellite = true;
 
-  // Heatmap grid data (polygons)
-  List<Map<String, dynamic>> _heatmapCells = [];
-
-  // Selected fire day range
-  int _dayRange = 1;
-
-  // Legend type
-  String? _activeLegend; // 'fire_risk', 'heatmap', null
-
   // Fire spread tracking
   List<Polygon> _spreadPolygons = [];
   LatLng? _spreadOrigin;
-  int? _activeSpreadScenarioId;
+  dynamic _activeSpreadScenarioId;
+  bool _isPickingSpreadLocation = false;
   WebSocketChannel? _spreadWsChannel;
   StreamSubscription? _spreadWsSub;
   String? _spreadAlertMsg;
   String? _spreadAlertSeverity;
-  Map<String, dynamic>? _spreadWeather;
-  double? _spreadElapsed;
+
+  // New Spread UI states (Synced with Web)
+  LatLng? _mySpreadLocation = const LatLng(38.4537, 27.2183); // Default mock
+  Map<String, dynamic>? _lastSpreadData;
+  double? _windDir;
+  double? _windSpeedMs;
+  double? _etaMin;
+  double? _distKm;
+  Map<String, dynamic>? _scenarioProps;
+  Map<String, dynamic>? _scenarioWeather;
+  double? _elapsedMinutes;
 
   late ApiService _api;
   Map<String, String> _copy = {};
@@ -99,7 +89,6 @@ class _MapScreenState extends State<MapScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final mapDataService = context.read<MapDataService>();
       mapDataService.loadRiskStatistics();
-      _loadInitialOptimizedPoints();
     });
   }
 
@@ -260,9 +249,11 @@ class _MapScreenState extends State<MapScreen> {
     return _isInIzmir(p.latitude, p.longitude);
   }
 
-  Future<void> _loadInitialOptimizedPoints() async {
-    if (_showFireRisk || _loading) return;
-    await _toggleFireRisk();
+  Future<void> _loadDefaultPublicLayers() async {
+    if (_loading) return;
+    await _toggleReservoirs();
+    await _toggleWaterSources();
+    await _toggleLakes();
   }
 
   Future<void> _loadWebSyncedCopy() async {
@@ -285,7 +276,6 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   void dispose() {
-    _liveTimer?.cancel();
     _spreadWsSub?.cancel();
     _spreadWsChannel?.sink.close();
     _mapCtrl.dispose();
@@ -317,7 +307,8 @@ class _MapScreenState extends State<MapScreen> {
         onDone: () {
           if (_activeSpreadScenarioId == scenarioId && mounted) {
             Future.delayed(const Duration(seconds: 8), () {
-              if (_activeSpreadScenarioId == scenarioId) _connectSpreadWS(scenarioId);
+              if (_activeSpreadScenarioId == scenarioId)
+                _connectSpreadWS(scenarioId);
             });
           }
         },
@@ -332,14 +323,18 @@ class _MapScreenState extends State<MapScreen> {
 
     final feature = data['spread_polygon'] as Map<String, dynamic>?;
     final origin = data['origin'] as Map<String, dynamic>?;
-    final weather = data['weather'] as Map<String, dynamic>?;
     final alerts = data['alerts'] as List<dynamic>? ?? [];
 
     List<Polygon> polys = [];
     if (feature != null) {
-      final coords = (feature['geometry']?['coordinates']?[0] as List?)
-          ?.map((c) => LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble()))
-          .toList() ?? [];
+      final coords =
+          (feature['geometry']?['coordinates']?[0] as List?)
+              ?.map(
+                (c) =>
+                    LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble()),
+              )
+              .toList() ??
+          [];
       if (coords.isNotEmpty) {
         polys = [
           Polygon(
@@ -347,7 +342,6 @@ class _MapScreenState extends State<MapScreen> {
             color: const Color(0x50FF4500),
             borderColor: const Color(0xFFFF4500),
             borderStrokeWidth: 2.5,
-            isDotted: true,
           ),
         ];
       }
@@ -356,7 +350,7 @@ class _MapScreenState extends State<MapScreen> {
     String? alertMsg;
     String? alertSev;
     if (alerts.isNotEmpty) {
-      final worst = (alerts as List).reduce((a, b) {
+      final worst = alerts.reduce((a, b) {
         const rank = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3};
         return (rank[a['severity']] ?? 4) <= (rank[b['severity']] ?? 4) ? a : b;
       });
@@ -367,10 +361,11 @@ class _MapScreenState extends State<MapScreen> {
     setState(() {
       _spreadPolygons = polys;
       _spreadOrigin = origin != null
-          ? LatLng((origin['lat'] as num).toDouble(), (origin['lon'] as num).toDouble())
+          ? LatLng(
+              (origin['lat'] as num).toDouble(),
+              (origin['lon'] as num).toDouble(),
+            )
           : null;
-      _spreadWeather = weather?.cast<String, dynamic>();
-      _spreadElapsed = (data['elapsed_minutes'] as num?)?.toDouble();
       if (alertMsg != null) {
         _spreadAlertMsg = alertMsg;
         _spreadAlertSeverity = alertSev;
@@ -389,172 +384,140 @@ class _MapScreenState extends State<MapScreen> {
         _spreadPolygons = [];
         _spreadOrigin = null;
         _spreadAlertMsg = null;
-        _spreadWeather = null;
-        _spreadElapsed = null;
       });
     }
   }
 
-  void _showSpreadScenarioSheet() {
+  Future<void> _startCustomSpreadSimulation(LatLng latLng) async {
+    setState(() {
+      _isPickingSpreadLocation = false;
+      _loading = true;
+      _setStatus('Simülasyon oluşturuluyor...');
+    });
+    try {
+      final now = DateTime.now().toLocal();
+      final timeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+      final res = await _api.createSpreadScenario(
+        name: 'Mobil Simülasyon $timeStr',
+        lat: latLng.latitude,
+        lon: latLng.longitude,
+      );
+      final newId = res['id'];
+      setState(() {
+        _activeSpreadScenarioId = newId;
+      });
+      _connectSpreadWS(newId);
+      _setStatus('Yangın yayılımı hesaplanıyor...');
+    } catch (e) {
+      _setStatus('Simülasyon hatası: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  Future<void> _loadSpreadScenarios() async {
+    setState(() => _loading = true);
+    try {
+      final list = await _api.getSpreadScenarios();
+      if (!mounted) return;
+      _showSpreadListModal(list);
+    } catch (e) {
+      _setStatus('Senaryolar yüklenemedi: $e');
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
+  void _showSpreadListModal(List<dynamic> scenarios) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF081510),
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) => _SpreadScenarioSheet(
-        api: _api,
-        activeScenarioId: _activeSpreadScenarioId,
-        onTrack: (id) {
-          Navigator.pop(ctx);
-          setState(() => _activeSpreadScenarioId = id);
-          _connectSpreadWS(id);
-          _setStatus('Yangın yayılımı takip ediliyor...');
-        },
-        onStop: (id) async {
-          await _api.stopSpreadScenario(id);
-          if (_activeSpreadScenarioId == id) _stopSpreadTracking();
-          Navigator.pop(ctx);
-        },
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Yangın Senaryoları',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Expanded(
+              child: scenarios.isEmpty
+                  ? const Center(child: Text('Henüz senaryo yok.'))
+                  : ListView.separated(
+                      itemCount: scenarios.length,
+                      separatorBuilder: (_, __) => const Divider(),
+                      itemBuilder: (context, index) {
+                        final s = scenarios[index];
+                        final id = s['id'];
+                        final name = s['name'] ?? 'İsimsiz Senaryo';
+                        final active = s['status'] == 'active';
+                        final isTracking = _activeSpreadScenarioId == id;
+
+                        return ListTile(
+                          title: Text(
+                            name,
+                            style: TextStyle(
+                              fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                              color: active ? Colors.orange[800] : Colors.grey[700],
+                            ),
+                          ),
+                          subtitle: Text(
+                            'ID: $id • ${s['elapsed_minutes']?.toStringAsFixed(0) ?? '0'} dk • ${s['origin_lat']?.toStringAsFixed(3)}, ${s['origin_lon']?.toStringAsFixed(3)}',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(ctx);
+                                  if (isTracking) {
+                                    _stopSpreadTracking();
+                                  } else {
+                                    _activeSpreadScenarioId = id;
+                                    _connectSpreadWS(id);
+                                  }
+                                },
+                                child: Text(isTracking ? 'Durdur' : 'Takip Et'),
+                              ),
+                              if (active)
+                                IconButton(
+                                  icon: const Icon(Icons.stop_circle_outlined, color: Colors.red),
+                                  onPressed: () async {
+                                    await _api.stopSpreadScenario(id);
+                                    Navigator.pop(ctx);
+                                    _loadSpreadScenarios();
+                                  },
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
-  }
-
-  // ─── Fire data loading ───────────────────────────────
-
-  Future<void> _loadFires() async {
-    setState(() => _loading = true);
-    _setStatus('Yangınlar yükleniyor...');
-    try {
-      final gj = await _api.getFires(dayRange: _dayRange);
-      final features = (gj['features'] as List?) ?? [];
-      final fires = features
-          .map((f) => FirePoint.fromGeoJsonFeature(f as Map<String, dynamic>))
-          .where((f) => _isInIzmir(f.position.latitude, f.position.longitude))
-          .toList();
-      setState(() {
-        _fires = fires;
-        _showFires = true;
-      });
-      _setStatus('İzmir Yangınları: ${fires.length}');
-    } catch (e) {
-      _setStatus('Yangın yükleme hatası: $e');
-    } finally {
-      setState(() => _loading = false);
-    }
-  }
-
-  void _toggleLiveTracking() {
-    if (_isLiveTracking) {
-      // Stop
-      _liveTimer?.cancel();
-      _liveTimer = null;
-      setState(() {
-        _isLiveTracking = false;
-        _showFires = false;
-        _fires = [];
-      });
-      _setStatus('Canlı takip durduruldu');
-    } else {
-      // Start
-      setState(() => _isLiveTracking = true);
-      _loadLiveData();
-      _liveTimer = Timer.periodic(
-        const Duration(seconds: 30),
-        (_) => _loadLiveData(),
-      );
-    }
-  }
-
-  Future<void> _loadLiveData() async {
-    try {
-      final gj = await _api.getFires(dayRange: 1);
-      final features = (gj['features'] as List?) ?? [];
-      final fires = features
-          .map((f) => FirePoint.fromGeoJsonFeature(f as Map<String, dynamic>))
-          .where((f) => _isInIzmir(f.position.latitude, f.position.longitude))
-          .toList();
-      final now = DateTime.now();
-      final timeStr =
-          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-      setState(() {
-        _fires = fires;
-        _showFires = true;
-      });
-      _setStatus('🟢 Canlı Yangınlar: ${fires.length} | Güncelleme: $timeStr');
-    } catch (e) {
-      _setStatus('Canlı takip hatası: $e');
-    }
-  }
-
-  // ─── Fire Risk ML ─────────────────────────────────────
-
-  Future<void> _toggleFireRisk() async {
-    if (_showFireRisk) {
-      setState(() {
-        _showFireRisk = false;
-        _fireRiskPoints = [];
-        _activeLegend = _showHeatmap ? 'heatmap' : null;
-      });
-      _setStatus('Yangın risk kapatıldı');
-      return;
-    }
-
-    setState(() => _loading = true);
-    _setStatus('ML Yangın Risk Noktaları yükleniyor...');
-    try {
-      final gj = await _api.getFireRiskPoints(limit: 50000);
-      final features = (gj['features'] as List?) ?? [];
-      final points = features
-          .map(
-            (f) => FireRiskPoint.fromGeoJsonFeature(f as Map<String, dynamic>),
-          )
-          .where((p) => _isInIzmir(p.position.latitude, p.position.longitude))
-          .toList();
-      setState(() {
-        _fireRiskPoints = points;
-        _showFireRisk = true;
-        _activeLegend = 'fire_risk';
-      });
-      _setStatus('ML Yangın Risk Noktaları: ${points.length}');
-    } catch (e) {
-      _setStatus('Yangın risk hatası: $e');
-    } finally {
-      setState(() => _loading = false);
-    }
-  }
-
-  // ─── Heatmap ──────────────────────────────────────────
-
-  Future<void> _toggleHeatmap() async {
-    if (_showHeatmap) {
-      setState(() {
-        _showHeatmap = false;
-        _heatmapCells = [];
-        _activeLegend = _showFireRisk ? 'fire_risk' : null;
-      });
-      _setStatus('Heatmap kapatıldı');
-      return;
-    }
-
-    setState(() => _loading = true);
-    _setStatus('Heatmap yükleniyor...');
-    try {
-      final gj = await _api.getFireRiskHeatmap(cellSize: 0.05);
-      final features = (gj['features'] as List?) ?? [];
-      setState(() {
-        _heatmapCells = features
-            .cast<Map<String, dynamic>>()
-            .where(_isFeatureInIzmir)
-            .toList();
-        _showHeatmap = true;
-        _activeLegend = 'heatmap';
-      });
-      _setStatus('Heatmap: ${features.length} hücre');
-    } catch (e) {
-      _setStatus('Heatmap hatası: $e');
-    } finally {
-      setState(() => _loading = false);
-    }
   }
 
   // ─── Water layers ─────────────────────────────────────
@@ -764,27 +727,16 @@ class _MapScreenState extends State<MapScreen> {
   // ─── Reset ────────────────────────────────────────────
 
   void _resetMap() {
-    _liveTimer?.cancel();
-    _liveTimer = null;
     setState(() {
-      _fires = [];
-      _fireRiskPoints = [];
-      _heatmapCells = [];
       _reservoirs = [];
       _waterSources = [];
       _waterTanks = [];
       _lakes = [];
       _lakePolygons = [];
-      _showFires = false;
-      _showFireRisk = false;
-      _showHeatmap = false;
       _showReservoirs = false;
       _showWaterSources = false;
       _showWaterTanks = false;
       _showLakes = false;
-      _isLiveTracking = false;
-      _activeLegend = null;
-      _dayRange = 1;
       _statusText = _t('status_map_reset', 'Harita sıfırlandı');
     });
     _mapCtrl.move(const LatLng(38.42, 27.14), 8);
@@ -800,91 +752,6 @@ class _MapScreenState extends State<MapScreen> {
     final roleLabel = userRole == 'firefighter' ? 'İtfaiyeci' : 'Kullanıcı';
 
     return Scaffold(
-      // AppBar matching web header
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          _t('header_title', 'KORU Yangın Önleme Platformu'),
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-        ),
-        backgroundColor: AppTheme.brandRed,
-        foregroundColor: Colors.white,
-        actions: [
-          PopupMenuButton<String>(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '$roleLabel - $username',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const Icon(
-                    Icons.arrow_drop_down,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                ],
-              ),
-            ),
-            onSelected: (value) async {
-              if (value == 'profile') {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      '${_t('profile_label', 'Profil')}: $username ($roleLabel)',
-                    ),
-                    backgroundColor: AppTheme.brandRed,
-                  ),
-                );
-              } else if (value == 'logout') {
-                await auth.logout();
-                if (context.mounted) {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (_) => const LoginScreen()),
-                    (_) => false,
-                  );
-                }
-              }
-            },
-            itemBuilder: (_) => [
-              PopupMenuItem(
-                value: 'profile',
-                child: Row(
-                  children: [
-                    const Text('👤'),
-                    const SizedBox(width: 8),
-                    Text(_t('profile_label', 'Profil')),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'logout',
-                child: Row(
-                  children: [
-                    const Text('🚪'),
-                    const SizedBox(width: 8),
-                    Text(_t('logout_label', 'Oturum Kapat')),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-
-      // Drawer (sidebar menu)
-      drawer: _buildDrawer(context),
-
       body: Stack(
         children: [
           // Map
@@ -894,6 +761,11 @@ class _MapScreenState extends State<MapScreen> {
               initialCenter: const LatLng(38.42, 27.14),
               initialZoom: 8,
               maxZoom: 19,
+              onTap: (tapPosition, latLng) {
+                if (_isPickingSpreadLocation) {
+                  _startCustomSpreadSimulation(latLng);
+                }
+              },
             ),
             children: [
               // Tile layer
@@ -904,31 +776,6 @@ class _MapScreenState extends State<MapScreen> {
                 maxZoom: 19,
                 userAgentPackageName: 'com.koru.app',
               ),
-
-              // Heatmap polygon layer
-              if (_showHeatmap && _heatmapCells.isNotEmpty)
-                PolygonLayer(polygons: _buildHeatmapPolygons()),
-
-              // Fire risk circle markers
-              if (_showFireRisk && _fireRiskPoints.isNotEmpty)
-                CircleLayer(circles: _buildFireRiskCircles()),
-
-              // Fire points
-              if (_showFires && _fires.isNotEmpty)
-                CircleLayer(
-                  circles: _fires.map((f) {
-                    final color = AppTheme.fireConfidenceColor(
-                      f.confidence ?? 'l',
-                    );
-                    return CircleMarker(
-                      point: f.position,
-                      radius: 5,
-                      color: color.withValues(alpha: 0.8),
-                      borderColor: color,
-                      borderStrokeWidth: 1,
-                    );
-                  }).toList(),
-                ),
 
               // Water reservoirs
               if (_showReservoirs && _reservoirs.isNotEmpty)
@@ -1029,21 +876,79 @@ class _MapScreenState extends State<MapScreen> {
                       .toList(),
                 ),
 
+              // Home Link (Line between fire and home)
+              if (_spreadOrigin != null && _mySpreadLocation != null)
+                PolylineLayer(
+                  polylines: <Polyline>[
+                    Polyline(
+                      points: [_spreadOrigin!, _mySpreadLocation!],
+                      color: _etaMin == 0
+                          ? Colors.red
+                          : (_etaMin != null && _etaMin! <= 90
+                              ? Colors.orange
+                              : Colors.blue.withValues(alpha: 0.6)),
+                      strokeWidth: 3,
+                    ),
+                  ],
+                ),
+
               // Fire spread polygon (live tracking)
               if (_spreadPolygons.isNotEmpty)
                 PolygonLayer(polygons: _spreadPolygons),
 
-              // Fire spread origin marker
-              if (_spreadOrigin != null)
-                CircleLayer(circles: [
-                  CircleMarker(
-                    point: _spreadOrigin!,
-                    radius: 12,
-                    color: const Color(0xCCFF4500),
-                    borderColor: Colors.red,
-                    borderStrokeWidth: 3,
+              // Fire spread origin and Wind Arrow
+              if (_spreadOrigin != null) ...[
+                CircleLayer(
+                  circles: [
+                    CircleMarker(
+                      point: _spreadOrigin!,
+                      radius: 12,
+                      color: const Color(0xCCFF4500),
+                      borderColor: Colors.red,
+                      borderStrokeWidth: 3,
+                    ),
+                  ],
+                ),
+                if (_windDir != null)
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: _spreadOrigin!,
+                        width: 60,
+                        height: 60,
+                        child: Transform.rotate(
+                          angle: (_windDir! + 180) * pi / 180,
+                          child: const Icon(
+                            Icons.arrow_upward,
+                            color: Colors.orange,
+                            size: 40,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ]),
+              ],
+
+              // Home Marker
+              if (_mySpreadLocation != null)
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: _mySpreadLocation!,
+                      width: 40,
+                      height: 40,
+                      child: Icon(
+                        Icons.home,
+                        color: _etaMin == 0
+                            ? Colors.red
+                            : (_etaMin != null && _etaMin! <= 90
+                                ? Colors.orange
+                                : Colors.blue),
+                        size: 30,
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
 
@@ -1056,27 +961,72 @@ class _MapScreenState extends State<MapScreen> {
               child: GestureDetector(
                 onTap: () => setState(() => _spreadAlertMsg = null),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: _spreadAlertSeverity == 'critical'
                         ? const Color(0xEEb71c1c)
                         : _spreadAlertSeverity == 'high'
                             ? const Color(0xEEe65100)
-                            : const Color(0xEE827717),
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 8)],
-                  ),
-                  child: Row(children: [
-                    const Text('🔥 ', style: TextStyle(fontSize: 16)),
-                    Expanded(
-                      child: Text(
-                        _spreadAlertMsg!,
-                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
+                            : const Color(0xEE1a1a1a),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.4),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
-                    ),
-                    const Text('✕', style: TextStyle(color: Colors.white70, fontSize: 14)),
-                  ]),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _spreadAlertSeverity == 'critical'
+                            ? Icons.warning_amber_rounded
+                            : Icons.info_outline,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _spreadAlertMsg!,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const Icon(
+                        Icons.close,
+                        color: Colors.white60,
+                        size: 16,
+                      ),
+                    ],
+                  ),
                 ),
+              ),
+            ),
+
+          // Detailed Info Panel (Bottom Left)
+          if (_activeSpreadScenarioId != null)
+            Positioned(
+              bottom: 120,
+              left: 16,
+              child: _buildSpreadInfoPanel(),
+            ),
+
+          // ETA Box (Top Center - below alert)
+          if (_activeSpreadScenarioId != null && (_etaMin != null || _distKm != null))
+            Positioned(
+              top: _spreadAlertMsg != null ? 70 : 12,
+              left: 16,
+              right: 16,
+              child: Center(
+                child: _buildEtaBox(),
               ),
             ),
 
@@ -1128,130 +1078,84 @@ class _MapScreenState extends State<MapScreen> {
               ),
             ),
 
-          // Map type toggle
+          // Map type toggle and Control panel overlapping the map directly
           Positioned(
-            top: 8,
-            left: 8,
-            child: Material(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              elevation: 4,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(8),
-                onTap: () => setState(() => _useSatellite = !_useSatellite),
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Icon(
-                    _useSatellite ? Icons.satellite_alt : Icons.map,
-                    size: 22,
-                    color: AppTheme.brandRed,
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // Legend
-          if (_activeLegend != null)
-            Positioned(
-              bottom: 16,
-              right: 16,
-              child: MapLegend(type: _activeLegend!, tr: _t),
-            ),
-
-          // Control panel toggle
-          Positioned(
-            top: 8,
-            right: 8,
-            child: Material(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              elevation: 4,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(8),
-                onTap: _showControlPanel,
-                child: const Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Icon(
-                    Icons.settings,
-                    size: 22,
-                    color: AppTheme.brandRed,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-
-      // Footer contact
-      bottomNavigationBar: Container(
-        height: 50,
-        color: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _contactItem('Tel:', '153'),
-                    const SizedBox(width: 12),
-                    _contactItem('Faks:', '(0232) 293 39 95'),
-                    const SizedBox(width: 12),
-                    GestureDetector(
-                      onTap: () =>
-                          launchUrl(Uri.parse('mailto:him@izmir.bel.tr')),
-                      child: Text(
-                        'E-Posta: him@izmir.bel.tr',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.brandRed,
-                        ),
+            top: MediaQuery.of(context).padding.top + 12,
+            right: 12,
+            child: Column(
+              children: [
+                Material(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(30),
+                  elevation: 6,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(30),
+                    onTap: _showControlPanel,
+                    child: const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: Icon(
+                        Icons.layers,
+                        size: 24,
+                        color: AppTheme.darkGreen,
                       ),
                     ),
-                  ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Material(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(30),
+                  elevation: 6,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(30),
+                    onTap: () => setState(() => _useSatellite = !_useSatellite),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Icon(
+                        _useSatellite ? Icons.satellite_alt : Icons.map,
+                        size: 24,
+                        color: AppTheme.darkGreen,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Logout / Back to Login button
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 12,
+            left: 12,
+            child: Material(
+              color: Colors.white.withValues(alpha: 0.9),
+              borderRadius: BorderRadius.circular(30),
+              elevation: 6,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(30),
+                onTap: () async {
+                  await context.read<AuthService>().logout();
+                  if (context.mounted) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    );
+                  }
+                },
+                child: const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Icon(
+                    Icons.logout_rounded,
+                    size: 24,
+                    color: AppTheme.brandRed,
+                  ),
                 ),
               ),
             ),
-          ],
-        ),
-      ),
-
-      // FABs: analytics + fire spread
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          FloatingActionButton(
-            heroTag: 'fabSpread',
-            onPressed: _showSpreadScenarioSheet,
-            backgroundColor: _activeSpreadScenarioId != null
-                ? const Color(0xFFFF4500)
-                : const Color(0xFF2E4D28),
-            tooltip: 'Yangın Yayılım Takibi',
-            child: Icon(
-              _activeSpreadScenarioId != null ? Icons.whatshot : Icons.local_fire_department_outlined,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 10),
-          FloatingActionButton.extended(
-            heroTag: 'fabAnalytics',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const DataVisualizationScreen()),
-              );
-            },
-            icon: const Icon(Icons.analytics),
-            label: const Text('Veriler'),
-            tooltip: 'Risk Zonları ve Erişilebilirlik Verilerini Görüntüle',
           ),
         ],
       ),
+
     );
   }
 
@@ -1281,92 +1185,6 @@ class _MapScreenState extends State<MapScreen> {
 
   // ─── Build map layers ─────────────────────────────────
 
-  List<CircleMarker> _buildFireRiskCircles() {
-    return _fireRiskPoints.map((p) {
-      double radius;
-      double opacity;
-      Color color;
-
-      switch (p.riskClass) {
-        case 'HIGH_RISK':
-          radius = 8;
-          opacity = 0.85;
-          color = AppTheme.riskHigh;
-          break;
-        case 'MEDIUM_RISK':
-          radius = 6;
-          opacity = 0.75;
-          color = AppTheme.riskMedium;
-          break;
-        case 'LOW_RISK':
-          radius = 4;
-          opacity = 0.6;
-          color = AppTheme.riskLow;
-          break;
-        default:
-          radius = 3;
-          opacity = 0.4;
-          color = AppTheme.riskSafe;
-      }
-
-      return CircleMarker(
-        point: p.position,
-        radius: radius,
-        color: color.withValues(alpha: opacity),
-        borderColor: color,
-        borderStrokeWidth: 1,
-      );
-    }).toList();
-  }
-
-  List<Polygon> _buildHeatmapPolygons() {
-    final polys = <Polygon>[];
-    for (final cell in _heatmapCells) {
-      try {
-        final geom = cell['geometry'] as Map<String, dynamic>;
-        if (geom['type'] != 'Polygon') continue;
-        final coords = geom['coordinates'][0] as List;
-        final props = cell['properties'] as Map<String, dynamic>? ?? {};
-        final score = (props['combined_risk_score'] as num?)?.toDouble() ?? 0.0;
-
-        Color color;
-        double opacity;
-        if (score >= 0.8) {
-          color = const Color(0xFF8B0000);
-          opacity = 0.85;
-        } else if (score >= 0.6) {
-          color = const Color(0xFFD70000);
-          opacity = 0.80;
-        } else if (score >= 0.4) {
-          color = const Color(0xFFFF4500);
-          opacity = 0.75;
-        } else if (score >= 0.2) {
-          color = const Color(0xFFFFA500);
-          opacity = 0.70;
-        } else {
-          color = const Color(0xFFFFFF00);
-          opacity = 0.65;
-        }
-
-        final points = coords
-            .map(
-              (c) => LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble()),
-            )
-            .toList();
-
-        polys.add(
-          Polygon(
-            points: points,
-            color: color.withValues(alpha: opacity),
-            borderColor: color.withValues(alpha: 0.8),
-            borderStrokeWidth: 0.5,
-          ),
-        );
-      } catch (_) {}
-    }
-    return polys;
-  }
-
   // ─── Control panel bottom sheet ───────────────────────
 
   void _showControlPanel() {
@@ -1375,32 +1193,11 @@ class _MapScreenState extends State<MapScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => MapControlPanel(
-        dayRange: _dayRange,
-        isLiveTracking: _isLiveTracking,
-        showFires: _showFires,
-        showFireRisk: _showFireRisk,
-        showHeatmap: _showHeatmap,
         showReservoirs: _showReservoirs,
         showWaterSources: _showWaterSources,
         showWaterTanks: _showWaterTanks,
         showLakes: _showLakes,
-        onDayRangeChanged: (v) => setState(() => _dayRange = v),
-        onLoadFires: () {
-          Navigator.pop(ctx);
-          _loadFires();
-        },
-        onToggleLive: () {
-          Navigator.pop(ctx);
-          _toggleLiveTracking();
-        },
-        onToggleFireRisk: () {
-          Navigator.pop(ctx);
-          _toggleFireRisk();
-        },
-        onToggleHeatmap: () {
-          Navigator.pop(ctx);
-          _toggleHeatmap();
-        },
+        hasActiveSpread: _activeSpreadScenarioId != null,
         onToggleReservoirs: () {
           Navigator.pop(ctx);
           _toggleReservoirs();
@@ -1416,6 +1213,23 @@ class _MapScreenState extends State<MapScreen> {
         onToggleLakes: () {
           Navigator.pop(ctx);
           _toggleLakes();
+        },
+        onShowSpreadScenario: () {
+          Navigator.pop(ctx);
+          if (_activeSpreadScenarioId != null) {
+            // Stop tracking if already active
+            _stopSpreadTracking();
+          } else {
+            // Enable picking mode
+            setState(() {
+              _isPickingSpreadLocation = true;
+              _setStatus('Haritadan yangın başlangıç noktası seçin');
+            });
+          }
+        },
+        onShowSpreadList: () {
+          Navigator.pop(ctx);
+          _loadSpreadScenarios();
         },
         onReset: () {
           Navigator.pop(ctx);
@@ -1449,25 +1263,6 @@ class _MapScreenState extends State<MapScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            _drawerItem(
-              icon: Icons.local_fire_department,
-              label: _t('menu_fires', 'İzmir Yangınları'),
-              onTap: () {
-                Navigator.pop(context);
-                _toggleLiveTracking();
-              },
-            ),
-            _drawerItem(
-              icon: Icons.volunteer_activism,
-              label: _t('menu_volunteer', 'AFAD Gönüllüsü olun'),
-              onTap: () {
-                Navigator.pop(context);
-                launchUrl(
-                  Uri.parse('https://gonullu.afad.gov.tr/'),
-                  mode: LaunchMode.externalApplication,
-                );
-              },
-            ),
             _drawerItem(
               icon: Icons.contact_mail,
               label: _t('menu_contact', 'Bize Ulaşın'),
@@ -1520,124 +1315,119 @@ class _MapScreenState extends State<MapScreen> {
       ),
     );
   }
-}
 
-// ─── Fire Spread Scenario Bottom Sheet ────────────────────────────────────────
+  Widget _buildSpreadInfoPanel() {
+    final windKmh = (_windSpeedMs != null ? (_windSpeedMs! * 3.6) : 0.0).toStringAsFixed(1);
+    final spreadRateKmh = (_scenarioProps?['spread_rate_ms'] != null ? (_scenarioProps!['spread_rate_ms'] * 3.6) : 0.0).toStringAsFixed(2);
+    final frontDist = (_scenarioProps?['front_radius_km'] as num?)?.toDouble().toStringAsFixed(2) ?? '-';
+    final humidity = (_scenarioWeather?['humidity'] as num?)?.toDouble().toStringAsFixed(0) ?? '-';
+    final temp = (_scenarioWeather?['temperature_c'] as num?)?.toDouble().toStringAsFixed(1) ?? '-';
 
-class _SpreadScenarioSheet extends StatefulWidget {
-  final ApiService api;
-  final int? activeScenarioId;
-  final void Function(int id) onTrack;
-  final void Function(int id) onStop;
-
-  const _SpreadScenarioSheet({
-    required this.api,
-    required this.activeScenarioId,
-    required this.onTrack,
-    required this.onStop,
-  });
-
-  @override
-  State<_SpreadScenarioSheet> createState() => _SpreadScenarioSheetState();
-}
-
-class _SpreadScenarioSheetState extends State<_SpreadScenarioSheet> {
-  List<dynamic> _scenarios = [];
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    try {
-      final data = await widget.api.getSpreadScenarios();
-      if (mounted) setState(() { _scenarios = data; _loading = false; });
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
+    return Container(
+      width: 220,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xEE1a1a1a),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.5),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           const Text(
-            '🔥 Yangın Yayılım Senaryoları',
-            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
+            'YANGIN SİMÜLASYONU',
+            style: TextStyle(
+              color: Colors.orange,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildInfoRow('Süre:', '${(_elapsedMinutes ?? 0).toStringAsFixed(0)} dk'),
+          _buildInfoRow('Ön Cephe:', '$frontDist km'),
+          _buildInfoRow('Yayılım Hızı:', '$spreadRateKmh km/sa'),
+          const Divider(color: Colors.white10, height: 16),
+          const Text(
+            'CANLI HAVA DURUMU',
+            style: TextStyle(
+              color: Colors.white54,
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Aktif senaryoyu takip etmek için butona basın. Haritada canlı yayılım görüntülenir.',
-            style: TextStyle(color: Color(0xFF7BA368), fontSize: 11),
-          ),
-          const Divider(color: Color(0x30FFFFFF), height: 20),
-          if (_loading)
-            const Center(child: Padding(
-              padding: EdgeInsets.all(16),
-              child: CircularProgressIndicator(color: Color(0xFFFF4500)),
-            ))
-          else if (_scenarios.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: Text(
-                'Henüz senaryo yok.\nSenaryolar web uygulaması üzerinden oluşturulabilir.',
-                style: TextStyle(color: Color(0xFF7BA368), fontSize: 12),
-                textAlign: TextAlign.center,
-              ),
-            )
-          else
-            ...(_scenarios.map((s) {
-              final id = s['id'] as int;
-              final name = s['name'] as String? ?? 'Yangın';
-              final elapsed = (s['elapsed_minutes'] as num?)?.toStringAsFixed(0) ?? '0';
-              final active = s['status'] == 'active';
-              final tracking = widget.activeScenarioId == id;
-              return ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(
-                  Icons.local_fire_department,
-                  color: active ? const Color(0xFFFF4500) : Colors.grey,
-                  size: 28,
-                ),
-                title: Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
-                subtitle: Text('$elapsed dk geçti · ${s['origin_lat']?.toStringAsFixed(3)}, ${s['origin_lon']?.toStringAsFixed(3)}',
-                    style: const TextStyle(color: Color(0xFF7BA368), fontSize: 11)),
-                trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                  if (active)
-                    TextButton(
-                      onPressed: () => widget.onTrack(id),
-                      style: TextButton.styleFrom(
-                        backgroundColor: tracking ? const Color(0xFFFF4500) : const Color(0x30FF4500),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        minimumSize: Size.zero,
-                      ),
-                      child: Text(tracking ? '✓ Takip' : 'Takip Et', style: const TextStyle(fontSize: 11)),
-                    ),
-                  if (active) const SizedBox(width: 6),
-                  if (tracking)
-                    TextButton(
-                      onPressed: () => widget.onStop(id),
-                      style: TextButton.styleFrom(
-                        backgroundColor: const Color(0x30FF0000),
-                        foregroundColor: Colors.redAccent,
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        minimumSize: Size.zero,
-                      ),
-                      child: const Text('Durdur', style: TextStyle(fontSize: 11)),
-                    ),
-                ]),
-              );
-            }).toList()),
-          const SizedBox(height: 8),
+          _buildInfoRow('Rüzgar:', '$windKmh km/sa  ${_windDir?.toStringAsFixed(0) ?? '-'}°'),
+          _buildInfoRow('Sıcaklık:', '$temp°C'),
+          _buildInfoRow('Nem:', '%$humidity'),
         ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white70, fontSize: 11),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEtaBox() {
+    String msg;
+    Color color;
+
+    if (_etaMin == 0) {
+      msg = 'TEHLİKE: Yangın ev noktasına ulaştı!';
+      color = const Color(0xFFb71c1c);
+    } else if (_etaMin != null && _etaMin! <= 90) {
+      msg = 'Yüksek Risk: ETA ${_etaMin!.toStringAsFixed(0)} dk';
+      color = Colors.red;
+    } else if (_etaMin != null && _etaMin! <= 240) {
+      msg = 'İzleme: ETA ${_etaMin!.toStringAsFixed(0)} dk';
+      color = Colors.orange;
+    } else {
+      msg = 'Güvenli: Mesafe ${_distKm?.toStringAsFixed(1) ?? '-'} km';
+      color = Colors.green;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
+      ),
+      child: Text(
+        msg,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

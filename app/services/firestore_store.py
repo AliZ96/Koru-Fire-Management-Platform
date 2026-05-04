@@ -4,7 +4,7 @@ import json
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from google.api_core.exceptions import FailedPrecondition
+from google.api_core.exceptions import FailedPrecondition, ResourceExhausted
 from google.cloud.firestore import FieldFilter
 
 from app.core.firebase import get_firestore_client
@@ -90,16 +90,19 @@ class FirestoreStore:
                     continue
                 data["id"] = doc.id
                 return data
-        except FailedPrecondition:
+        except (FailedPrecondition, ResourceExhausted):
             pass
-        for doc in self.db.collection("users").stream():
-            data = doc.to_dict() or {}
-            if data.get("username") != username:
-                continue
-            if str(data.get("role") or "").lower() != normalized_role:
-                continue
-            data["id"] = doc.id
-            return data
+        try:
+            for doc in self.db.collection("users").stream():
+                data = doc.to_dict() or {}
+                if data.get("username") != username:
+                    continue
+                if str(data.get("role") or "").lower() != normalized_role:
+                    continue
+                data["id"] = doc.id
+                return data
+        except ResourceExhausted:
+            pass
         return None
 
     def create_user(self, username: str, hashed_password: str, role: str) -> dict[str, Any]:
@@ -221,8 +224,11 @@ class FirestoreStore:
         return rows
 
     def list_active_scenario_ids(self) -> list[str]:
-        docs = self.db.collection("fire_scenarios").where(filter=FieldFilter("status", "==", "active")).stream()
-        return [doc.id for doc in docs]
+        try:
+            docs = self.db.collection("fire_scenarios").where(filter=FieldFilter("status", "==", "active")).stream()
+            return [doc.id for doc in docs]
+        except ResourceExhausted:
+            return []
 
     def create_spread_snapshot(self, scenario_id: str, payload: dict[str, Any]) -> None:
         body = payload.copy()

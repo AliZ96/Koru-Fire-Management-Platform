@@ -183,4 +183,8 @@ async def monitor_loop() -> None:
             try:
                 await refresh_scenario(sid)
             except Exception as e:
-                logger.error(f"Monitor loop error for scenario {sid}: {e}")
+                if "Quota exceeded" in str(e) or "ResourceExhausted" in str(e):
+                    logger.warning("Firestore quota exceeded. Sleeping monitor for 1 hour.")
+                    await asyncio.sleep(3600)
+                else:
+                    logger.error(f"Monitor loop error for scenario {sid}: {e}")
