@@ -67,7 +67,9 @@ class ApiService {
     return _decode(res);
   }
 
-  Future<Map<String, dynamic>> exchangeFirebaseToken(String firebaseToken) async {
+  Future<Map<String, dynamic>> exchangeFirebaseToken(
+    String firebaseToken,
+  ) async {
     final res = await http
         .post(
           Uri.parse('$baseUrl/auth/firebase-token'),
@@ -115,39 +117,6 @@ class ApiService {
     final res = await http
         .get(
           Uri.parse('$baseUrl${ApiConfig.wind}?lat=$lat&lon=$lon'),
-          headers: _headers,
-        )
-        .timeout(_kTimeout);
-    return _decode(res);
-  }
-
-  // ─── Water layers ─────────────────────────────────────
-
-  Future<Map<String, dynamic>> getDams() async {
-    final res = await http
-        .get(Uri.parse('$baseUrl${ApiConfig.dams}'), headers: _headers)
-        .timeout(_kTimeout);
-    return _decode(res);
-  }
-
-  Future<Map<String, dynamic>> getWaterSources() async {
-    final res = await http
-        .get(Uri.parse('$baseUrl${ApiConfig.waterSources}'), headers: _headers)
-        .timeout(_kTimeout);
-    return _decode(res);
-  }
-
-  Future<Map<String, dynamic>> getWaterTanks() async {
-    final res = await http
-        .get(Uri.parse('$baseUrl${ApiConfig.waterTanks}'), headers: _headers)
-        .timeout(_kTimeout);
-    return _decode(res);
-  }
-
-  Future<Map<String, dynamic>> getLakes() async {
-    final res = await http
-        .get(
-          Uri.parse('$baseUrl/static/data/ponds-lakes.geojson'),
           headers: _headers,
         )
         .timeout(_kTimeout);
@@ -340,6 +309,16 @@ class ApiService {
     return _decode(res);
   }
 
+  Future<Map<String, dynamic>> deleteAllSpreadScenarios() async {
+    final res = await http
+        .delete(
+          Uri.parse('$baseUrl/api/fire-spread/scenarios'),
+          headers: _headers,
+        )
+        .timeout(_kTimeout);
+    return _decode(res);
+  }
+
   Future<Map<String, dynamic>> getSpreadEta({
     required dynamic scenarioId,
     required double lat,
@@ -347,7 +326,9 @@ class ApiService {
   }) async {
     final res = await http
         .get(
-          Uri.parse('$baseUrl/api/fire-spread/scenarios/$scenarioId/eta?lat=$lat&lon=$lon'),
+          Uri.parse(
+            '$baseUrl/api/fire-spread/scenarios/$scenarioId/eta?lat=$lat&lon=$lon',
+          ),
           headers: _headers,
         )
         .timeout(_kTimeout);
@@ -382,7 +363,7 @@ class ApiService {
       final body = jsonDecode(res.body);
       throw ApiException(
         statusCode: res.statusCode,
-        message: body['detail']?.toString() ?? res.body,
+        message: (body is Map ? body['detail']?.toString() : null) ?? res.body,
       );
     } catch (e) {
       if (e is ApiException) rethrow;
