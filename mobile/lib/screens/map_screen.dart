@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -14,6 +15,10 @@ import '../services/map_data_service.dart';
 import '../widgets/map_control_panel.dart';
 import 'login_screen.dart';
 
+const int kFireSpreadMonitorIntervalMinutes = 15;
+const double kFireSpreadStepDurationMinutes = 60.0;
+const double kSecondsPerMinute = 60.0;
+
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
@@ -27,20 +32,6 @@ class _MapScreenState extends State<MapScreen> {
   // Izmir boundary data synced with web behavior
   final List<List<List<LatLng>>> _izmirPolygons = [];
   final List<List<LatLng>> _izmirBoundaryLines = [];
-
-  // Layer data
-  List<WaterFeature> _reservoirs = [];
-  List<WaterFeature> _waterSources = [];
-  List<WaterFeature> _waterTanks = [];
-  List<WaterFeature> _lakes = [];
-  List<Polygon> _lakePolygons = [];
-  WindData? _windData; // ignore: unused_field – reserved for wind overlay
-
-  // Layer visibility toggles
-  bool _showReservoirs = false;
-  bool _showWaterSources = false;
-  bool _showWaterTanks = false;
-  bool _showLakes = false;
 
   // Loading state
   bool _loading = false;
@@ -69,6 +60,7 @@ class _MapScreenState extends State<MapScreen> {
   Map<String, dynamic>? _scenarioProps;
   Map<String, dynamic>? _scenarioWeather;
   double? _elapsedMinutes;
+  List<dynamic>? _spreadScenariosCache;
 
   late ApiService _api;
   Map<String, String> _copy = {};
@@ -251,9 +243,7 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _loadDefaultPublicLayers() async {
     if (_loading) return;
-    await _toggleReservoirs();
-    await _toggleWaterSources();
-    await _toggleLakes();
+    // Water layers removed per user request
   }
 
   Future<void> _loadWebSyncedCopy() async {
@@ -286,9 +276,17 @@ class _MapScreenState extends State<MapScreen> {
     if (mounted) setState(() => _statusText = msg);
   }
 
+  bool _isTransientSpreadStatus(String status) {
+    final lower = status.toLowerCase();
+    return lower.contains('yangın yayılımı canlı izleniyor') ||
+        lower.contains('canlı veriler bağlanıyor') ||
+        lower.contains('senaryo oluşturuluyor') ||
+        lower.contains('haritadan yangın başlangıç noktası seçin');
+  }
+
   // ─── Fire Spread ──────────────────────────────────────────────────────────
 
-  void _connectSpreadWS(int scenarioId) {
+  void _connectSpreadWS(dynamic scenarioId) {
     _spreadWsSub?.cancel();
     _spreadWsChannel?.sink.close();
 
@@ -324,17 +322,31 @@ class _MapScreenState extends State<MapScreen> {
     final feature = data['spread_polygon'] as Map<String, dynamic>?;
     final origin = data['origin'] as Map<String, dynamic>?;
     final alerts = data['alerts'] as List<dynamic>? ?? [];
+    final weather = data['weather'] as Map<String, dynamic>?;
+    final elapsed = data['elapsed_minutes'] != null
+        ? double.tryParse(data['elapsed_minutes'].toString())
+        : null;
 
     List<Polygon> polys = [];
     if (feature != null) {
-      final coords =
-          (feature['geometry']?['coordinates']?[0] as List?)
-              ?.map(
-                (c) =>
-                    LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble()),
-              )
-              .toList() ??
-          [];
+      // Support both Feature and direct Geometry types
+      final Map<String, dynamic>? geometry = (feature['type'] == 'Feature')
+          ? feature['geometry'] as Map<String, dynamic>?
+          : feature;
+
+      final props = (feature['type'] == 'Feature')
+          ? feature['properties'] as Map<String, dynamic>?
+          : null;
+
+      final coordsRaw = (geometry?['coordinates']?[0] as List?) ?? [];
+      final coords = coordsRaw.map((c) {
+        final clist = c as List;
+        return LatLng(
+          double.tryParse(clist[1].toString()) ?? 0.0,
+          double.tryParse(clist[0].toString()) ?? 0.0,
+        );
+      }).toList();
+
       if (coords.isNotEmpty) {
         polys = [
           Polygon(
@@ -345,6 +357,7 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ];
       }
+      _scenarioProps = props; // Update properties for the info panel
     }
 
     String? alertMsg;
@@ -362,15 +375,107 @@ class _MapScreenState extends State<MapScreen> {
       _spreadPolygons = polys;
       _spreadOrigin = origin != null
           ? LatLng(
-              (origin['lat'] as num).toDouble(),
-              (origin['lon'] as num).toDouble(),
+              double.tryParse(origin['lat']?.toString() ?? '0') ?? 0.0,
+              double.tryParse(origin['lon']?.toString() ?? '0') ?? 0.0,
             )
           : null;
+      _scenarioWeather = weather;
+      _elapsedMinutes = elapsed;
+      // _scenarioProps updated above in feature block
+
+      _windDir = weather != null
+          ? double.tryParse(weather['wind_dir_deg']?.toString() ?? '')
+          : null;
+      _windSpeedMs = weather != null
+          ? double.tryParse(weather['wind_speed_ms']?.toString() ?? '')
+          : null;
+
       if (alertMsg != null) {
         _spreadAlertMsg = alertMsg;
         _spreadAlertSeverity = alertSev;
       }
+
+      // Calculate ETA if user location is set
+      if (_mySpreadLocation != null &&
+          _spreadOrigin != null &&
+          weather != null) {
+        final res = _calculateEta(data);
+        if (res != null) {
+          _etaMin = res['eta'];
+          _distKm = res['distKm'];
+        }
+      }
     });
+  }
+
+  Map<String, double?>? _calculateEta(Map<String, dynamic> data) {
+    final origin = data['origin'];
+    if (origin == null || _mySpreadLocation == null) return null;
+
+    final originLat = double.tryParse(origin['lat']?.toString() ?? '') ?? 0.0;
+    final originLon = double.tryParse(origin['lon']?.toString() ?? '') ?? 0.0;
+    final userLat = _mySpreadLocation!.latitude;
+    final userLon = _mySpreadLocation!.longitude;
+
+    // Haversine
+    const r = 6371.0;
+    double toRad(double deg) => deg * pi / 180;
+    final dLat = toRad(userLat - originLat);
+    final dLon = toRad(userLon - originLon);
+    final a =
+        sin(dLat / 2) * sin(dLat / 2) +
+        cos(toRad(originLat)) *
+            cos(toRad(userLat)) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
+    final distKm = 2 * r * atan2(sqrt(a), sqrt(1 - a));
+    final distM = distKm * 1000;
+
+    final weather = data['weather'] as Map<String, dynamic>?;
+    if (weather == null) return {'eta': null, 'distKm': distKm};
+
+    final wDir =
+        double.tryParse(weather['wind_dir_deg']?.toString() ?? '') ?? 240.0;
+    final wSpd =
+        double.tryParse(weather['wind_speed_ms']?.toString() ?? '') ?? 6.0;
+    final hum = double.tryParse(weather['humidity']?.toString() ?? '') ?? 50.0;
+    final temp =
+        double.tryParse(weather['temperature_c']?.toString() ?? '') ?? 25.0;
+
+    // Bearing
+    final dx = sin(toRad(userLon - originLon)) * cos(toRad(userLat));
+    final dy =
+        cos(toRad(originLat)) * sin(toRad(userLat)) -
+        sin(toRad(originLat)) *
+            cos(toRad(userLat)) *
+            cos(toRad(userLon - originLon));
+    final bearing = (atan2(dx, dy) * 180 / pi + 360) % 360;
+    final angleDiff = (bearing - wDir + 180).abs() % 360 - 180;
+    final angleDiffAbs = angleDiff.abs();
+
+    // Spread Rate (Sync with fire_spread_engine.py)
+    const base = 0.15;
+    final wf = 1.0 + wSpd * 0.22;
+    final hf = (100 - hum.clamp(0, 100)) / 100.0;
+    final tf = 1.0 + (temp - 20).clamp(0, 50) * 0.015;
+    final rateMs = base * wf * hf * tf;
+
+    final cosF = cos(angleDiffAbs * pi / 180);
+    final dirR = cosF >= 0
+        ? rateMs * (cosF * 0.88 + 0.12)
+        : rateMs * (cosF.abs() * 0.04 + 0.08);
+
+    final elapsed =
+        double.tryParse(data['elapsed_minutes']?.toString() ?? '') ?? 0.0;
+    final reach = dirR * elapsed * kSecondsPerMinute;
+
+    if (distM <= reach) return {'eta': 0.0, 'distKm': distKm};
+    if (dirR < 1e-6) return {'eta': null, 'distKm': distKm};
+
+    return {
+      'eta': (distM - reach) / dirR / kSecondsPerMinute,
+      'distKm': distKm,
+    };
   }
 
   void _stopSpreadTracking() {
@@ -384,6 +489,14 @@ class _MapScreenState extends State<MapScreen> {
         _spreadPolygons = [];
         _spreadOrigin = null;
         _spreadAlertMsg = null;
+        _spreadAlertSeverity = null;
+        _scenarioProps = null;
+        _scenarioWeather = null;
+        _elapsedMinutes = null;
+        _etaMin = null;
+        _distKm = null;
+        _statusText = '';
+        _isPickingSpreadLocation = false;
       });
     }
   }
@@ -392,24 +505,51 @@ class _MapScreenState extends State<MapScreen> {
     setState(() {
       _isPickingSpreadLocation = false;
       _loading = true;
-      _setStatus('Simülasyon oluşturuluyor...');
+      _spreadOrigin = latLng;
+      _spreadPolygons = [];
+      _activeSpreadScenarioId = null;
+      _spreadAlertMsg = null;
+      _lastSpreadData = null;
+      _etaMin = null;
+      _distKm = null;
+      _setStatus('Senaryo oluşturuluyor...');
     });
+
     try {
       final now = DateTime.now().toLocal();
-      final timeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+      final timeStr =
+          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
       final res = await _api.createSpreadScenario(
         name: 'Mobil Simülasyon $timeStr',
         lat: latLng.latitude,
         lon: latLng.longitude,
       );
+
       final newId = res['id'];
+      if (newId == null)
+        throw Exception('Sunucudan geçerli bir senaryo ID alınamadı.');
+
       setState(() {
         _activeSpreadScenarioId = newId;
+        _setStatus('Canlı veriler bağlanıyor...');
       });
+      _spreadScenariosCache = null;
+
       _connectSpreadWS(newId);
-      _setStatus('Yangın yayılımı hesaplanıyor...');
+      _setStatus('Yangın yayılımı canlı izleniyor...');
     } catch (e) {
-      _setStatus('Simülasyon hatası: $e');
+      _setStatus('Hata: ${e.toString().replaceAll('Exception:', '').trim()}');
+      setState(() {
+        _spreadOrigin = null;
+        _loading = false;
+      });
+      // Auto-clear error status after 5 seconds
+      Future.delayed(const Duration(seconds: 5), () {
+        if (mounted && _statusText.contains('Hata:')) {
+          setState(() => _statusText = '');
+        }
+      });
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -420,7 +560,10 @@ class _MapScreenState extends State<MapScreen> {
   Future<void> _loadSpreadScenarios() async {
     setState(() => _loading = true);
     try {
-      final list = await _api.getSpreadScenarios();
+      final list = _spreadScenariosCache ?? await _api.getSpreadScenarios();
+      if (_spreadScenariosCache == null) {
+        _spreadScenariosCache = list;
+      }
       if (!mounted) return;
       _showSpreadListModal(list);
     } catch (e) {
@@ -436,10 +579,17 @@ class _MapScreenState extends State<MapScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        height: MediaQuery.of(context).size.height * 0.45,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.98),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 20,
+              spreadRadius: 5,
+            )
+          ],
         ),
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -452,9 +602,54 @@ class _MapScreenState extends State<MapScreen> {
                   'Yangın Senaryoları',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(ctx),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextButton.icon(
+                      onPressed: scenarios.isEmpty
+                          ? null
+                          : () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (dialogCtx) => AlertDialog(
+                                  title: const Text(
+                                    'Tüm senaryolar silinsin mi?',
+                                  ),
+                                  content: const Text(
+                                    'Bu işlem tüm yangın yayılım senaryolarını ve snapshot kayıtlarını siler.',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(dialogCtx, false),
+                                      child: const Text('Vazgeç'),
+                                    ),
+                                    FilledButton(
+                                      onPressed: () =>
+                                          Navigator.pop(dialogCtx, true),
+                                      child: const Text('Sil'),
+                                    ),
+                                  ],
+                                ),
+                              );
+
+                              if (confirm != true) return;
+                              if (_activeSpreadScenarioId != null) {
+                                _stopSpreadTracking();
+                              }
+                              await _api.deleteAllSpreadScenarios();
+                              _spreadScenariosCache = null;
+                              if (ctx.mounted) Navigator.pop(ctx);
+                              await _loadSpreadScenarios();
+                            },
+                      icon: const Icon(Icons.delete_outline),
+                      label: const Text('Tümünü Sil'),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -476,39 +671,29 @@ class _MapScreenState extends State<MapScreen> {
                           title: Text(
                             name,
                             style: TextStyle(
-                              fontWeight: active ? FontWeight.bold : FontWeight.normal,
-                              color: active ? Colors.orange[800] : Colors.grey[700],
+                              fontWeight: active
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              color: active
+                                  ? Colors.orange[800]
+                                  : Colors.grey[700],
                             ),
                           ),
                           subtitle: Text(
-                            'ID: $id • ${s['elapsed_minutes']?.toStringAsFixed(0) ?? '0'} dk • ${s['origin_lat']?.toStringAsFixed(3)}, ${s['origin_lon']?.toStringAsFixed(3)}',
+                            'ID: $id • ${double.tryParse(s['elapsed_minutes']?.toString() ?? '0')?.toStringAsFixed(0) ?? '0'} dk • ${double.tryParse(s['origin_lat']?.toString() ?? '0')?.toStringAsFixed(3)}, ${double.tryParse(s['origin_lon']?.toString() ?? '0')?.toStringAsFixed(3)}',
                             style: const TextStyle(fontSize: 12),
                           ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pop(ctx);
-                                  if (isTracking) {
-                                    _stopSpreadTracking();
-                                  } else {
-                                    _activeSpreadScenarioId = id;
-                                    _connectSpreadWS(id);
-                                  }
-                                },
-                                child: Text(isTracking ? 'Durdur' : 'Takip Et'),
-                              ),
-                              if (active)
-                                IconButton(
-                                  icon: const Icon(Icons.stop_circle_outlined, color: Colors.red),
-                                  onPressed: () async {
-                                    await _api.stopSpreadScenario(id);
-                                    Navigator.pop(ctx);
-                                    _loadSpreadScenarios();
-                                  },
-                                ),
-                            ],
+                          trailing: TextButton(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              if (isTracking) {
+                                _stopSpreadTracking();
+                              } else {
+                                _activeSpreadScenarioId = id;
+                                _connectSpreadWS(id);
+                              }
+                            },
+                            child: Text(isTracking ? 'Durdur' : 'Takip Et'),
                           ),
                         );
                       },
@@ -520,223 +705,10 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  // ─── Water layers ─────────────────────────────────────
-
-  Future<void> _toggleReservoirs() async {
-    if (_showReservoirs) {
-      setState(() {
-        _showReservoirs = false;
-        _reservoirs = [];
-      });
-      _setStatus('Su Rezervuarları kapatıldı');
-      return;
-    }
-    setState(() => _loading = true);
-    _setStatus('Su Rezervuarları yükleniyor...');
-    try {
-      final gj = await _api.getDams();
-      final features = (gj['features'] as List?) ?? [];
-      final items = features
-          .map(
-            (f) => WaterFeature.fromGeoJsonFeature(
-              f as Map<String, dynamic>,
-              'reservoir',
-            ),
-          )
-          .where((w) => _isInIzmir(w.position.latitude, w.position.longitude))
-          .toList();
-      setState(() {
-        _reservoirs = items;
-        _showReservoirs = true;
-      });
-      _setStatus('Su Rezervuarları: ${items.length}');
-    } catch (e) {
-      _setStatus('Su Rezervuarları hatası: $e');
-    } finally {
-      setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _toggleWaterSources() async {
-    if (_showWaterSources) {
-      setState(() {
-        _showWaterSources = false;
-        _waterSources = [];
-      });
-      _setStatus('Su Kaynakları kapatıldı');
-      return;
-    }
-    setState(() => _loading = true);
-    _setStatus('Su Kaynakları yükleniyor...');
-    try {
-      final gj = await _api.getWaterSources();
-      final features = (gj['features'] as List?) ?? [];
-      final items = features
-          .map(
-            (f) => WaterFeature.fromGeoJsonFeature(
-              f as Map<String, dynamic>,
-              'source',
-            ),
-          )
-          .where((w) => _isInIzmir(w.position.latitude, w.position.longitude))
-          .toList();
-      setState(() {
-        _waterSources = items;
-        _showWaterSources = true;
-      });
-      _setStatus('Su Kaynakları: ${items.length}');
-    } catch (e) {
-      _setStatus('Su Kaynakları hatası: $e');
-    } finally {
-      setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _toggleWaterTanks() async {
-    if (_showWaterTanks) {
-      setState(() {
-        _showWaterTanks = false;
-        _waterTanks = [];
-      });
-      _setStatus('Su tankları kapatıldı');
-      return;
-    }
-    setState(() => _loading = true);
-    _setStatus('Su tankları yükleniyor...');
-    try {
-      final gj = await _api.getWaterTanks();
-      final features = (gj['features'] as List?) ?? [];
-      final items = features
-          .map(
-            (f) => WaterFeature.fromGeoJsonFeature(
-              f as Map<String, dynamic>,
-              'tank',
-            ),
-          )
-          .where((w) => _isInIzmir(w.position.latitude, w.position.longitude))
-          .toList();
-      setState(() {
-        _waterTanks = items;
-        _showWaterTanks = true;
-      });
-      _setStatus('Su tankları: ${items.length}');
-    } catch (e) {
-      _setStatus('Su tankları hatası: $e');
-    } finally {
-      setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _toggleLakes() async {
-    if (_showLakes) {
-      setState(() {
-        _showLakes = false;
-        _lakes = [];
-        _lakePolygons = [];
-      });
-      _setStatus('Göl ve Göletler kapatıldı');
-      return;
-    }
-    setState(() => _loading = true);
-    _setStatus('Göl ve Göletler yükleniyor...');
-    try {
-      final gj = await _api.getLakes();
-      final features = (gj['features'] as List?) ?? [];
-      final polygons = <Polygon>[];
-      final points = <WaterFeature>[];
-
-      for (final raw in features) {
-        if (raw is! Map<String, dynamic>) continue;
-        if (!_isFeatureInIzmir(raw)) continue;
-
-        final geom = raw['geometry'];
-        if (geom is! Map<String, dynamic>) continue;
-
-        final type = geom['type'];
-        final coords = geom['coordinates'];
-
-        if (type == 'Polygon' && coords is List && coords.isNotEmpty) {
-          final outer = coords[0] as List;
-          final pts = outer
-              .whereType<List>()
-              .where((c) => c.length >= 2)
-              .map(
-                (c) =>
-                    LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble()),
-              )
-              .toList();
-          if (pts.isNotEmpty) {
-            polygons.add(
-              Polygon(
-                points: pts,
-                color: AppTheme.lake.withValues(alpha: 0.65),
-                borderColor: const Color(0xFF001A2E),
-                borderStrokeWidth: 2.5,
-              ),
-            );
-          }
-          continue;
-        }
-
-        if (type == 'MultiPolygon' && coords is List) {
-          for (final poly in coords) {
-            if (poly is! List || poly.isEmpty) continue;
-            final outer = poly[0] as List;
-            final pts = outer
-                .whereType<List>()
-                .where((c) => c.length >= 2)
-                .map(
-                  (c) => LatLng(
-                    (c[1] as num).toDouble(),
-                    (c[0] as num).toDouble(),
-                  ),
-                )
-                .toList();
-            if (pts.isNotEmpty) {
-              polygons.add(
-                Polygon(
-                  points: pts,
-                  color: AppTheme.lake.withValues(alpha: 0.65),
-                  borderColor: const Color(0xFF001A2E),
-                  borderStrokeWidth: 2.5,
-                ),
-              );
-            }
-          }
-          continue;
-        }
-
-        if (type == 'Point') {
-          points.add(WaterFeature.fromGeoJsonFeature(raw, 'lake'));
-        }
-      }
-
-      setState(() {
-        _lakes = points;
-        _lakePolygons = polygons;
-        _showLakes = true;
-      });
-      _setStatus('Göl ve Göletler: ${polygons.length + points.length}');
-    } catch (e) {
-      _setStatus('Göl ve Göletler hatası: $e');
-    } finally {
-      setState(() => _loading = false);
-    }
-  }
-
   // ─── Reset ────────────────────────────────────────────
 
   void _resetMap() {
     setState(() {
-      _reservoirs = [];
-      _waterSources = [];
-      _waterTanks = [];
-      _lakes = [];
-      _lakePolygons = [];
-      _showReservoirs = false;
-      _showWaterSources = false;
-      _showWaterTanks = false;
-      _showLakes = false;
       _statusText = _t('status_map_reset', 'Harita sıfırlandı');
     });
     _mapCtrl.move(const LatLng(38.42, 27.14), 8);
@@ -777,91 +749,6 @@ class _MapScreenState extends State<MapScreen> {
                 userAgentPackageName: 'com.koru.app',
               ),
 
-              // Water reservoirs
-              if (_showReservoirs && _reservoirs.isNotEmpty)
-                MarkerLayer(
-                  markers: _reservoirs
-                      .map(
-                        (w) => Marker(
-                          point: w.position,
-                          width: 20,
-                          height: 20,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: AppTheme.waterReservoir,
-                              border: Border.all(
-                                color: AppTheme.brandRed,
-                                width: 2,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.3),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      )
-                      .toList(),
-                ),
-
-              // Water sources
-              if (_showWaterSources && _waterSources.isNotEmpty)
-                CircleLayer(
-                  circles: _waterSources
-                      .map(
-                        (w) => CircleMarker(
-                          point: w.position,
-                          radius: 5,
-                          color: AppTheme.waterSource.withValues(alpha: 0.7),
-                          borderColor: AppTheme.waterSource,
-                          borderStrokeWidth: 2,
-                        ),
-                      )
-                      .toList(),
-                ),
-
-              // Water tanks
-              if (_showWaterTanks && _waterTanks.isNotEmpty)
-                MarkerLayer(
-                  markers: _waterTanks
-                      .map(
-                        (w) => Marker(
-                          point: w.position,
-                          width: 18,
-                          height: 18,
-                          child: const Icon(
-                            Icons.water_drop,
-                            color: AppTheme.waterTank,
-                            size: 18,
-                          ),
-                        ),
-                      )
-                      .toList(),
-                ),
-
-              // Lakes and ponds
-              if (_showLakes && _lakePolygons.isNotEmpty)
-                PolygonLayer(polygons: _lakePolygons),
-
-              // Lakes represented as points (fallback)
-              if (_showLakes && _lakes.isNotEmpty)
-                CircleLayer(
-                  circles: _lakes
-                      .map(
-                        (w) => CircleMarker(
-                          point: w.position,
-                          radius: 6,
-                          color: AppTheme.lake.withValues(alpha: 0.65),
-                          borderColor: const Color(0xFF001A2E),
-                          borderStrokeWidth: 2,
-                        ),
-                      )
-                      .toList(),
-                ),
-
               // Izmir boundary line overlay (drawn above data layers)
               if (_izmirBoundaryLines.isNotEmpty)
                 PolylineLayer(
@@ -885,8 +772,8 @@ class _MapScreenState extends State<MapScreen> {
                       color: _etaMin == 0
                           ? Colors.red
                           : (_etaMin != null && _etaMin! <= 90
-                              ? Colors.orange
-                              : Colors.blue.withValues(alpha: 0.6)),
+                                ? Colors.orange
+                                : Colors.blue.withValues(alpha: 0.6)),
                       strokeWidth: 3,
                     ),
                   ],
@@ -942,8 +829,8 @@ class _MapScreenState extends State<MapScreen> {
                         color: _etaMin == 0
                             ? Colors.red
                             : (_etaMin != null && _etaMin! <= 90
-                                ? Colors.orange
-                                : Colors.blue),
+                                  ? Colors.orange
+                                  : Colors.blue),
                         size: 30,
                       ),
                     ),
@@ -969,8 +856,8 @@ class _MapScreenState extends State<MapScreen> {
                     color: _spreadAlertSeverity == 'critical'
                         ? const Color(0xEEb71c1c)
                         : _spreadAlertSeverity == 'high'
-                            ? const Color(0xEEe65100)
-                            : const Color(0xEE1a1a1a),
+                        ? const Color(0xEEe65100)
+                        : const Color(0xEE1a1a1a),
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
@@ -1000,11 +887,7 @@ class _MapScreenState extends State<MapScreen> {
                           ),
                         ),
                       ),
-                      const Icon(
-                        Icons.close,
-                        color: Colors.white60,
-                        size: 16,
-                      ),
+                      const Icon(Icons.close, color: Colors.white60, size: 16),
                     ],
                   ),
                 ),
@@ -1013,21 +896,16 @@ class _MapScreenState extends State<MapScreen> {
 
           // Detailed Info Panel (Bottom Left)
           if (_activeSpreadScenarioId != null)
-            Positioned(
-              bottom: 120,
-              left: 16,
-              child: _buildSpreadInfoPanel(),
-            ),
+            Positioned(bottom: 120, left: 16, child: _buildSpreadInfoPanel()),
 
           // ETA Box (Top Center - below alert)
-          if (_activeSpreadScenarioId != null && (_etaMin != null || _distKm != null))
+          if (_activeSpreadScenarioId != null &&
+              (_etaMin != null || _distKm != null))
             Positioned(
               top: _spreadAlertMsg != null ? 70 : 12,
               left: 16,
               right: 16,
-              child: Center(
-                child: _buildEtaBox(),
-              ),
+              child: Center(child: _buildEtaBox()),
             ),
 
           // Loading overlay
@@ -1043,37 +921,59 @@ class _MapScreenState extends State<MapScreen> {
             ),
 
           // Status bar
-          if (_statusText.isNotEmpty)
+          if (_statusText.isNotEmpty &&
+              (_activeSpreadScenarioId != null ||
+                  _isPickingSpreadLocation ||
+                  !_isTransientSpreadStatus(_statusText)))
             Positioned(
               top: 8,
               left: 60,
               right: 60,
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
+                  horizontal: 16,
+                  vertical: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.92),
-                  borderRadius: BorderRadius.circular(20),
+                  color: const Color(0xEE1a1a1a),
+                  borderRadius: BorderRadius.circular(25),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.15),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+                      color: Colors.black.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
-                child: Text(
-                  _statusText,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF344044),
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                child: Row(
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Colors.orange,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _statusText,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -1084,78 +984,39 @@ class _MapScreenState extends State<MapScreen> {
             right: 12,
             child: Column(
               children: [
-                Material(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  borderRadius: BorderRadius.circular(30),
-                  elevation: 6,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(30),
-                    onTap: _showControlPanel,
-                    child: const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: Icon(
-                        Icons.layers,
-                        size: 24,
-                        color: AppTheme.darkGreen,
-                      ),
-                    ),
-                  ),
+                _circularMapBtn(
+                  icon: Icons.layers_rounded,
+                  onTap: _loadAndShowControlPanel,
                 ),
                 const SizedBox(height: 12),
-                Material(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  borderRadius: BorderRadius.circular(30),
-                  elevation: 6,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(30),
-                    onTap: () => setState(() => _useSatellite = !_useSatellite),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Icon(
-                        _useSatellite ? Icons.satellite_alt : Icons.map,
-                        size: 24,
-                        color: AppTheme.darkGreen,
-                      ),
-                    ),
-                  ),
+                _circularMapBtn(
+                  icon: _useSatellite ? Icons.map_rounded : Icons.satellite_alt_rounded,
+                  onTap: () => setState(() => _useSatellite = !_useSatellite),
                 ),
               ],
             ),
           ),
-          
+
           // Logout / Back to Login button
           Positioned(
             top: MediaQuery.of(context).padding.top + 12,
             left: 12,
-            child: Material(
-              color: Colors.white.withValues(alpha: 0.9),
-              borderRadius: BorderRadius.circular(30),
-              elevation: 6,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(30),
-                onTap: () async {
-                  await context.read<AuthService>().logout();
-                  if (context.mounted) {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
-                    );
-                  }
-                },
-                child: const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Icon(
-                    Icons.logout_rounded,
-                    size: 24,
-                    color: AppTheme.brandRed,
-                  ),
-                ),
-              ),
+            child: _circularMapBtn(
+              icon: Icons.logout_rounded,
+              color: Colors.redAccent,
+              onTap: () async {
+                await context.read<AuthService>().logout();
+                if (context.mounted) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  );
+                }
+              },
             ),
           ),
         ],
       ),
-
     );
   }
 
@@ -1187,53 +1048,70 @@ class _MapScreenState extends State<MapScreen> {
 
   // ─── Control panel bottom sheet ───────────────────────
 
+  Future<void> _loadAndShowControlPanel() async {
+    setState(() => _loading = true);
+    try {
+      _spreadScenariosCache = await _api.getSpreadScenarios();
+      if (!mounted) return;
+      _showControlPanel();
+    } catch (e) {
+      _setStatus('Veriler yüklenemedi: $e');
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
   void _showControlPanel() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => MapControlPanel(
-        showReservoirs: _showReservoirs,
-        showWaterSources: _showWaterSources,
-        showWaterTanks: _showWaterTanks,
-        showLakes: _showLakes,
         hasActiveSpread: _activeSpreadScenarioId != null,
-        onToggleReservoirs: () {
-          Navigator.pop(ctx);
-          _toggleReservoirs();
-        },
-        onToggleWaterSources: () {
-          Navigator.pop(ctx);
-          _toggleWaterSources();
-        },
-        onToggleWaterTanks: () {
-          Navigator.pop(ctx);
-          _toggleWaterTanks();
-        },
-        onToggleLakes: () {
-          Navigator.pop(ctx);
-          _toggleLakes();
-        },
         onShowSpreadScenario: () {
           Navigator.pop(ctx);
           if (_activeSpreadScenarioId != null) {
-            // Stop tracking if already active
+            _stopSpreadTracking();
+          }
+          setState(() {
+            _isPickingSpreadLocation = true;
+            _setStatus('Lütfen haritadan bir yer seçin');
+          });
+        },
+        onShowSpreadList: () {}, // Handled inline now
+        scenarios: _spreadScenariosCache ?? [],
+        activeScenarioId: _activeSpreadScenarioId,
+        onToggleTracking: (id, isTracking) {
+          if (isTracking) {
             _stopSpreadTracking();
           } else {
-            // Enable picking mode
             setState(() {
-              _isPickingSpreadLocation = true;
-              _setStatus('Haritadan yangın başlangıç noktası seçin');
+              _activeSpreadScenarioId = id;
             });
+            _connectSpreadWS(id);
           }
+          // Refresh panel state
+          (ctx as Element).markNeedsBuild();
         },
-        onShowSpreadList: () {
-          Navigator.pop(ctx);
-          _loadSpreadScenarios();
-        },
-        onReset: () {
-          Navigator.pop(ctx);
-          _resetMap();
+        onDeleteAll: () async {
+          final confirm = await showDialog<bool>(
+            context: context,
+            builder: (dialogCtx) => AlertDialog(
+              title: const Text('Tüm senaryolar silinsin mi?'),
+              content: const Text('Bu işlem tüm kayıtları siler.'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(dialogCtx, false), child: const Text('Vazgeç')),
+                FilledButton(onPressed: () => Navigator.pop(dialogCtx, true), child: const Text('Sil')),
+              ],
+            ),
+          );
+          if (confirm == true) {
+            if (_activeSpreadScenarioId != null) _stopSpreadTracking();
+            await _api.deleteAllSpreadScenarios();
+            _spreadScenariosCache = null;
+            Navigator.pop(ctx);
+            _showControlPanel(); // Re-open to refresh
+          }
         },
         tr: _t,
       ),
@@ -1317,11 +1195,34 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Widget _buildSpreadInfoPanel() {
-    final windKmh = (_windSpeedMs != null ? (_windSpeedMs! * 3.6) : 0.0).toStringAsFixed(1);
-    final spreadRateKmh = (_scenarioProps?['spread_rate_ms'] != null ? (_scenarioProps!['spread_rate_ms'] * 3.6) : 0.0).toStringAsFixed(2);
-    final frontDist = (_scenarioProps?['front_radius_km'] as num?)?.toDouble().toStringAsFixed(2) ?? '-';
-    final humidity = (_scenarioWeather?['humidity'] as num?)?.toDouble().toStringAsFixed(0) ?? '-';
-    final temp = (_scenarioWeather?['temperature_c'] as num?)?.toDouble().toStringAsFixed(1) ?? '-';
+    final windKmh = (_windSpeedMs != null ? (_windSpeedMs! * 3.6) : 0.0)
+        .toStringAsFixed(1);
+    final spreadRateKmh =
+        (_scenarioProps?['spread_rate_ms'] != null
+                ? (double.tryParse(
+                        _scenarioProps!['spread_rate_ms'].toString(),
+                      )! *
+                      3.6)
+                : 0.0)
+            .toStringAsFixed(2);
+    final frontDist = _scenarioProps?['front_radius_km'] != null
+        ? double.tryParse(
+                _scenarioProps!['front_radius_km'].toString(),
+              )?.toStringAsFixed(2) ??
+              '-'
+        : '-';
+    final humidity = _scenarioWeather?['humidity'] != null
+        ? double.tryParse(
+                _scenarioWeather!['humidity'].toString(),
+              )?.toStringAsFixed(0) ??
+              '-'
+        : '-';
+    final temp = _scenarioWeather?['temperature_c'] != null
+        ? double.tryParse(
+                _scenarioWeather!['temperature_c'].toString(),
+              )?.toStringAsFixed(1) ??
+              '-'
+        : '-';
 
     return Container(
       width: 220,
@@ -1352,7 +1253,14 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          _buildInfoRow('Süre:', '${(_elapsedMinutes ?? 0).toStringAsFixed(0)} dk'),
+          _buildInfoRow(
+            'Süre:',
+            '${(double.tryParse((_elapsedMinutes ?? 0).toString()) ?? 0.0).toStringAsFixed(0)} dk',
+          ),
+          _buildInfoRow(
+            'Kural:',
+            '$kFireSpreadMonitorIntervalMinutes dk / ${kFireSpreadStepDurationMinutes.toStringAsFixed(0)} dk',
+          ),
           _buildInfoRow('Ön Cephe:', '$frontDist km'),
           _buildInfoRow('Yayılım Hızı:', '$spreadRateKmh km/sa'),
           const Divider(color: Colors.white10, height: 16),
@@ -1365,7 +1273,10 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          _buildInfoRow('Rüzgar:', '$windKmh km/sa  ${_windDir?.toStringAsFixed(0) ?? '-'}°'),
+          _buildInfoRow(
+            'Rüzgar:',
+            '$windKmh km/sa  ${_windDir?.toStringAsFixed(0) ?? '-'}°',
+          ),
           _buildInfoRow('Sıcaklık:', '$temp°C'),
           _buildInfoRow('Nem:', '%$humidity'),
         ],
@@ -1427,6 +1338,30 @@ class _MapScreenState extends State<MapScreen> {
           color: color,
           fontSize: 12,
           fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  Widget _circularMapBtn({required IconData icon, required VoidCallback onTap, Color? color}) {
+    return Material(
+      color: AppTheme.webBg.withValues(alpha: 0.85),
+      borderRadius: BorderRadius.circular(30),
+      elevation: 8,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(30),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: AppTheme.webAccent.withValues(alpha: 0.3), width: 1.5),
+          ),
+          child: Icon(
+            icon,
+            size: 22,
+            color: color ?? AppTheme.webAccent,
+          ),
         ),
       ),
     );
