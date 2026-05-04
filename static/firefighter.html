@@ -2304,7 +2304,9 @@
         body: JSON.stringify({ name: `Pipeline Sonucu – n=${n} k=${k}`, n, k, snapshot: compactSnapshotForStorage(snapshotToSave) }),
       });
       if (!res.ok) throw new Error('Pipeline kaydetme API hatası: ' + res.status);
+      const savedPipeline = await res.json().catch(() => ({}));
       setStatus(`Pipeline kaydedildi (n=${n}, k=${k})`);
+      return savedPipeline;
     }
 
     async function ensureOptimizationScenario() {
@@ -4047,7 +4049,6 @@
     safeBind('btnFireStations', 'click', loadFireStations);
     safeBind('btnProximity', 'click', toggleProximityGrid);
     safeBind('btnIntegrated', 'click', toggleIntegratedLayer);
-    safeBind('btnPipelinePDF', 'click', () => { window.open('/api/scenario/export/pdf/1', '_blank'); });
     safeBind('btnSaveScenario', 'click', async () => {
       try {
         await ensureOptimizationScenario();
@@ -5214,26 +5215,31 @@
       }
     };
 
-    // ── PDF İndir butonunu pipeline DB'ye kaydet ───────────
+    // ── PDF İndir butonunu pipeline DB'ye kaydet ve indir ───────────
     // (Script sayfanın en altında olduğundan DOMContentLoaded gerekmez)
     (function bindPipelineSave() {
       const pdfBtn = document.getElementById('btnPipelinePDF');
       if (pdfBtn) {
         pdfBtn.addEventListener('click', async function() {
-          const nVal = parseInt(document.getElementById('pipelineN')?.value || '20');
-          const kVal = parseInt(document.getElementById('pipelineK')?.value || '4');
           try {
-            await apiFetch('/api/pipelines', {
-              method: 'POST',
-              body: JSON.stringify({
-                name: `Pipeline Sonucu – n=${nVal} k=${kVal}`,
-                n: nVal,
-                k: kVal,
-                snapshot: compactSnapshotForStorage(window._lastPipelineSnapshot || null),
-              }),
+            const saved = await saveCurrentPipeline();
+            if (!saved?.id) throw new Error('Pipeline ID dönmedi');
+            const accessToken = sessionStorage.getItem('access_token');
+            const pdfRes = await fetch(`/api/pipelines/${saved.id}/pdf`, {
+              headers: accessToken ? { 'Authorization': 'Bearer ' + accessToken } : {},
             });
+            if (!pdfRes.ok) throw new Error('PDF oluşturulamadı: ' + pdfRes.status);
+            const blob = await pdfRes.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `koru_pipeline_${saved.id}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
           } catch(e) {
-            console.warn('Pipeline kaydedilemedi:', e);
+            alert('PDF indirilemedi: ' + (e.message || e));
           }
         });
       }
