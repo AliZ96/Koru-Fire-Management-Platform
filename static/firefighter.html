@@ -462,6 +462,7 @@
       }
 
       const username = sessionStorage.getItem('username') || 'Kullanıcı';
+      const email = sessionStorage.getItem('email') || username;
       const userType = sessionStorage.getItem('role') || 'user';
       const userDisplay = document.getElementById('userDisplay');
       const userDropdownMenu = document.getElementById('userDropdownMenu');
@@ -469,7 +470,7 @@
       const profileLink = document.getElementById('profileLink');
 
       if (userDisplay) {
-        const displayName = localStorage.getItem('koru_display_name') || username;
+        const displayName = String(email || username || 'Kullanıcı').split('@')[0] || 'Kullanıcı';
         userDisplay.innerHTML = `<span style="font-size:15px;">👤</span><span>${displayName}</span><span style="font-size:9px;opacity:.7;">▼</span>`;
 
         userDisplay.addEventListener('click', function(e) {
@@ -1973,11 +1974,15 @@
     let savedPipelineSnapshot = null;
 
     // SA: soğuk aile (mavi/cyan/yeşil) | GA: sıcak aile (turuncu/kırmızı/amber)
-    const SA_VEHICLE_COLORS = ['#2563eb', '#06b6d4', '#10b981'];
-    const GA_VEHICLE_COLORS = ['#f97316', '#ef4444', '#f59e0b'];
-    const GA20_VEHICLE_COLORS = ['#a855f7', '#ec4899', '#84cc16'];
+    const SA_VEHICLE_COLORS = ['#2563eb', '#06b6d4', '#10b981', '#0ea5e9', '#14b8a6', '#22c55e', '#6366f1', '#0891b2', '#15803d', '#4f46e5', '#0284c7', '#65a30d', '#0f766e', '#1d4ed8', '#16a34a', '#38bdf8', '#34d399', '#818cf8', '#67e8f9', '#86efac'];
+    const GA_VEHICLE_COLORS = ['#f97316', '#ef4444', '#f59e0b', '#dc2626', '#fb923c', '#e11d48', '#d97706', '#f43f5e', '#ea580c', '#b91c1c', '#facc15', '#be123c', '#c2410c', '#f87171', '#fdba74', '#fbbf24', '#fb7185', '#a16207', '#991b1b', '#fca5a5'];
+    const GA20_VEHICLE_COLORS = ['#a855f7', '#ec4899', '#84cc16', '#8b5cf6', '#d946ef', '#22c55e', '#06b6d4', '#f472b6', '#7c3aed', '#65a30d', '#c084fc', '#db2777', '#14b8a6', '#9333ea', '#4ade80', '#0ea5e9', '#e879f9', '#a3e635', '#0891b2', '#f0abfc'];
     function getVehicleColors(algo) {
       return algo === 'GA20' ? GA20_VEHICLE_COLORS : (algo === 'GA' ? GA_VEHICLE_COLORS : SA_VEHICLE_COLORS);
+    }
+    function getRouteVehicleColor(algo, routeIndex) {
+      const colors = getVehicleColors(algo);
+      return colors[routeIndex % colors.length] || '#6b7280';
     }
 
     // Chaikin corner-cutting: köşeleri yumuşatır, daha gerçekçi rota görünümü
@@ -2172,7 +2177,7 @@
       routeLegendCtl = L.control({ position: 'bottomleft' });
       routeLegendCtl.onAdd = function() {
         const div = L.DomUtil.create('div', 'legend');
-        div.style.cssText = 'background:rgba(15,5,5,0.93);padding:10px 14px;border-radius:8px;box-shadow:0 0 15px rgba(0,0,0,0.35);font-size:12px;color:#fecaca;min-width:170px;border:1px solid rgba(239,68,68,0.3)';
+        div.style.cssText = 'background:rgba(15,5,5,0.93);padding:10px 14px;border-radius:8px;box-shadow:0 0 15px rgba(0,0,0,0.35);font-size:12px;color:#fecaca;min-width:170px;max-height:260px;overflow:auto;border:1px solid rgba(239,68,68,0.3)';
         let html = '<b style="display:block;margin-bottom:8px;font-size:13px;letter-spacing:.5px">🗺 Rota Katmanı</b>';
         if (loadedAlgorithms.has('SA')) {
           html += '<div style="margin-bottom:4px;font-weight:700;opacity:0.6;font-size:10px;letter-spacing:1.2px">── SA ROTALARI ──</div>';
@@ -2243,6 +2248,35 @@
         delete compact.optimization;
       }
       return compact;
+    }
+
+    function stationVehicleCountFromResult(result, stationId) {
+      const stations = Array.isArray(result?.stations) ? result.stations : [];
+      const station = stations.find(s => String(s.station_id ?? s.id) === String(stationId));
+      return Array.isArray(station?.vehicles) ? station.vehicles.length : null;
+    }
+
+    function stationDispatchTooltipHtml(props) {
+      const stationId = props.id;
+      const assignedPointCount = Number(props.assigned_point_count || 0);
+      const rows = [
+        ['SA', stationVehicleCountFromResult(lastOptimizationResults.SA, stationId)],
+        ['GA', stationVehicleCountFromResult(lastOptimizationResults.GA, stationId)],
+        ['GA 2.0', stationVehicleCountFromResult(lastOptimizationResults.GA20, stationId)],
+      ].filter(([, count]) => count != null);
+
+      const vehicleHtml = rows.length
+        ? rows.map(([label, count]) => `<div><strong>${label}:</strong> ${count} itfaiye aracı</div>`).join('')
+        : '<div style="color:#666;">Rota çalışınca araç sayısı burada görünür.</div>';
+
+      return `
+        <div style="font-family:system-ui,-apple-system,sans-serif;font-size:12px;line-height:1.35;min-width:170px;">
+          <div style="font-weight:700;color:#C41E3A;margin-bottom:4px;">${props.name || 'İtfaiye istasyonu'}</div>
+          <div><strong>İstasyon ID:</strong> ${stationId}</div>
+          <div><strong>Atanan yangın noktası:</strong> ${assignedPointCount}</div>
+          <div style="border-top:1px solid #ddd;margin-top:6px;padding-top:6px;">${vehicleHtml}</div>
+        </div>
+      `;
     }
 
     async function saveCurrentPipeline() {
@@ -2385,9 +2419,9 @@
           map.getPane('routePane').style.zIndex = 780;
         }
 
-        const vehicleColors = getVehicleColors(algo);
         const features = [];
         const iconPlacements = [];
+        let routeColorIndex = 0;
         stations.forEach(station => {
           const vehicles = Array.isArray(station.vehicles) ? station.vehicles : [];
           if (!vehicles.length) return;
@@ -2407,7 +2441,7 @@
               .map(p => [Number(p[1]), Number(p[0])]);
             if (rawCoords.length < 2) return;
 
-            const vColor = vehicleColors[vIdx] || vehicleColors[vehicleColors.length - 1];
+            const vColor = getRouteVehicleColor(algo, routeColorIndex++);
             features.push({
               type: 'Feature',
               geometry: { type: 'LineString', coordinates: rawCoords },
@@ -2531,8 +2565,8 @@
         map.getPane('routePane').style.zIndex = 780;
       }
 
-      const vehicleColors = getVehicleColors(algo);
       const features = [];
+      let routeColorIndex = 0;
       stations.forEach(station => {
         const vehicles = Array.isArray(station.vehicles) ? station.vehicles : [];
         if (!vehicles.length) return;
@@ -2554,7 +2588,7 @@
             .map(p => [Number(p[0]), Number(p[1])]);
           if (coords.length < 2) return;
 
-          const vColor = vehicleColors[vIdx] || vehicleColors[vehicleColors.length - 1];
+          const vColor = getRouteVehicleColor(algo, routeColorIndex++);
           features.push({
             type: 'Feature',
             geometry: { type: 'LineString', coordinates: coords },
@@ -2720,6 +2754,11 @@
           }
         }));
         const usedStationIds = new Set(pipelinePoints.map(p => String(p.fire_station_id)));
+        const assignedPointCountByStation = pipelinePoints.reduce((acc, p) => {
+          const key = String(p.fire_station_id);
+          acc[key] = (acc[key] || 0) + 1;
+          return acc;
+        }, {});
         const stationFeatures = Array.from(usedStationIds)
           .map(id => stationById[id])
           .filter(Boolean)
@@ -2729,7 +2768,8 @@
             properties: {
               type: 'fire_station',
               id: s.id,
-              name: s.name || `Station ${s.id}`
+              name: s.name || `Station ${s.id}`,
+              assigned_point_count: assignedPointCountByStation[String(s.id)] || 0,
             }
           }));
 
@@ -2814,6 +2854,13 @@
             `;
             }
 
+            if (ft === 'fire_station') {
+              layer.bindTooltip(() => stationDispatchTooltipHtml(props), {
+                direction: 'top',
+                opacity: 0.96,
+                sticky: true,
+              });
+            }
             layer.bindPopup(popupContent);
           }
         }).addTo(map);
@@ -2896,6 +2943,11 @@
         const stationById = {};
         stations.forEach(s => { stationById[String(s.id)] = s; });
         const usedStationIds = new Set(pipelinePoints.map(p => String(p.fire_station_id)));
+        const assignedPointCountByStation = pipelinePoints.reduce((acc, p) => {
+          const key = String(p.fire_station_id);
+          acc[key] = (acc[key] || 0) + 1;
+          return acc;
+        }, {});
 
         const pointFeatures = pipelinePoints.map(p => ({
           type: 'Feature',
@@ -2906,7 +2958,12 @@
         const stationFeatures = Array.from(usedStationIds)
           .map(id => stationById[id]).filter(Boolean)
           .map(s => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [Number(s.lon), Number(s.lat)] },
-            properties: { type: 'fire_station', id: s.id, name: s.name || `Station ${s.id}` } }));
+            properties: {
+              type: 'fire_station',
+              id: s.id,
+              name: s.name || `Station ${s.id}`,
+              assigned_point_count: assignedPointCountByStation[String(s.id)] || 0,
+            } }));
 
         if (!map.getPane('pipelinePane')) {
           map.createPane('pipelinePane');
@@ -2925,6 +2982,16 @@
                   html:'<div style="width:18px;height:18px;background:#ff2d2d;border:2px solid #b30000;border-radius:2px;box-sizing:border-box;"></div>' }) });
               }
               return L.circleMarker(latlng, { radius:4, color, weight:1, fillColor:color, fillOpacity:0.85, opacity:0.9 });
+            },
+            onEachFeature: (feature, layer) => {
+              const props = feature.properties || {};
+              if ((props.type || 'fire_point') !== 'fire_station') return;
+              layer.bindTooltip(() => stationDispatchTooltipHtml(props), {
+                direction: 'top',
+                opacity: 0.96,
+                sticky: true,
+              });
+              layer.bindPopup(stationDispatchTooltipHtml(props));
             }
           }
         ).addTo(map);
@@ -3026,9 +3093,9 @@
         map.createPane('routePane');
         map.getPane('routePane').style.zIndex = 780;
       }
-      const vehicleColors = getVehicleColors(algo);
       const features = [];
       const iconPlacements = [];
+      let routeColorIndex = 0;
 
       stationDataArray.forEach(station => {
         const vehicles = Array.isArray(station.vehicles) ? station.vehicles : [];
@@ -3044,7 +3111,7 @@
             .filter(p => Array.isArray(p) && p.length >= 2)
             .map(p => [Number(p[1]), Number(p[0])]);
           if (rawCoords.length < 2) return;
-          const vColor = vehicleColors[vIdx] || vehicleColors[vehicleColors.length - 1];
+          const vColor = getRouteVehicleColor(algo, routeColorIndex++);
           features.push({
             type: 'Feature',
             geometry: { type: 'LineString', coordinates: rawCoords },
@@ -4674,11 +4741,11 @@
             <div class="pm-stat-row">
               <div class="pm-stat">
                 <div class="pm-stat-val" id="pmStatPipelines">0</div>
-                <div class="pm-stat-lbl">Kayıtlı Pipeline</div>
+                <div class="pm-stat-lbl">Kayıtlı Senaryo</div>
               </div>
               <div class="pm-stat">
                 <div class="pm-stat-val" id="pmStatScenarios">0</div>
-                <div class="pm-stat-lbl">Kayıtlı Senaryo</div>
+                <div class="pm-stat-lbl">Kayıtlı Pipeline</div>
               </div>
               <div class="pm-stat">
                 <div class="pm-stat-val" id="pmStatLastRun">—</div>
@@ -4844,7 +4911,9 @@
       pmAvatar.textContent = getInitials(newName);
       const userDisplay = document.getElementById('userDisplay');
       if (userDisplay) {
-        userDisplay.innerHTML = `<span style="font-size:15px;">👤</span><span>${newName}</span><span style="font-size:9px;opacity:.7;">▼</span>`;
+        const email = sessionStorage.getItem('email') || sessionStorage.getItem('username') || newName;
+        const topbarName = String(email || newName).split('@')[0] || newName;
+        userDisplay.innerHTML = `<span style="font-size:15px;">👤</span><span>${topbarName}</span><span style="font-size:9px;opacity:.7;">▼</span>`;
       }
       pmSaveBtn.textContent = '✓ Kaydedildi';
       pmSaveBtn.disabled = true;
@@ -4857,7 +4926,7 @@
       try {
         const data = await apiFetch('/api/pipelines');
         _pipelineCache = data || [];
-        pmStatPipelines.textContent = _pipelineCache.length;
+        if (pmStatPipelines) pmStatPipelines.textContent = _pipelineCache.length;
         if (_pipelineCache.length > 0) {
           const last = _pipelineCache[0]; // desc sıralı geliyor
           pmStatLastRun.textContent = formatDate(last.created_at).split(' ').slice(0,2).join(' ');
@@ -4868,7 +4937,7 @@
         renderSidebarPipelines();
       } catch(e) {
         _pipelineCache = [];
-        pmStatPipelines.textContent = '0';
+        if (pmStatPipelines) pmStatPipelines.textContent = '0';
         if (!statsOnly) {
           pmPipelineList.innerHTML = '<div class="pm-empty"><div class="pm-empty-icon">⚠️</div>Yüklenemedi. Oturum açık mı?</div>';
         }
@@ -5097,7 +5166,7 @@
           try {
             await apiFetch(`/api/pipelines/${id}`, { method: 'DELETE' });
             _pipelineCache = _pipelineCache.filter(p => p.id !== Number(id));
-            pmStatPipelines.textContent = _pipelineCache.length;
+            if (pmStatPipelines) pmStatPipelines.textContent = _pipelineCache.length;
             renderPipelineList();
           } catch(e) {
             this.disabled = false;
