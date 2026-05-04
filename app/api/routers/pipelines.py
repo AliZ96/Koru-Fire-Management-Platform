@@ -17,6 +17,9 @@ class PipelineSaveRequest(BaseModel):
     name: str
     n: int = 20
     k: int = 4
+    pop: Optional[int] = None
+    iter: Optional[int] = None
+    temp: Optional[int] = None
     snapshot: Optional[Dict[str, Any]] = None
 
 
@@ -25,6 +28,9 @@ class PipelineResponse(BaseModel):
     name: str
     n: int
     k: int
+    pop: Optional[int] = None
+    iter: Optional[int] = None
+    temp: Optional[int] = None
     has_snapshot: bool
     snapshot: Optional[Dict[str, Any]] = None
     created_at: str
@@ -45,6 +51,9 @@ def _serialize(p: dict[str, Any], include_snapshot: bool = True) -> dict:
         "name": p.get("name"),
         "n": int(p.get("n", 0)),
         "k": int(p.get("k", 0)),
+        "pop": p.get("pop"),
+        "iter": p.get("iter"),
+        "temp": p.get("temp"),
         "has_snapshot": snap is not None,
         "snapshot": snap if include_snapshot else None,
         "created_at": str(p.get("created_at") or ""),
@@ -72,6 +81,9 @@ def save_pipeline(
         name=payload.name,
         n=payload.n,
         k=payload.k,
+        pop=payload.pop,
+        iter=payload.iter,
+        temp=payload.temp,
         snapshot_json=snap_json,
     )
     return _serialize(row)

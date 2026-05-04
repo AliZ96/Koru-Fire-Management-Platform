@@ -2250,6 +2250,14 @@
       return compact;
     }
 
+    function currentOptimizationParams() {
+      return {
+        pop: Math.max(1, parseInt(document.getElementById('gaPopSize')?.value || '100', 10) || 100),
+        iter: Math.max(1, parseInt(document.getElementById('gaMaxIter')?.value || '100', 10) || 100),
+        temp: Math.max(1, parseInt(document.getElementById('saMaxTemp')?.value || '100', 10) || 100),
+      };
+    }
+
     function stationVehicleCountFromResult(result, stationId) {
       const stations = Array.isArray(result?.stations) ? result.stations : [];
       const station = stations.find(s => String(s.station_id ?? s.id) === String(stationId));
@@ -2301,7 +2309,13 @@
       const res = await fetch('/api/pipelines', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken },
-        body: JSON.stringify({ name: `Pipeline Sonucu – n=${n} k=${k}`, n, k, snapshot: compactSnapshotForStorage(snapshotToSave) }),
+        body: JSON.stringify({
+          name: `Pipeline Sonucu – n=${n} k=${k}`,
+          n,
+          k,
+          ...currentOptimizationParams(),
+          snapshot: compactSnapshotForStorage(snapshotToSave),
+        }),
       });
       if (!res.ok) throw new Error('Pipeline kaydetme API hatası: ' + res.status);
       const savedPipeline = await res.json().catch(() => ({}));
@@ -4828,6 +4842,14 @@
       return d.toLocaleDateString('tr-TR', { day:'2-digit', month:'short', year:'numeric' }) +
              ' ' + d.toLocaleTimeString('tr-TR', { hour:'2-digit', minute:'2-digit' });
     }
+    function pipelineMetaText(item) {
+      const parts = [`n=${item.n}`, `k=${item.k}`];
+      if (item.pop != null) parts.push(`pop=${item.pop}`);
+      if (item.iter != null) parts.push(`iter=${item.iter}`);
+      if (item.temp != null) parts.push(`temp=${item.temp}`);
+      parts.push(formatDate(item.created_at));
+      return parts.join(' • ');
+    }
 
     // ── Modal elemanları ───────────────────────────────────
     const modal = document.getElementById('profileModal');
@@ -5094,7 +5116,7 @@
           '<div class="pm-pipeline-icon">📄</div>' +
           '<div class="pm-pipeline-info">' +
             `<div class="pm-pipeline-name">${item.name}</div>` +
-            `<div class="pm-pipeline-meta">n=${item.n} • k=${item.k} • ${formatDate(item.created_at)}</div>` +
+            `<div class="pm-pipeline-meta">${pipelineMetaText(item)}</div>` +
           '</div>' +
           '<div class="pm-pipeline-actions">' +
             `<button class="pm-pipeline-btn show" title="Haritada Göster">🗺 Göster</button>` +
@@ -5261,6 +5283,7 @@
                   name: `Pipeline Sonucu – n=${nVal} k=${kVal}`,
                   n: nVal,
                   k: kVal,
+                  ...currentOptimizationParams(),
                   snapshot: compactSnapshotForStorage(snap),
                 }),
               });

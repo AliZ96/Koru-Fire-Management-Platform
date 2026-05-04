@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/foundation.dart';
 
 /// Backend API configuration.
@@ -10,8 +12,8 @@ class ApiConfig {
     const fromEnv = String.fromEnvironment('API_BASE_URL', defaultValue: '');
     if (fromEnv.isNotEmpty) return fromEnv;
 
-    // On Android emulator use host alias
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    // On Android emulator and physical Android devices, use the host alias.
+    if (!kIsWeb && Platform.isAndroid) {
       return 'http://10.0.2.2:8000';
     }
 
