@@ -12,9 +12,16 @@ import 'config/firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    // Firebase app might already be initialized
+    debugPrint('Firebase init: $e');
+  }
+
   final apiService = ApiService();
   final authService = AuthService(apiService);
   final mapDataService = MapDataService(apiService);
@@ -63,9 +70,14 @@ class _SplashGateState extends State<_SplashGate> {
   }
 
   Future<void> _init() async {
-    final auth = context.read<AuthService>();
-    await auth.tryRestoreSession();
-    if (mounted) setState(() => _ready = true);
+    try {
+      final auth = Provider.of<AuthService>(context, listen: false);
+      await auth.tryRestoreSession();
+      if (mounted) setState(() => _ready = true);
+    } catch (e) {
+      debugPrint('Session restore error: $e');
+      if (mounted) setState(() => _ready = true);
+    }
   }
 
   @override
